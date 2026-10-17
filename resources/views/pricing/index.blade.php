@@ -40,6 +40,8 @@
                     <li>Basic dashboard</li>
                     <li>{{ data_get($starter, 'limits.admins', 1) }} admin user</li>
                     <li>Transaction fee: {{ data_get($starter, 'transaction_fee', '1.9%') }}</li>
+                    <li>1 promotion nomination each month</li>
+                    <li>Verified customer ratings</li>
                 </ul>
                 <a href="{{ route('billing.show') }}" class="mt-6 inline-flex w-full items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
                     Choose Starter
@@ -58,6 +60,8 @@
                     <li>Improved dashboard</li>
                     <li>Faster support</li>
                     <li>Transaction fee: {{ data_get($growth, 'transaction_fee', '1.25%') }}</li>
+                    <li>2 monthly nominations + 3-day feature</li>
+                    <li>Seller story eligibility</li>
                 </ul>
                 <a href="{{ route('billing.show') }}" class="mt-6 inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500">
                     Choose Growth
@@ -74,9 +78,11 @@
                     <li>{{ data_get($enterprise, 'limits.products', 'Unlimited') }} products</li>
                     <li>{{ data_get($enterprise, 'limits.orders', 'Unlimited') }} orders</li>
                     <li>Advanced dashboard</li>
-                    <li>Team access up to {{ data_get($enterprise, 'limits.admins', 10) }} members</li>
+                    <li>Single owner account</li>
                     <li>Priority support</li>
                     <li>Transaction fee: {{ data_get($enterprise, 'transaction_fee', '1%') }}</li>
+                    <li>4 monthly nominations + 7-day feature</li>
+                    <li>Priority quarterly seller story</li>
                 </ul>
                 <a href="{{ route('billing.show') }}" class="mt-6 inline-flex w-full items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
                     Choose Enterprise
@@ -133,8 +139,12 @@
                     ['WhatsApp sharing and chat', 'Yes', 'Yes', 'Yes'],
                     ['Dashboard', 'Basic', 'Improved', 'Advanced'],
                     ['Support', 'Standard', 'Faster', 'Priority'],
-                    ['Team members', 'No', 'No', 'Up to 10'],
+                    ['Team members', 'No', 'No', 'No'],
                     ['Transaction fee', data_get($starter, 'transaction_fee', '1.9%'), data_get($growth, 'transaction_fee', '1.25%'), data_get($enterprise, 'transaction_fee', '1%')],
+                    ['Verified ratings', 'Included', 'Included', 'Included'],
+                    ['Promotion nominations', '1 / month', '2 / month', '4 / month'],
+                    ['Marketplace feature', '—', '3 days / month', '7 days / month'],
+                    ['Seller stories', '—', 'Eligible', 'Priority quarterly'],
                 ];
             @endphp
 

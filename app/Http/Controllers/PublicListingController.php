@@ -15,6 +15,7 @@ use App\Services\AnalyticsService;
 use App\Services\OgImageService;
 use App\Services\PaystackService;
 use App\Services\SellerNotifier;
+use App\Services\SellerRatingService;
 use App\Support\Email;
 use App\Support\Money;
 use App\Support\Phone;
@@ -33,7 +34,7 @@ class PublicListingController extends Controller
 
     private const CART_TTL_DAYS = 30;
 
-    public function show(string $public_slug, Request $request, AnalyticsService $analytics)
+    public function show(string $public_slug, Request $request, AnalyticsService $analytics, SellerRatingService $ratings)
     {
         $profile = SellerProfile::where('public_slug', $public_slug)
             ->with(['user.products' => function ($query) {
@@ -42,10 +43,7 @@ class PublicListingController extends Controller
             }])
             ->firstOrFail();
 
-        $storefrontTheme = $profile->storefront_theme ?: 'classic';
-        if (! in_array($storefrontTheme, SellerProfile::STOREFRONT_THEMES, true)) {
-            $storefrontTheme = 'classic';
-        }
+        $storefrontTheme = $profile->resolvedStorefrontTheme();
         $template = 'products';
         $statusFilter = $request->query('status', 'all');
         $allowedStatusFilters = [
@@ -107,6 +105,7 @@ class PublicListingController extends Controller
             'storefrontTheme' => $storefrontTheme,
             'isOwner' => $isOwner,
             'paymentsEnabled' => $profile->user?->canUsePaymentsFeature() ?? false,
+            'sellerRating' => $ratings->summary($profile->user_id),
             'ogTitle' => $settings['seo_title'] ?: $profile->business_name,
             'ogDescription' => $settings['seo_description'] ?: 'Browse products & services and contact on WhatsApp',
             'ogImage' => $this->resolveSellerOgImage($profile),
@@ -304,7 +303,7 @@ class PublicListingController extends Controller
             ],
         ]);
 
-        $platformFee = $paystack->platformChargeFor($total);
+        $platformFee = $paystack->platformChargeFor($total, $sellerUser);
 
         try {
             $data = $paystack->initializeTransaction(
@@ -578,7 +577,7 @@ class PublicListingController extends Controller
             ],
         ]);
 
-        $platformFee = $paystack->platformChargeFor($total);
+        $platformFee = $paystack->platformChargeFor($total, $sellerUser);
 
         try {
             $data = $paystack->initializeTransaction(

@@ -36,6 +36,16 @@
 - Canonical version is stored in [`VERSION`](./VERSION).
 - Release process is documented in [`docs/VERSIONING.md`](./docs/VERSIONING.md).
 
+## Production subscriptions
+
+1. Create three monthly plans in the Paystack dashboard using the exact prices in `config/plans.php`.
+2. Set `PAYSTACK_PLAN_STARTER`, `PAYSTACK_PLAN_GROWTH`, and `PAYSTACK_PLAN_ENTERPRISE` to their `PLN_...` codes.
+3. Set `BILLING_CALLBACK_URL=https://YOUR_DOMAIN/billing/callback` and `BILLING_RECURRING_ENABLED=true`.
+4. Configure the Paystack webhook URL as `https://YOUR_DOMAIN/webhooks/paystack`.
+5. Run the queue worker and Laravel scheduler as separate Render services. The scheduler expires failed subscriptions and grants monthly package placements.
+
+Paystack recurring subscriptions require a supported card authorization. Billing email is collected separately and does not change phone-and-PIN login.
+
 ## Future projections
 - Multi-country phone login and verification.
 - Enhanced change log tracking for key platform actions.

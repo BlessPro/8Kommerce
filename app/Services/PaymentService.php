@@ -58,7 +58,7 @@ class PaymentService
                     $existingPayload,
                     $this->sanitizedVerificationData($verifiedData)
                 );
-                $commissionPercent = (string) config('plans.payments.commission_percent', '0.01');
+                $commissionPercent = $payment->user?->commissionPercent() ?? (string) config('plans.payments.commission_percent', '0.01');
                 $payment->commission_amount = Money::percent((string) $payment->amount, $commissionPercent);
                 $payment->transaction_fee = $this->amountFromMinor(data_get($verifiedData, 'transaction_charge'));
                 $payment->tax_amount = $this->resolveTaxAmount($verifiedData);

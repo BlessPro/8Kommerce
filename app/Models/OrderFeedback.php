@@ -21,12 +21,16 @@ class OrderFeedback extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
+    protected $table = 'order_feedbacks';
+
     protected $fillable = [
         'order_id',
         'order_feedback_token_id',
         'type',
         'rating',
         'note',
+        'seller_reply',
+        'seller_replied_at',
         'issue_note',
         'issue_photo_path',
         'admin_status',
@@ -39,6 +43,7 @@ class OrderFeedback extends Model
     {
         return [
             'rating' => 'integer',
+            'seller_replied_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];
     }

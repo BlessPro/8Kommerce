@@ -101,7 +101,7 @@ class PublicSavedCartPersistenceTest extends TestCase
         ]);
 
         $paystackMock = \Mockery::mock(PaystackService::class);
-        $paystackMock->shouldReceive('platformChargeFor')->once()->andReturn('0.00');
+        $paystackMock->shouldReceive('platformChargeFor')->once()->with('55.00', \Mockery::on(fn ($user) => $user->is($seller)))->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')->once()->andReturn([
             'authorization_url' => 'https://paystack.test/checkout',
         ]);

@@ -100,4 +100,14 @@ class Product extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function promotionSubmissions()
+    {
+        return $this->hasMany(PromotionSubmission::class);
+    }
+
+    public function featuredPlacements()
+    {
+        return $this->hasMany(FeaturedPlacement::class);
+    }
 }

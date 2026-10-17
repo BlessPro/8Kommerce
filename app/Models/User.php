@@ -76,7 +76,7 @@ class User extends Authenticatable
 
     public function startTrialIfMissing(): void
     {
-        if ($this->trial_started_at || $this->trial_ends_at || $this->plan_type) {
+        if ($this->trial_started_at || $this->trial_ends_at || ($this->plan_type && $this->plan_type !== self::PLAN_FREE_TRIAL)) {
             return;
         }
 
@@ -89,11 +89,13 @@ class User extends Authenticatable
 
     public function isOnTrial(): bool
     {
-        if ($this->trial_ends_at === null) {
-            return $this->plan_type === self::PLAN_FREE_TRIAL;
+        if ($this->plan_type === self::PLAN_FREE_TRIAL && $this->trial_ends_at === null) {
+            $this->startTrialIfMissing();
         }
 
-        return now()->lt($this->trial_ends_at);
+        return $this->plan_type === self::PLAN_FREE_TRIAL
+            && $this->trial_ends_at !== null
+            && now()->lt($this->trial_ends_at);
     }
 
     public function trialExpired(): bool
@@ -103,6 +105,13 @@ class User extends Authenticatable
 
     public function hasActivePlan(): bool
     {
+        $subscription = $this->relationLoaded('subscriptions')
+            ? $this->subscriptions->sortByDesc('id')->first(fn (Subscription $item) => $item->grantsAccess())
+            : $this->subscriptions()->latest('id')->get()->first(fn (Subscription $item) => $item->grantsAccess());
+        if ($subscription) {
+            return true;
+        }
+
         if (! in_array($this->plan_type, [
             self::PLAN_STARTER,
             self::PLAN_GROWTH,
@@ -113,11 +122,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->plan_ends_at === null) {
-            return true;
-        }
-
-        return now()->lt($this->plan_ends_at);
+        return $this->plan_ends_at !== null && now()->lt($this->plan_ends_at);
     }
 
     public function hasActiveAccess(): bool
@@ -168,8 +173,35 @@ class User extends Authenticatable
         return match ($this->normalizedPlanType()) {
             self::PLAN_STARTER => 1,
             self::PLAN_GROWTH => 1,
-            self::PLAN_ENTERPRISE => 10,
+            self::PLAN_ENTERPRISE => 1,
             default => 1,
+        };
+    }
+
+    public function promotionSubmissionLimit(): int
+    {
+        if ($this->isOnTrial()) {
+            return 1;
+        }
+
+        return match ($this->normalizedPlanType()) {
+            self::PLAN_GROWTH => 2,
+            self::PLAN_ENTERPRISE => 4,
+            default => 1,
+        };
+    }
+
+    public function commissionPercent(): string
+    {
+        if ($this->isOnTrial()) {
+            return '0.01';
+        }
+
+        return (string) match ($this->normalizedPlanType()) {
+            self::PLAN_STARTER => config('plans.starter.commission_percent', '0.019'),
+            self::PLAN_GROWTH => config('plans.growth.commission_percent', '0.0125'),
+            self::PLAN_ENTERPRISE => config('plans.enterprise.commission_percent', '0.01'),
+            default => config('plans.payments.commission_percent', '0.01'),
         };
     }
 
@@ -245,5 +277,31 @@ class User extends Authenticatable
     public function dataDeletionRequests()
     {
         return $this->hasMany(DataDeletionRequest::class);
+    }
+
+    public function promotionSubmissions()
+    {
+        return $this->hasMany(PromotionSubmission::class);
+    }
+
+    public function featuredPlacements()
+    {
+        return $this->hasMany(FeaturedPlacement::class);
+    }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function subscriptionInvoices()
+    {
+        return $this->hasMany(SubscriptionInvoice::class);
+    }
+
+    public function currentSubscription(): ?Subscription
+    {
+        return $this->subscriptions()->latest('id')->get()->first(fn (Subscription $item) => $item->grantsAccess())
+            ?? $this->subscriptions()->latest('id')->first();
     }
 }

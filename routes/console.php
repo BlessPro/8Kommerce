@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WebhookEvent;
 use App\Services\PaymentReconciliationService;
 use App\Services\SellerNotifier;
+use App\Services\SubscriptionService;
 use Database\Seeders\DemoDataSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -434,6 +435,14 @@ Artisan::command('sellers:weekly-performance-email', function () {
 })->purpose('Send weekly seller performance summary emails');
 
 Schedule::command('sellers:weekly-performance-email')->weeklyOn(1, '08:00');
+Schedule::call(fn () => app(SubscriptionService::class)->expireStale())
+    ->hourly()
+    ->name('subscriptions:expire-stale')
+    ->withoutOverlapping();
+Schedule::call(fn () => app(SubscriptionService::class)->grantDuePlacements())
+    ->dailyAt('00:20')
+    ->name('subscriptions:grant-monthly-placements')
+    ->withoutOverlapping();
 Schedule::call(fn () => CustomerTrackingSession::query()->where('expires_at', '<=', now())->delete())
     ->dailyAt('03:15')
     ->name('customer-tracking:prune-sessions');

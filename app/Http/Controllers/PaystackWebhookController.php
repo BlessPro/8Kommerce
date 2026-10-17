@@ -6,13 +6,14 @@ use App\Models\Payment;
 use App\Models\WebhookEvent;
 use App\Services\PaymentService;
 use App\Services\PaystackService;
+use App\Services\SubscriptionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PaystackWebhookController extends Controller
 {
-    public function handle(Request $request, PaystackService $paystack, PaymentService $payments)
+    public function handle(Request $request, PaystackService $paystack, PaymentService $payments, SubscriptionService $subscriptions)
     {
         $payload = $request->getContent();
         if (strlen($payload) > 1_000_000) {
@@ -28,7 +29,9 @@ class PaystackWebhookController extends Controller
         $eventHash = hash('sha256', $payload);
         $eventName = (string) $request->input('event');
         $reference = data_get($request->input('data'), 'reference');
-        $providerEventId = (string) (data_get($request->input('data'), 'id') ?? $request->header('x-paystack-event-id') ?? '');
+        // Paystack payload data.id identifies the underlying transaction/subscription,
+        // not the webhook delivery. Only trust an explicit delivery event header.
+        $providerEventId = (string) ($request->header('x-paystack-event-id') ?? '');
 
         $existingEvent = null;
         try {
@@ -100,6 +103,35 @@ class PaystackWebhookController extends Controller
             Log::warning('Webhook event logging failed', [
                 'message' => $exception->getMessage(),
             ]);
+        }
+
+        $eventData = (array) $request->input('data', []);
+
+        if ($eventName === 'charge.success') {
+            $subscription = $subscriptions->findForEvent($eventData, false);
+            if ($subscription) {
+                try {
+                    $verification = $paystack->verifyTransaction((string) $reference);
+                    $subscriptions->activateFromCharge($subscription, (array) data_get($verification, 'data', []));
+                    $subscriptions->stopOlderRenewals($subscription->fresh(), $paystack);
+                    $this->updateEvent($event, ['status' => WebhookEvent::STATUS_PROCESSED, 'verification_status' => 'subscription_success']);
+                    return response()->json(['status' => 'ok']);
+                } catch (\Throwable $exception) {
+                    $this->updateEvent($event, ['status' => WebhookEvent::STATUS_FAILED, 'verification_status' => 'subscription_exception', 'error_message' => $exception->getMessage()]);
+                    return response()->json(['status' => 'error'], 500);
+                }
+            }
+        }
+
+        if (in_array($eventName, SubscriptionService::WEBHOOK_EVENTS, true)) {
+            try {
+                $handled = $subscriptions->handleEvent($eventName, $eventData);
+                $this->updateEvent($event, ['status' => $handled ? WebhookEvent::STATUS_PROCESSED : WebhookEvent::STATUS_IGNORED, 'verification_status' => $handled ? 'subscription_event' : 'subscription_not_found']);
+                return response()->json(['status' => $handled ? 'ok' : 'ignored']);
+            } catch (\Throwable $exception) {
+                $this->updateEvent($event, ['status' => WebhookEvent::STATUS_FAILED, 'verification_status' => 'subscription_exception', 'error_message' => $exception->getMessage()]);
+                return response()->json(['status' => 'error'], 500);
+            }
         }
 
         if ($eventName !== 'charge.success') {

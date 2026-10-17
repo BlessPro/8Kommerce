@@ -40,6 +40,13 @@
         @endif
     </div>
 @endif
+@if(($sellerRating['public'] ?? false) || (($sellerRating['count'] ?? 0) > 0 && ($isPreview ?? false)))
+    <div class="storefront-rating-strip" aria-label="Verified customer rating">
+        <span aria-hidden="true">★</span>
+        <strong>{{ number_format((float) ($sellerRating['average'] ?? 0), 1) }}</strong>
+        <small>{{ $sellerRating['count'] }} verified {{ \Illuminate\Support\Str::plural('review', $sellerRating['count']) }}</small>
+    </div>
+@endif
 @if($activeStorefrontTheme === 'fashion')
     <header class="storefront-fashion-header">
         <div class="storefront-fashion-cover {{ $storefrontSettings['hero_image_path'] ? '' : 'is-empty' }}">

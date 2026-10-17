@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\AnalyticsEvent;
+use App\Services\AnalyticsService;
 use App\Services\OgImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class PublicProductController extends Controller
 {
-    public function show(string $product_slug, Request $request)
+    public function show(string $product_slug, Request $request, AnalyticsService $analytics)
     {
         $product = Product::query()
             ->where('slug', $product_slug)
@@ -21,6 +23,8 @@ class PublicProductController extends Controller
             ->firstOrFail();
 
         $profile = $product->user->sellerProfile;
+
+        $analytics->trackEvent($request, $product->user_id, AnalyticsEvent::TYPE_PRODUCT_CLICK, 'product', (string) $product->id);
 
         $sellerName = $profile?->business_name ?: 'Seller';
         $currency = config('services.paystack.currency', 'GHS');

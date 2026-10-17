@@ -54,6 +54,7 @@
             </a>
             <div class="flex items-center gap-1 text-sm font-medium text-slate-600 sm:gap-2">
                 <a href="{{ route('customer.orders.login') }}" class="min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950">Track orders</a>
+                <a href="{{ route('discover.index') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 sm:inline-flex">Discover</a>
                 <a href="{{ route('pricing') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 sm:inline-flex">Pricing</a>
                 <a href="{{ route('legal.privacy') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 md:inline-flex">Privacy</a>
                 <a href="{{ route('login') }}" class="inline-flex min-h-10 items-center rounded-xl border border-[#d8ddd6] bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:border-slate-400">Seller login</a>

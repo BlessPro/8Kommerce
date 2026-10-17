@@ -10,6 +10,7 @@ use App\Services\SellerNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class PublicOrderFeedbackController extends Controller
 {
@@ -28,28 +29,28 @@ class PublicOrderFeedbackController extends Controller
 
     public function received(Request $request, string $token): RedirectResponse
     {
-        $feedbackToken = $this->resolveUsableTokenOrFail($token);
-
         $data = $request->validate([
             'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $order = $feedbackToken->order;
-        OrderFeedback::create([
-            'order_id' => $order->id,
-            'order_feedback_token_id' => $feedbackToken->id,
-            'type' => OrderFeedback::TYPE_RECEIVED,
-            'rating' => $data['rating'] ?? null,
-            'note' => $data['note'] ?? null,
-            'admin_status' => OrderFeedback::ADMIN_IGNORED,
-        ]);
-
-        $order->status = Order::STATUS_COMPLETED;
-        $order->save();
-
-        $feedbackToken->used_at = now();
-        $feedbackToken->save();
+        [$feedbackToken, $order] = DB::transaction(function () use ($token, $data) {
+            $feedbackToken = OrderFeedbackToken::query()->with('order.user')->where('token', $token)->lockForUpdate()->first();
+            abort_if(! $feedbackToken, 404);
+            abort_if($this->isExpired($feedbackToken), 410);
+            $order = $feedbackToken->order;
+            OrderFeedback::create([
+                'order_id' => $order->id,
+                'order_feedback_token_id' => $feedbackToken->id,
+                'type' => OrderFeedback::TYPE_RECEIVED,
+                'rating' => $data['rating'] ?? null,
+                'note' => $data['note'] ?? null,
+                'admin_status' => OrderFeedback::ADMIN_IGNORED,
+            ]);
+            $order->update(['status' => Order::STATUS_COMPLETED]);
+            $feedbackToken->update(['used_at' => now()]);
+            return [$feedbackToken, $order];
+        });
 
         app(SellerNotifier::class)->notify(
             $order->user,

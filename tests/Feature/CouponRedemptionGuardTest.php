@@ -57,7 +57,7 @@ class CouponRedemptionGuardTest extends TestCase
         $paystackMock = Mockery::mock(PaystackService::class);
         $paystackMock->shouldReceive('platformChargeFor')
             ->once()
-            ->with('60.00')
+            ->with('60.00', Mockery::on(fn ($user) => $user->is($seller)))
             ->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')
             ->once()

@@ -45,6 +45,7 @@ class PublicCheckoutSmokeTest extends TestCase
         $paystackMock = Mockery::mock(PaystackService::class);
         $paystackMock->shouldReceive('platformChargeFor')
             ->once()
+            ->with('110.00', Mockery::on(fn ($user) => $user->is($seller)))
             ->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')
             ->once()
@@ -114,7 +115,7 @@ class PublicCheckoutSmokeTest extends TestCase
         ]);
 
         $paystackMock = Mockery::mock(PaystackService::class);
-        $paystackMock->shouldReceive('platformChargeFor')->once()->with('125.00')->andReturn('0.00');
+        $paystackMock->shouldReceive('platformChargeFor')->once()->with('125.00', Mockery::on(fn ($user) => $user->is($seller)))->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')->once()->withArgs(fn ($amount) => $amount === '125.00')->andReturn([
             'authorization_url' => 'https://paystack.test/delivery-checkout',
         ]);

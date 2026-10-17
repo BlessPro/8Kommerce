@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SellerProfile;
+use App\Models\User;
 use App\Support\Money;
 use App\Support\TlsOptions;
 use Carbon\CarbonInterface;
@@ -11,12 +12,46 @@ use Illuminate\Support\Facades\Http;
 
 class PaystackService
 {
-    public function platformChargeFor(string $amount): ?string
+    public function platformChargeFor(string $amount, ?User $seller = null): ?string
     {
-        $percent = (string) config('plans.payments.commission_percent', '0.01');
+        $percent = $seller?->commissionPercent() ?? (string) config('plans.payments.commission_percent', '0.01');
         $charge = Money::percent($amount, $percent);
 
         return Money::compare($charge, '0.00') === 1 ? $charge : null;
+    }
+
+    public function initializeSubscriptionCheckout(string $email, string $planCode, string $reference, array $metadata): array
+    {
+        $callbackUrl = (string) config('billing.callback_url');
+        if ($callbackUrl === '') {
+            $callbackUrl = rtrim((string) config('app.url'), '/').'/billing/callback';
+        }
+
+        $response = $this->client()->post('/transaction/initialize', [
+            'email' => $email,
+            'plan' => $planCode,
+            'reference' => $reference,
+            'callback_url' => $callbackUrl,
+            'metadata' => $metadata,
+        ])->throw()->json();
+
+        return $response['data'] ?? [];
+    }
+
+    public function fetchSubscription(string $code): array
+    {
+        $response = $this->client()->get('/subscription/'.$code)->throw()->json();
+        return $response['data'] ?? [];
+    }
+
+    public function disableSubscription(string $code, string $token): array
+    {
+        return $this->client()->post('/subscription/disable', ['code' => $code, 'token' => $token])->throw()->json();
+    }
+
+    public function enableSubscription(string $code, string $token): array
+    {
+        return $this->client()->post('/subscription/enable', ['code' => $code, 'token' => $token])->throw()->json();
     }
 
     public function createOrUpdateSubaccount(SellerProfile $profile): array

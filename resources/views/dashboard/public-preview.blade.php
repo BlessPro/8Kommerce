@@ -4,7 +4,6 @@
         'classic' => ['name' => 'Classic', 'tag' => 'Versatile', 'description' => 'Balanced cards and familiar shopping patterns for almost any small business.'],
         'perfume' => ['name' => 'Perfume', 'tag' => 'Fragrance & beauty', 'description' => 'An editorial fragrance shop with a campaign cover, refined type and focused product grid.'],
         'market' => ['name' => 'Marketplace', 'tag' => 'Large catalogues', 'description' => 'A compact, quick-add catalogue for electronics, groceries and general retail.'],
-        'studio' => ['name' => 'Boutique', 'tag' => 'Image led', 'description' => 'Large photography and refined spacing for fashion, beauty and handmade goods.'],
         'fashion' => ['name' => 'Fashion', 'tag' => 'Apparel & accessories', 'description' => 'Campaign-led boutique with editorial categories, quick view and a polished shopping bag.'],
     ];
     $storefrontSettings = $profile->resolvedStorefrontSettings();
@@ -86,7 +85,7 @@
                             <div class="p-4">
                                 <div class="flex items-center justify-between gap-3">
                                     <span class="font-semibold text-slate-950">{{ $option['name'] }}</span>
-                                    @if($profile->storefront_theme === $key)<span class="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Live</span>@endif
+                                    @if($profile->resolvedStorefrontTheme() === $key)<span class="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Live</span>@endif
                                 </div>
                                 <p class="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $option['tag'] }}</p>
                                 <p class="mt-2 text-xs leading-5 text-slate-600">{{ $option['description'] }}</p>

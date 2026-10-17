@@ -6,12 +6,17 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\SellerProfile;
+use App\Models\FeaturedPlacement;
+use App\Models\SellerRecognition;
+use App\Services\SellerRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class LandingController extends Controller
 {
+    public function __construct(private readonly SellerRatingService $ratings) {}
+
     public function index()
     {
         $currency = config('services.paystack.currency', 'GHS');
@@ -104,6 +109,8 @@ class LandingController extends Controller
             'selectedCategory' => $category,
             'sort' => $sort,
             'categories' => $categories,
+            'featuredProducts' => FeaturedPlacement::query()->active()->where('placement', 'marketplace_home')->with('product.user.sellerProfile')->take(8)->get(),
+            'recognition' => SellerRecognition::query()->with(['user.sellerProfile', 'article'])->latest('period_start')->first(),
         ]);
     }
 
@@ -122,7 +129,9 @@ class LandingController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        return $sellerProfiles->map(function (SellerProfile $profile) use ($sellerPerformance) {
+        $ratingSummaries = $this->ratings->summaries($sellerProfiles->pluck('user_id')->map(fn ($id) => (int) $id)->all());
+
+        return $sellerProfiles->map(function (SellerProfile $profile) use ($sellerPerformance, $ratingSummaries) {
             $perf = $sellerPerformance->get($profile->user_id);
             $revenue = (float) ($perf->total_revenue ?? 0);
             $payments = (int) ($perf->payment_count ?? 0);
@@ -135,7 +144,7 @@ class LandingController extends Controller
                 'slug' => $profile->public_slug,
                 'category' => $category,
                 'product_count' => $productCount,
-                'rating' => $this->inferRating($revenue, $payments),
+                'rating' => $ratingSummaries->get($profile->user_id),
                 'revenue' => $revenue,
                 'payments' => $payments,
             ];
@@ -261,14 +270,4 @@ class LandingController extends Controller
         return 'General';
     }
 
-    private function inferRating(float $revenue, int $payments): float
-    {
-        if ($payments <= 0) {
-            return 4.6;
-        }
-
-        $score = 4.6 + min(0.4, ($payments / 300)) + min(0.2, ($revenue / 50000));
-
-        return round(min(5.0, $score), 1);
-    }
 }

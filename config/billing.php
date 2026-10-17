@@ -8,6 +8,8 @@ return [
     // and subscription persistence are enabled together.
     'provider' => env('BILLING_PROVIDER', 'paystack'),
     'recurring_enabled' => (bool) env('BILLING_RECURRING_ENABLED', false),
+    'grace_days' => (int) env('BILLING_GRACE_DAYS', 3),
+    'callback_url' => env('BILLING_CALLBACK_URL'),
     'plan_codes' => [
         'STARTER' => env('PAYSTACK_PLAN_STARTER'),
         'GROWTH' => env('PAYSTACK_PLAN_GROWTH'),

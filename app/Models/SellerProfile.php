@@ -10,7 +10,7 @@ class SellerProfile extends Model
 {
     use HasFactory;
 
-    public const STOREFRONT_THEMES = ['classic', 'perfume', 'market', 'studio', 'fashion'];
+    public const STOREFRONT_THEMES = ['classic', 'perfume', 'market', 'fashion'];
 
     public const STOREFRONT_LAYOUTS = ['products', 'services'];
 
@@ -121,6 +121,17 @@ class SellerProfile extends Model
             'seo_title' => null,
             'seo_description' => null,
         ], is_array($this->storefront_settings) ? $this->storefront_settings : []);
+    }
+
+    public function resolvedStorefrontTheme(): string
+    {
+        if ($this->storefront_theme === 'studio') {
+            return 'fashion';
+        }
+
+        return in_array($this->storefront_theme, self::STOREFRONT_THEMES, true)
+            ? $this->storefront_theme
+            : 'classic';
     }
 
     public function resolvedFulfillmentOptions(): array

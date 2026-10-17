@@ -50,6 +50,17 @@
         </div>
       </div>
 
+      @if($recognition)
+        <section class="mt-6 grid overflow-hidden rounded-2xl bg-[#073B4C] text-white md:grid-cols-[1fr_auto]">
+          <div class="p-6 md:p-8"><p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#A9D4DE]">{{ $recognition->period_start->format('F Y') }}</p><h2 class="mt-2 text-2xl font-semibold">Seller of the Month</h2><p class="mt-2 text-lg font-semibold">{{ $recognition->user->sellerProfile?->business_name }}</p><p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{{ $recognition->summary ?: 'Recognised for dependable service, thoughtful products and a strong customer experience.' }}</p></div>
+          <a href="{{ $recognition->article ? route('discover.show', $recognition->article->slug) : route('public.listing', $recognition->user->sellerProfile->public_slug) }}" class="flex items-center justify-center border-t border-white/15 px-7 py-5 text-sm font-semibold md:border-l md:border-t-0">Meet the seller →</a>
+        </section>
+      @endif
+
+      @if($featuredProducts->isNotEmpty())
+        <section class="mt-7"><div class="flex items-end justify-between"><div><p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A1F3D]">Selected by 8Kommerce</p><h2 class="mt-1 text-xl font-semibold">Featured products</h2></div><a href="{{ route('discover.index') }}" class="text-sm font-semibold text-[#0A5668]">Discover more →</a></div><div class="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">@foreach($featuredProducts as $placement)@if($placement->product)<a href="{{ route('public.product', $placement->product->slug) }}" class="group"><div class="aspect-square overflow-hidden rounded-xl bg-slate-100">@if($placement->product->image_path)<img src="{{ asset('storage/'.$placement->product->image_path) }}" alt="{{ $placement->product->name }}" class="h-full w-full object-cover transition group-hover:scale-[1.03]">@endif</div><p class="mt-2 text-xs font-semibold uppercase tracking-wide text-[#7A1F3D]">{{ $placement->label ?: 'Featured' }}</p><p class="mt-1 text-sm font-semibold">{{ $placement->product->name }}</p><p class="mt-1 text-xs text-slate-500">{{ $placement->product->user->sellerProfile?->business_name }}</p></a>@endif @endforeach</div></section>
+      @endif
+
       @php
         $baseQuery = [
           'q' => $search,
@@ -123,7 +134,7 @@
             <div class="mt-4">
               <p class="text-base font-semibold">{{ $seller['business_name'] }}</p>
               <p class="mt-1 text-sm text-slate-600">{{ $seller['category'] }}</p>
-              <p class="mt-2 text-xs text-slate-500">{{ $seller['product_count'] }} products • {{ number_format($seller['rating'], 1) }} rating</p>
+              <p class="mt-2 text-xs text-slate-500">{{ $seller['product_count'] }} products • @if($seller['rating']['public']) <span class="font-semibold text-amber-700">{{ number_format($seller['rating']['average'], 1) }} ★</span> · {{ $seller['rating']['count'] }} verified @else New seller @endif</p>
               <a href="{{ route('public.listing', $seller['slug']) }}" class="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-soft">Open Seller</a>
             </div>
           </article>

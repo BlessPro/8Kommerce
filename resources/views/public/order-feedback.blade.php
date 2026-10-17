@@ -41,12 +41,12 @@
 
                 <form method="POST" action="{{ route('public.order.feedback.received', $token->token) }}" class="mt-5 hidden space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 js-feedback-yes-form">
                     @csrf
-                    <p class="text-sm font-semibold text-emerald-800">Rate this seller</p>
-                    <div class="flex items-center gap-2">
+                    <div><p class="text-sm font-semibold text-emerald-900">How was your experience?</p><p class="mt-1 text-xs text-emerald-800">Your rating is optional and will be marked as a verified purchase.</p></div>
+                    <div class="grid grid-cols-5 gap-2" aria-label="Rate this seller from one to five stars">
                         @for($i = 1; $i <= 5; $i++)
-                            <label class="inline-flex items-center gap-1 text-sm text-slate-700">
-                                <input type="radio" name="rating" value="{{ $i }}" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                                {{ $i }}★
+                            <label class="cursor-pointer">
+                                <input type="radio" name="rating" value="{{ $i }}" class="peer sr-only" />
+                                <span class="flex min-h-12 flex-col items-center justify-center rounded-md border border-emerald-200 bg-white text-amber-500 transition peer-checked:border-emerald-700 peer-checked:bg-emerald-700 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500"><b class="text-lg">★</b><small class="text-[10px] font-semibold">{{ $i }}</small></span>
                             </label>
                         @endfor
                     </div>

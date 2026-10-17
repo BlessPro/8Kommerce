@@ -160,7 +160,7 @@ class PublicInvoiceController extends Controller
             ],
         ]);
 
-        $platformFee = $paystack->platformChargeFor((string) $amountDue);
+        $platformFee = $paystack->platformChargeFor((string) $amountDue, $sellerUser);
 
         try {
             $data = $paystack->initializeTransaction(

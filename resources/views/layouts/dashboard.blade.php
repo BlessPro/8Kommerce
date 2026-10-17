@@ -221,6 +221,7 @@
                         <p class="lp-eyebrow px-3 pb-1">Grow</p>
                         <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
                         <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
+                        <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
                     </div>
 
                     <div class="space-y-1">
@@ -407,6 +408,7 @@
                     <p class="lp-eyebrow px-3">Grow</p>
                     <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
                     <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
+                    <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Store & account</p>

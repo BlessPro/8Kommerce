@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminOrderFeedbackController;
 use App\Http\Controllers\Admin\AdminOtpAuthController;
+use App\Http\Controllers\Admin\AdminPromotionController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CouponController;
 use App\Http\Controllers\CustomerController;
@@ -30,6 +31,9 @@ use App\Http\Controllers\SellerProfileController;
 use App\Http\Controllers\SellerPublicPreviewController;
 use App\Http\Controllers\TelemetryController;
 use App\Http\Controllers\TwilioWebhookController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\DiscoverController;
+use App\Http\Controllers\PromotionRedirectController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +53,9 @@ Route::get('/version.json', function () {
     ]);
 })->name('app.version');
 Route::get('/sellers', [LandingController::class, 'sellers'])->name('marketplace.sellers');
+Route::get('/discover', [DiscoverController::class, 'index'])->name('discover.index');
+Route::get('/discover/{article:slug}', [DiscoverController::class, 'show'])->name('discover.show');
+Route::get('/go/{code}', PromotionRedirectController::class)->middleware('throttle:120,1')->name('promotions.redirect');
 Route::get('/privacy', [LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/terms', [LegalController::class, 'terms'])->name('legal.terms');
 
@@ -105,6 +112,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/billing', [BillingController::class, 'show'])->name('billing.show');
     Route::get('/billing/upgrade', [BillingController::class, 'upgrade'])->name('billing.upgrade');
     Route::post('/billing/activate/{plan}', [BillingController::class, 'activate'])->name('billing.activate');
+    Route::post('/billing/checkout/{plan}', [BillingController::class, 'checkout'])->middleware('throttle:5,1')->name('billing.checkout');
+    Route::get('/billing/callback', [BillingController::class, 'callback'])->middleware('throttle:20,1')->name('billing.callback');
+    Route::post('/billing/subscription/cancel', [BillingController::class, 'cancel'])->middleware('throttle:5,1')->name('billing.cancel');
+    Route::post('/billing/subscription/reactivate', [BillingController::class, 'reactivate'])->middleware('throttle:5,1')->name('billing.reactivate');
+    Route::get('/billing/receipts/{invoice}', [BillingController::class, 'receipt'])->name('billing.receipt');
 });
 
 Route::middleware(['auth', 'active_access'])->group(function () {
@@ -165,6 +177,8 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         Route::post('/notifications/orders/{order}/delivered', [NotificationController::class, 'markDelivered'])->name('notifications.orders.delivered');
         Route::get('/goals-target', [GoalsTargetController::class, 'index'])->name('goals.index');
         Route::get('/insights', [InsightsController::class, 'index'])->name('insights.index');
+        Route::get('/promote', [PromotionController::class, 'index'])->name('promotions.index');
+        Route::post('/promote', [PromotionController::class, 'store'])->middleware('throttle:10,1')->name('promotions.store');
     });
 });
 
@@ -230,6 +244,13 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::post('/order-feedback/{feedback}/ignore', [AdminOrderFeedbackController::class, 'ignore'])
         ->middleware('throttle:20,1')
         ->name('order-feedback.ignore');
+    Route::get('/promotions', [AdminPromotionController::class, 'index'])->name('promotions.index');
+    Route::patch('/promotions/submissions/{submission}', [AdminPromotionController::class, 'updateSubmission'])->name('promotions.submissions.update');
+    Route::post('/promotions/placements', [AdminPromotionController::class, 'storePlacement'])->name('promotions.placements.store');
+    Route::delete('/promotions/placements/{placement}', [AdminPromotionController::class, 'destroyPlacement'])->name('promotions.placements.destroy');
+    Route::post('/promotions/articles', [AdminPromotionController::class, 'storeArticle'])->name('promotions.articles.store');
+    Route::patch('/promotions/articles/{article}', [AdminPromotionController::class, 'updateArticle'])->name('promotions.articles.update');
+    Route::post('/promotions/recognitions', [AdminPromotionController::class, 'storeRecognition'])->name('promotions.recognitions.store');
 });
 
 require __DIR__.'/auth.php';

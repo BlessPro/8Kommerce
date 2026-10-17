@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\SellerProfile;
+use App\Services\SellerRatingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class SellerPublicPreviewController extends Controller
 {
-    public function show(Request $request)
+    public function show(Request $request, SellerRatingService $ratings)
     {
         $user = $request->user();
         $profile = $user->sellerProfile;
@@ -20,9 +21,9 @@ class SellerPublicPreviewController extends Controller
                 ->withErrors(['profile' => 'Complete your seller profile to preview your public page.']);
         }
 
-        $theme = $request->query('theme', $profile->storefront_theme ?: 'classic');
+        $theme = $request->query('theme', $profile->resolvedStorefrontTheme());
         if (! in_array($theme, SellerProfile::STOREFRONT_THEMES, true)) {
-            $theme = $profile->storefront_theme ?: 'classic';
+            $theme = $profile->resolvedStorefrontTheme();
         }
 
         $template = 'products';
@@ -64,6 +65,7 @@ class SellerPublicPreviewController extends Controller
             'isOwner' => true,
             'isPreview' => true,
             'paymentsEnabled' => $user->canUsePaymentsFeature(),
+            'sellerRating' => $ratings->summary($user->id),
         ]);
     }
 

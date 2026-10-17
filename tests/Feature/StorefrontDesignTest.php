@@ -44,7 +44,7 @@ class StorefrontDesignTest extends TestCase
             ->assertSee('data-phone-preview-scroll', false)
             ->assertDontSee('storefront-phone-screen" inert', false)
             ->assertSee('Marketplace')
-            ->assertSee('Boutique')
+            ->assertDontSee('Boutique')
             ->assertSee('Fashion')
             ->assertSee('storefront-theme-fashion', false)
             ->assertSee('storefront-layout-products', false)
@@ -76,6 +76,39 @@ class StorefrontDesignTest extends TestCase
             ->assertRedirect(route('public.preview'));
 
         $this->assertSame('classic', $profile->refresh()->storefront_theme);
+    }
+
+    public function test_storefront_design_rejects_the_retired_boutique_theme(): void
+    {
+        [$user, $profile] = $this->sellerWithProfile();
+
+        $this->actingAs($user)
+            ->from(route('public.preview'))
+            ->patch(route('public.preview.update'), [
+                'storefront_theme' => 'studio',
+            ])
+            ->assertSessionHasErrors(['storefront_theme'])
+            ->assertRedirect(route('public.preview'));
+
+        $this->assertSame('classic', $profile->refresh()->storefront_theme);
+    }
+
+    public function test_legacy_boutique_storefronts_fall_back_to_fashion(): void
+    {
+        [$user, $profile] = $this->sellerWithProfile([
+            'storefront_theme' => 'studio',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('public.preview'))
+            ->assertOk()
+            ->assertDontSee('Boutique')
+            ->assertSee('storefront-theme-fashion', false);
+
+        $this->get(route('public.listing', $profile->public_slug))
+            ->assertOk()
+            ->assertSee('storefront-theme-fashion', false)
+            ->assertDontSee('storefront-theme-studio', false);
     }
 
     public function test_public_store_uses_the_saved_design_instead_of_query_overrides(): void
@@ -196,7 +229,7 @@ class StorefrontDesignTest extends TestCase
 
         $this->actingAs($user)
             ->patch(route('public.preview.update'), [
-                'storefront_theme' => 'studio',
+                'storefront_theme' => 'fashion',
                 'storefront_accent' => 'ocean',
                 'storefront_tagline' => 'Made for daily life',
                 'storefront_description' => 'Useful products selected by a local independent business.',
@@ -214,7 +247,7 @@ class StorefrontDesignTest extends TestCase
             ->assertRedirect(route('public.preview'));
 
         $profile->refresh();
-        $this->assertSame('studio', $profile->storefront_theme);
+        $this->assertSame('fashion', $profile->storefront_theme);
         $this->assertSame('ocean', $profile->storefront_settings['accent']);
         $this->assertSame('square', $profile->storefront_settings['image_ratio']);
         $this->assertFalse($profile->storefront_settings['show_description']);
@@ -393,7 +426,7 @@ class StorefrontDesignTest extends TestCase
 
         $this->actingAs($user)
             ->patch(route('public.preview.update'), [
-                'storefront_theme' => 'studio',
+                'storefront_theme' => 'fashion',
                 'font_preset' => 'editorial',
                 'card_style' => 'elevated',
                 'header_alignment' => 'center',

@@ -43,7 +43,7 @@ class CouponCheckoutTest extends TestCase
         $paystackMock = Mockery::mock(PaystackService::class);
         $paystackMock->shouldReceive('platformChargeFor')
             ->once()
-            ->with('100.00')
+            ->with('100.00', Mockery::on(fn ($user) => $user->is($seller)))
             ->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')
             ->once()

@@ -2125,3 +2125,17 @@ html.theme-dark .lp-application tbody tr:hover {
         transition-duration: 0.01ms !important;
     }
 }
+.storefront-rating-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    min-height: 30px;
+    padding: .35rem 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--store-accent) 16%, #e5e7eb);
+    background: var(--store-surface);
+    color: var(--store-ink);
+    font-size: .75rem;
+}
+.storefront-rating-strip > span { color: #b7791f; }
+.storefront-rating-strip small { color: #64748b; }
