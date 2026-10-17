@@ -1,0 +1,6 @@
+@extends('errors.layout')
+@section('code', '503')
+@section('title', 'We will be back shortly.')
+@section('message', '8Kommerce is temporarily unavailable while we complete maintenance or recover a service. Please try again soon.')
+@section('secondary_url', url('/up'))
+@section('secondary_label', 'View system status')

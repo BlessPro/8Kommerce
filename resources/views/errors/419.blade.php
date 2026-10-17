@@ -1,0 +1,6 @@
+@extends('errors.layout')
+@section('code', '419')
+@section('title', 'Your session has expired.')
+@section('message', 'For your security, this form can no longer be submitted. Refresh the page and try the action again.')
+@section('secondary_url', url()->current())
+@section('secondary_label', 'Refresh page')

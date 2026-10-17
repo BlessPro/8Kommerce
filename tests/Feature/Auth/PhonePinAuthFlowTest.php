@@ -13,6 +13,22 @@ class PhonePinAuthFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_pin_setup_requires_exactly_four_digits(): void
+    {
+        $user = User::factory()->create(['pin_hash' => null]);
+
+        $this->actingAs($user)
+            ->from(route('pin.setup.show'))
+            ->post(route('pin.setup.store'), [
+                'pin' => '248619',
+                'pin_confirmation' => '248619',
+            ])
+            ->assertRedirect(route('pin.setup.show'))
+            ->assertSessionHasErrors('pin');
+
+        $this->assertNull($user->fresh()->pin_hash);
+    }
+
     public function test_phone_signup_and_pin_login_flow_works_when_enabled(): void
     {
         config()->set('auth_phone.enabled', true);
@@ -42,19 +58,19 @@ class PhonePinAuthFlowTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('pin.setup.show'));
 
         $this->post(route('pin.setup.store'), [
-            'pin' => '248619',
-            'pin_confirmation' => '248619',
+            'pin' => '2486',
+            'pin_confirmation' => '2486',
         ])->assertRedirect(route('dashboard'));
 
         $user->refresh();
-        $this->assertTrue(Hash::check('248619', (string) $user->pin_hash));
+        $this->assertTrue(Hash::check('2486', (string) $user->pin_hash));
 
         auth()->logout();
 
         $this->post(route('login.phone.pin'), [
             'phone_country' => '+233',
             'phone_number' => '0541900229',
-            'pin' => '248619',
+            'pin' => '2486',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticatedAs($user);
@@ -89,12 +105,12 @@ class PhonePinAuthFlowTest extends TestCase
             'phone_country' => '+233',
             'phone_number' => '+233541900229',
             'otp' => '123456',
-            'reset_pin' => '864209',
-            'reset_pin_confirmation' => '864209',
+            'reset_pin' => '8642',
+            'reset_pin_confirmation' => '8642',
         ])->assertRedirect(route('login'));
 
         $user->refresh();
-        $this->assertTrue(Hash::check('864209', (string) $user->pin_hash));
+        $this->assertTrue(Hash::check('8642', (string) $user->pin_hash));
         $this->assertFalse(Hash::check('2486', (string) $user->pin_hash));
     }
 

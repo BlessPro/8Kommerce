@@ -1,0 +1,6 @@
+@extends('errors.layout')
+@section('code', '404')
+@section('title', 'This page is not here.')
+@section('message', 'The link may be outdated, the page may have moved, or the address may be incorrect. Your account and data are safe.')
+@section('secondary_url', route('marketplace.sellers'))
+@section('secondary_label', 'Browse stores')

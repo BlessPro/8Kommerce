@@ -17,9 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        health: '/up',
+        health: '/live',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->preventRequestsDuringMaintenance(except: [
+            '/up',
+            '/live',
+        ]);
+
         // Configure the exact proxy CIDRs in production. A wildcard remains
         // available for platforms where the proxy addresses are not stable.
         $trustedProxies = array_values(array_filter(array_map(

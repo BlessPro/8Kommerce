@@ -45,14 +45,14 @@
                             @if($phoneAuthEnabled)
                                 <button type="button" id="toggle-pin-reset" class="text-xs font-semibold text-[#073B4C] hover:text-[#032B3A]">Forgot PIN?</button>
                             @else
-                                <span class="text-xs text-slate-400">4–6 digits</span>
+                                <span class="text-xs text-slate-400">4 digits</span>
                             @endif
                         </div>
                         <div class="auth-pin-control mt-2">
                             <span class="auth-field-icon" aria-hidden="true">
                                 <svg viewBox="0 0 20 20" fill="none"><rect x="4.5" y="8" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                             </span>
-                            <input id="pin-phone" name="pin" type="password" placeholder="Enter your 4–6 digit PIN" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6" autocomplete="current-password" required />
+                            <input id="pin-phone" name="pin" type="password" placeholder="Enter your 4-digit PIN" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" required />
                             <button type="button" id="toggle-pin-visibility" class="auth-password-toggle" aria-label="Show PIN" aria-pressed="false">
                                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.5-4 7.5-4 7.5 4 7.5 4-2.5 4-7.5 4-7.5-4-7.5-4Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
                             </button>
@@ -91,8 +91,8 @@
                             <div><label class="auth-field-label">Business phone number</label><input name="phone_number" value="{{ old('phone_number', session('pin_reset_pending_phone')) }}" class="mt-1.5 w-full px-3 py-2.5" placeholder="054 190 0229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" /><x-input-error :messages="$errors->get('reset_phone_number')" class="mt-1" /></div>
                             <div><label for="reset_otp" class="auth-field-label">OTP</label><input id="reset_otp" name="otp" value="{{ old('otp') }}" class="mt-1.5 w-full px-3 py-2.5" placeholder="123456" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" /><x-input-error :messages="$errors->get('reset_otp')" class="mt-1" /></div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div><label for="reset_pin" class="auth-field-label">New PIN</label><input id="reset_pin" name="reset_pin" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="4 digits" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" /><x-input-error :messages="$errors->get('reset_pin')" class="mt-1" /></div>
-                                <div><label for="reset_pin_confirmation" class="auth-field-label">Confirm PIN</label><input id="reset_pin_confirmation" name="reset_pin_confirmation" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="Repeat PIN" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" /></div>
+                                <div><label for="reset_pin" class="auth-field-label">New PIN</label><input id="reset_pin" name="reset_pin" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="4 digits" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" /><x-input-error :messages="$errors->get('reset_pin')" class="mt-1" /></div>
+                                <div><label for="reset_pin_confirmation" class="auth-field-label">Confirm PIN</label><input id="reset_pin_confirmation" name="reset_pin_confirmation" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="Repeat PIN" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" /></div>
                             </div>
                             <button type="submit" class="lp-button-brand w-full">Verify and reset PIN</button>
                         </form>

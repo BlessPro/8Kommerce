@@ -53,5 +53,6 @@
                 </form>
             </div>
         </div>
+        @include('components.page-loader')
     </body>
 </html>

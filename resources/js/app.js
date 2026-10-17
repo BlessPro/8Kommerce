@@ -10,6 +10,56 @@ window.QRCode = QRCode;
 
 Alpine.start();
 
+const setupPageLoader = () => {
+    const loader = document.querySelector('[data-page-loader]');
+    if (!loader) return;
+
+    let showing = false;
+    const show = () => {
+        if (showing) return;
+        showing = true;
+        loader.hidden = false;
+        loader.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('lp-is-loading');
+    };
+    const hide = () => {
+        showing = false;
+        loader.hidden = true;
+        loader.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('lp-is-loading');
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const link = event.target.closest('a[href]');
+        if (!link || link.dataset.noPageLoader !== undefined || link.hasAttribute('download') || link.target === '_blank') return;
+
+        let destination;
+        try {
+            destination = new URL(link.href, window.location.href);
+        } catch (_) {
+            return;
+        }
+
+        if (destination.origin !== window.location.origin || !['http:', 'https:'].includes(destination.protocol)) return;
+        if (destination.pathname === window.location.pathname && destination.search === window.location.search && destination.hash) return;
+        show();
+    });
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || form.dataset.noPageLoader !== undefined || form.target === '_blank') return;
+        window.setTimeout(() => {
+            if (!event.defaultPrevented && form.checkValidity()) show();
+        }, 0);
+    });
+
+    window.addEventListener('pageshow', hide);
+    window.addEventListener('pagehide', () => { showing = false; });
+};
+
+setupPageLoader();
+
 const stripLeadingZero = (input) => {
     if (!input || input.dataset.stripLeadingZero !== 'true') {
         return;

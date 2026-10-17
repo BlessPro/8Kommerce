@@ -31,7 +31,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'email' => ['required', 'string', 'email'],
-            'pin' => ['required', 'digits_between:4,8'],
+            'pin' => ['required', 'digits_between:4,6'],
         ];
     }
 

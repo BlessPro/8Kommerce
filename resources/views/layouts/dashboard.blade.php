@@ -978,5 +978,6 @@
                 }
             });
         </script>
+        @include('components.page-loader')
     </body>
 </html>

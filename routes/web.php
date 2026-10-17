@@ -11,6 +11,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerOrderHubController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoalsTargetController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InsightsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index']);
+Route::get('/up', HealthController::class)->name('health.status');
 Route::get('/version.json', function () {
     $manifestPath = public_path('build/manifest.json');
     $manifestHash = File::exists($manifestPath)

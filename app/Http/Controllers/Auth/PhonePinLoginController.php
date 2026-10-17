@@ -22,9 +22,9 @@ class PhonePinLoginController extends Controller
         $data = $request->validate([
             'phone_number' => ['required', 'string', 'max:20'],
             'phone_country' => ['nullable', 'string'],
-            // Accept legacy four-digit PINs while all newly created/reset PINs use
-            // the stronger configured length.
-            'pin' => ['required', 'digits_between:4,8'],
+            // Existing six-digit PINs remain valid for sign-in; every PIN
+            // created or reset from this release forward is exactly four.
+            'pin' => ['required', 'digits_between:4,6'],
         ]);
 
         $country = $data['phone_country'] ?? '+233';
