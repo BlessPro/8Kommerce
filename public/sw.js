@@ -1,4 +1,4 @@
-const CACHE_NAME = '8kommerce-shell-v2';
+const CACHE_NAME = '8kommerce-shell-v3';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -7,8 +7,10 @@ self.addEventListener('install', (event) => {
       return cache.addAll([
         '/',
         '/manifest.webmanifest',
-        '/icons/icon-192.svg',
-        '/icons/icon-512.svg',
+        '/icons/icon-192.png',
+        '/icons/icon-512.png',
+        '/icons/icon-maskable-512.png',
+        '/apple-touch-icon.png',
         OFFLINE_URL,
       ]);
     })
