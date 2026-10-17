@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM php:8.2-apache AS php-base
+FROM php:8.5-apache AS php-base
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y \
@@ -31,7 +31,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-
 COPY . .
 RUN composer dump-autoload --no-dev --classmap-authoritative
 
-FROM node:20-alpine AS assets
+FROM node:25-alpine AS assets
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
