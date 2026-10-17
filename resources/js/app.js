@@ -15,14 +15,22 @@ const setupPageLoader = () => {
     if (!loader) return;
 
     let showing = false;
+    let showTimer = null;
     const show = () => {
-        if (showing) return;
-        showing = true;
-        loader.hidden = false;
-        loader.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('lp-is-loading');
+        if (showing || showTimer) return;
+        showTimer = window.setTimeout(() => {
+            showTimer = null;
+            showing = true;
+            loader.hidden = false;
+            loader.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('lp-is-loading');
+        }, 220);
     };
     const hide = () => {
+        if (showTimer) {
+            window.clearTimeout(showTimer);
+            showTimer = null;
+        }
         showing = false;
         loader.hidden = true;
         loader.setAttribute('aria-hidden', 'true');
@@ -55,7 +63,11 @@ const setupPageLoader = () => {
     });
 
     window.addEventListener('pageshow', hide);
-    window.addEventListener('pagehide', () => { showing = false; });
+    window.addEventListener('pagehide', () => {
+        if (showTimer) window.clearTimeout(showTimer);
+        showTimer = null;
+        showing = false;
+    });
 };
 
 setupPageLoader();

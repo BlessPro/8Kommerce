@@ -448,11 +448,11 @@
 .storefront-perfume-footer-links a:hover { color: var(--store-accent); }
 .storefront-perfume-footer-meta { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; border-top: 1px solid #e2dcd7; padding-top: 1.2rem; color: #8b837f; font-size: 0.62rem; }
 .storefront-mobile-nav { position: fixed; right: 0.75rem; bottom: max(0.75rem, env(safe-area-inset-bottom)); left: 0.75rem; z-index: 50; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 34rem; margin: 0 auto; border: 1px solid #dfd9d5; border-radius: 8px; background: rgba(255, 255, 255, 0.97); padding: 0.55rem 0.35rem; box-shadow: 0 8px 24px rgba(54, 43, 39, 0.12); }
-.storefront-mobile-nav :is(a, button) { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 0.18rem; color: #706964; font-size: 0.6rem; font-weight: 600; }
+.storefront-mobile-nav :is(a, button) { position: relative; display: flex; min-width: 0; min-height: 2.75rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.18rem; padding: 0.15rem 0; color: #706964; font-size: 0.6rem; font-weight: 600; line-height: 1.15; text-align: center; }
 .storefront-mobile-nav a:hover,
 .storefront-mobile-nav a[aria-current="page"],
 .storefront-mobile-nav button:hover { color: var(--store-accent); }
-.storefront-mobile-nav svg { width: 1.25rem; height: 1.25rem; }
+.storefront-mobile-nav svg { display: block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; margin: 0 auto; }
 .storefront-mobile-cart-link b { position: absolute; top: -0.25rem; left: calc(50% + 0.35rem); display: grid; min-width: 1rem; height: 1rem; place-items: center; border-radius: 50%; background: var(--store-accent); color: #fff; font-size: 0.55rem; }
 
 @media (min-width: 768px) {
@@ -1023,8 +1023,8 @@
 .storefront-theme-fashion .storefront-product-actions > :is(a[aria-label="Chat on WhatsApp"], span) { display: none; }
 .storefront-theme-fashion .storefront-product-actions { display: block; margin-top: 0.5rem !important; }
 .storefront-theme-fashion .storefront-product-actions > a { display: flex; width: 100%; min-height: 2.65rem; border: 1px solid #d8ddda; border-radius: 4px; color: var(--store-accent); font-size: 0.7rem; text-decoration: none; }
-.storefront-fashion-wishlist { position: absolute; top: 0.55rem; right: 0.55rem; z-index: 12; display: grid; width: 2.55rem; height: 2.55rem; place-items: center; border-radius: 4px; background: rgba(255,255,255,.94); color: #303632; }
-.storefront-fashion-wishlist svg { width: 1.3rem; height: 1.3rem; }
+.storefront-fashion-wishlist { position: absolute; top: 0.55rem; right: 0.55rem; z-index: 12; display: inline-flex; width: 2.55rem; height: 2.55rem; align-items: center; justify-content: center; border-radius: 4px; background: rgba(255,255,255,.94); padding: 0; color: #303632; line-height: 0; }
+.storefront-fashion-wishlist svg { display: block; width: 1.3rem; height: 1.3rem; flex: 0 0 auto; margin: 0; }
 .storefront-fashion-wishlist.is-active { background: var(--store-accent); color: #fff; }
 .storefront-theme-fashion .storefront-cart { position: fixed; top: 0; right: 0; z-index: 75; width: min(100%, 33rem); height: 100dvh; margin: 0; overflow-y: auto; transform: translateX(105%); border: 0; border-left: 1px solid #d9ddda; border-radius: 0; background: #fff; padding: 1.5rem !important; box-shadow: -12px 0 36px rgba(27,42,54,.16); transition: transform 220ms ease; }
 .storefront-theme-fashion .storefront-cart.is-open { transform: translateX(0); }
@@ -1156,21 +1156,65 @@
     bottom: auto !important;
     left: auto !important;
     z-index: 13;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 0;
+}
+.storefront .storefront-whatsapp-action svg {
+    display: block;
+    width: 1rem !important;
+    height: 1rem !important;
+    flex: 0 0 auto;
+    margin: 0 !important;
 }
 .storefront-theme-fashion .storefront-product-media > .storefront-whatsapp-action {
     top: 0.55rem !important;
     right: auto !important;
     left: 0.55rem !important;
-    display: grid !important;
+    display: inline-flex !important;
     width: 2.55rem;
     height: 2.55rem;
-    place-items: center;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
     padding: 0;
 }
 .storefront-theme-fashion .storefront-product-media > .storefront-whatsapp-action svg {
     display: block;
-    margin: auto;
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+    margin: 0 !important;
+}
+.storefront-theme-fashion .storefront-product-badges {
+    top: 3.55rem;
+    right: auto;
+    bottom: auto;
+    left: 0.55rem;
+    max-width: calc(100% - 1.1rem);
+}
+.storefront-theme-fashion .storefront-product-badges .storefront-status-badge { display: none; }
+
+/* One geometry contract for icon-only controls across every storefront. */
+.storefront :is(.storefront-perfume-header nav, .storefront-market-header-row nav, .storefront-fashion-header-row nav) :is(a, button),
+.storefront :is(.storefront-perfume-dialog-head, .storefront-market-dialog-head, .storefront-fashion-dialog-head) button,
+.storefront :is(.storefront-cart-quantity, .storefront-market-quick-add) button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    text-align: center;
+}
+.storefront :is(.storefront-perfume-header nav, .storefront-market-header-row nav, .storefront-fashion-header-row nav) svg,
+.storefront :is(.storefront-perfume-dialog-head, .storefront-market-dialog-head, .storefront-fashion-dialog-head) button svg,
+.storefront :is(.storefront-cart-quantity, .storefront-market-quick-add) button svg {
+    display: block;
+    flex: 0 0 auto;
+    margin: 0;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 .storefront-social-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; border-top: 1px solid var(--store-border); padding: 1.25rem 0.25rem; color: #53605a; font-size: 0.75rem; }
 .storefront-social-footer > span { font-weight: 650; color: #2e3b35; }
@@ -2140,32 +2184,41 @@ html.theme-dark .lp-application tbody tr:hover {
 .storefront-rating-strip > span { color: #b7791f; }
 .storefront-rating-strip small { color: #64748b; }
 
-/* Shared page-transition skeleton. It gives every server-rendered screen the
-   same immediate feedback without replacing page-specific async skeletons. */
+/* A deliberately quiet transition cue. It waits briefly in JavaScript so
+   fast navigations never flash a full-page skeleton. */
 .lp-page-loader[hidden] { display: none !important; }
 .lp-page-loader {
     position: fixed;
     inset: 0;
     z-index: 200;
-    overflow: hidden;
-    background: #f4f7f7;
+    display: grid;
+    place-items: start center;
+    background: rgba(244, 247, 247, 0.7);
+    padding: clamp(5rem, 12vh, 8rem) 1rem 1rem;
+    backdrop-filter: blur(1px);
 }
 .lp-page-loader__bar {
     position: absolute;
     inset: 0 auto auto 0;
-    width: 38%;
-    height: 3px;
+    width: 32%;
+    height: 2px;
     background: #7a1f3d;
     animation: lp-loader-progress 1.15s ease-in-out infinite;
 }
-.lp-page-loader__shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0; }
-.lp-page-loader__top { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #d5e1e4; padding-bottom: 18px; }
-.lp-page-loader__brand,
-.lp-page-loader__action,
-.lp-page-loader__eyebrow,
-.lp-page-loader__title,
-.lp-page-loader__copy,
-.lp-page-loader__grid span {
+.lp-page-loader__card {
+    display: grid;
+    width: min(18rem, calc(100vw - 2rem));
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.8rem;
+    border: 1px solid #d5e1e4;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0.8rem;
+    box-shadow: 0 12px 28px rgba(27, 43, 46, 0.1);
+}
+.lp-page-loader__mark,
+.lp-page-loader__copy span {
     display: block;
     overflow: hidden;
     background: #e2eaec;
@@ -2174,30 +2227,16 @@ html.theme-dark .lp-application tbody tr:hover {
     background-size: 55% 100%;
     animation: lp-loader-shimmer 1.35s ease-in-out infinite;
 }
-.lp-page-loader__brand { width: 132px; height: 32px; border-radius: 6px; }
-.lp-page-loader__action { width: 92px; height: 36px; border-radius: 6px; }
-.lp-page-loader__body { padding-top: clamp(42px, 8vw, 86px); }
-.lp-page-loader__eyebrow { width: 90px; height: 10px; border-radius: 3px; }
-.lp-page-loader__title { width: min(460px, 78%); height: clamp(32px, 6vw, 48px); margin-top: 18px; border-radius: 6px; }
-.lp-page-loader__copy { width: min(620px, 92%); height: 15px; margin-top: 18px; border-radius: 4px; }
-.lp-page-loader__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 42px; }
-.lp-page-loader__grid span { min-height: 190px; border: 1px solid #d5e1e4; border-radius: 8px; }
+.lp-page-loader__mark { width: 2.5rem; height: 2.5rem; border-radius: 6px; }
+.lp-page-loader__copy { display: grid; gap: 0.5rem; }
+.lp-page-loader__copy span { width: 100%; height: 0.65rem; border-radius: 3px; }
+.lp-page-loader__copy span:last-child { width: 62%; }
 body.lp-is-loading { overflow: hidden; }
 body.lp-is-loading > *:not(.lp-page-loader) { pointer-events: none; }
 @keyframes lp-loader-shimmer { from { background-position: -150% 0; } to { background-position: 250% 0; } }
 @keyframes lp-loader-progress { 0% { transform: translateX(-105%); } 65% { transform: translateX(185%); } 100% { transform: translateX(270%); } }
-@media (max-width: 640px) {
-    .lp-page-loader__shell { width: calc(100% - 28px); padding-top: 16px; }
-    .lp-page-loader__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .lp-page-loader__grid span { min-height: 170px; }
-    .lp-page-loader__grid span:last-child { display: none; }
-}
 @media (prefers-reduced-motion: reduce) {
     .lp-page-loader__bar,
-    .lp-page-loader__brand,
-    .lp-page-loader__action,
-    .lp-page-loader__eyebrow,
-    .lp-page-loader__title,
-    .lp-page-loader__copy,
-    .lp-page-loader__grid span { animation: none; }
+    .lp-page-loader__mark,
+    .lp-page-loader__copy span { animation: none; }
 }
