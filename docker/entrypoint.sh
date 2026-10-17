@@ -12,6 +12,7 @@ if [ "$1" = "apache2-foreground" ] && [ -f /var/www/html/artisan ]; then
 
     echo "Running migrations..."
     attempt=1
+    migration_succeeded=0
     while [ $attempt -le 10 ]; do
         set +e
         php artisan migrate --force
@@ -19,6 +20,7 @@ if [ "$1" = "apache2-foreground" ] && [ -f /var/www/html/artisan ]; then
         set -e
 
         if [ $status -eq 0 ]; then
+            migration_succeeded=1
             break
         fi
 
@@ -26,6 +28,11 @@ if [ "$1" = "apache2-foreground" ] && [ -f /var/www/html/artisan ]; then
         attempt=$((attempt + 1))
         sleep 5
     done
+
+    if [ "$migration_succeeded" -ne 1 ]; then
+        echo "Database migrations failed after 10 attempts; refusing to start the application." >&2
+        exit 1
+    fi
 fi
 
 exec "$@"
