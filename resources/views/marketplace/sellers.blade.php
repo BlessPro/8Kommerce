@@ -25,6 +25,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[#f4f7f7] font-sans text-[#032B3A]">
   <div class="mx-auto max-w-[1500px] px-4 py-5 md:px-6 md:py-6">
@@ -152,5 +153,6 @@
       @endif
     </main>
   </div>
+  @include('components.page-loader')
 </body>
 </html>

@@ -77,6 +77,7 @@
             </div>
         </footer>
         @endif
+        @include('components.page-loader')
     </body>
     
 </html>

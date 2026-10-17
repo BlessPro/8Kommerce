@@ -1,0 +1,6 @@
+@extends('errors.layout')
+@section('code', '500')
+@section('title', 'Something went wrong on our side.')
+@section('message', 'The request could not be completed. Your information is safe; please try again in a moment.')
+@section('secondary_url', url()->current())
+@section('secondary_label', 'Try again')

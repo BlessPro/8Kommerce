@@ -137,7 +137,7 @@
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="text-sm font-medium text-slate-700">Current login PIN</label>
-                                <input name="current_pin" type="password" inputmode="numeric" autocomplete="current-password" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="Required when payout details change" />
+                                <input name="current_pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="Enter your 4-digit PIN" />
                                 <p class="mt-2 text-xs leading-5 text-slate-500">Your PIN confirms it is really you before we change where payouts are sent. It is checked securely by 8Kommerce and is never sent to Paystack.</p>
                                 @error('current_pin') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             </div>
