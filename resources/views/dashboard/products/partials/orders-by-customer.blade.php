@@ -63,6 +63,34 @@
                                     </div>
                                 @endforeach
                             </div>
+                            @if(in_array($order->status, [
+                                \App\Models\Order::STATUS_PAID,
+                                \App\Models\Order::STATUS_ACCEPTED,
+                                \App\Models\Order::STATUS_PROCESSING,
+                                \App\Models\Order::STATUS_READY,
+                                \App\Models\Order::STATUS_SHIPPED,
+                            ], true))
+                                <div class="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-4 py-3">
+                                    <span class="mr-1 text-xs font-semibold text-slate-500">Next action</span>
+                                    @if($order->status === \App\Models\Order::STATUS_PAID)
+                                        <form method="POST" action="{{ route('notifications.orders.accept', $order) }}">@csrf<button class="lp-button-brand min-h-9 px-3 py-1.5 text-xs">Accept order</button></form>
+                                        <form method="POST" action="{{ route('notifications.orders.reject', $order) }}" onsubmit="return confirm('Cancel this paid order and request a refund?')">@csrf<button class="lp-button-secondary min-h-9 border-rose-200 px-3 py-1.5 text-xs text-rose-700">Cancel & request refund</button></form>
+                                    @elseif($order->status === \App\Models\Order::STATUS_ACCEPTED)
+                                        <form method="POST" action="{{ route('notifications.orders.processing', $order) }}">@csrf<button class="lp-button-brand min-h-9 px-3 py-1.5 text-xs">Start processing</button></form>
+                                    @elseif($order->status === \App\Models\Order::STATUS_PROCESSING)
+                                        <form method="POST" action="{{ route('notifications.orders.ready', $order) }}">@csrf<button class="lp-button-brand min-h-9 px-3 py-1.5 text-xs">Mark ready</button></form>
+                                        @if($order->delivery_required)<form method="POST" action="{{ route('notifications.orders.shipped', $order) }}">@csrf<button class="lp-button-secondary min-h-9 px-3 py-1.5 text-xs">Mark shipped</button></form>@endif
+                                    @elseif($order->status === \App\Models\Order::STATUS_READY)
+                                        @if($order->delivery_required)<form method="POST" action="{{ route('notifications.orders.shipped', $order) }}">@csrf<button class="lp-button-brand min-h-9 px-3 py-1.5 text-xs">Mark shipped</button></form>@endif
+                                        <form method="POST" action="{{ route('notifications.orders.delivered', $order) }}">@csrf<button class="lp-button-secondary min-h-9 px-3 py-1.5 text-xs">Mark collected/delivered</button></form>
+                                    @elseif($order->status === \App\Models\Order::STATUS_SHIPPED)
+                                        <form method="POST" action="{{ route('notifications.orders.delivered', $order) }}">@csrf<button class="lp-button-brand min-h-9 px-3 py-1.5 text-xs">Mark delivered</button></form>
+                                    @endif
+                                </div>
+                            @endif
+                            @if($order->refund_status)
+                                <div class="border-t border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">Refund status: {{ str_replace('_', ' ', $order->refund_status) }}</div>
+                            @endif
                         </details>
                     @endforeach
                 </div>

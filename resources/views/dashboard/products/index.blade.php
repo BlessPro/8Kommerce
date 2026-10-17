@@ -6,21 +6,21 @@
 @section('content')
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h2 class="text-lg font-semibold text-slate-900">Products</h2>
-            <p class="text-sm text-slate-600">Monitor inventory, sales, and engagement.</p>
+            <h2 class="lp-page-heading">Products</h2>
+            <p class="lp-page-description">Manage your catalogue, inventory, sales, and customer demand.</p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('products.orders') }}" class="px-5 py-2 text-sm font-semibold border rounded-full border-slate-200 text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
+            <a href="{{ route('products.orders') }}" class="lp-button-secondary">
                 Manage orders
             </a>
-            <a href="{{ route('products.create') }}" class="px-5 py-2 text-sm font-semibold text-white rounded-full bg-emerald-600 hover:bg-emerald-500">
+            <a href="{{ route('products.create') }}" class="lp-button-brand">
                 New product
             </a>
         </div>
     </div>
 
     <div class="mt-4 sm:hidden">
-        <button type="button" id="stock-filter-open" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
+        <button type="button" id="stock-filter-open" class="lp-button-secondary min-h-9 px-3 text-xs">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 .53 1.28l-4.47 4.47v4a.75.75 0 0 1-1.2.6l-2-1.5a.75.75 0 0 1-.3-.6v-2.5L3.22 6.28A.75.75 0 0 1 3 5.75Z"/>
             </svg>
@@ -28,14 +28,14 @@
         </button>
     </div>
 
-    <div class="mt-4 hidden flex-wrap gap-2 sm:flex">
+    <div class="mt-4 hidden flex-wrap gap-1 border-b border-slate-200 sm:flex">
         @php
             $stockTabs = array_merge(['all' => 'All'], \App\Models\Product::statusOptions());
         @endphp
         @foreach($stockTabs as $key => $label)
             <a
                 href="{{ route('products.index', array_merge(request()->query(), ['stock' => $key])) }}"
-                class="rounded-full border px-4 py-1.5 text-xs font-semibold {{ ($stockFilter ?? 'all') === $key ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700' }}"
+                class="-mb-px border-b-2 px-3 py-2 text-xs font-semibold {{ ($stockFilter ?? 'all') === $key ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800' }}"
             >
                 {{ $label }}
             </a>
@@ -76,7 +76,7 @@
                 <label class="text-xs uppercase tracking-[0.3em] text-slate-400">To</label>
                 <input type="date" id="export-end-input" class="w-full mt-2 text-sm rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">
             </div>
-            <button type="button" id="export-apply" class="w-full px-4 py-3 text-sm font-semibold text-white rounded-full bg-emerald-600 hover:bg-emerald-500">
+            <button type="button" id="export-apply" class="lp-button-brand w-full">
                 Apply range
             </button>
         </div>
@@ -84,20 +84,20 @@
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch">
         <div class="flex flex-col h-full gap-6">
-            <div class="grid gap-4 sm:grid-cols-3">
-                <div class="p-5 bg-white border shadow-sm rounded-2xl border-slate-200">
-                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Revenue</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-900">{{ \App\Support\Money::format($totalRevenue, $currency) }}</p>
+            <div class="lp-card grid overflow-hidden sm:grid-cols-3">
+                <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r">
+                    <p class="lp-eyebrow">Revenue</p>
+                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ \App\Support\Money::format($totalRevenue, $currency) }}</p>
                     <p class="mt-1 text-xs text-slate-500">All-time product sales</p>
                 </div>
-                <div class="p-5 bg-white border shadow-sm rounded-2xl border-slate-200">
-                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Orders</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-900">{{ $totalOrders }}</p>
+                <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r">
+                    <p class="lp-eyebrow">Orders</p>
+                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $totalOrders }}</p>
                     <p class="mt-1 text-xs text-slate-500">Successful payments</p>
                 </div>
-                <div class="p-5 bg-white border shadow-sm rounded-2xl border-slate-200">
-                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Customers</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-900">{{ $totalCustomers }}</p>
+                <div class="p-4">
+                    <p class="lp-eyebrow">Customers</p>
+                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $totalCustomers }}</p>
                     <p class="mt-1 text-xs text-slate-500">Unique contacts</p>
                 </div>
             </div>
@@ -241,7 +241,7 @@
         </div>
     </div>
 
-    <div id="product-list" class="mt-8 overflow-hidden bg-white border shadow-sm rounded-2xl border-slate-200">
+    <div id="product-list" class="lp-card mt-6 overflow-hidden">
         <div class="divide-y divide-slate-100">
             @if($products->count())
                 @foreach($products as $product)
@@ -254,7 +254,7 @@
                     @endphp
                     <details class="group">
                         <summary class="list-none">
-                            <div class="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                                 <div class="flex items-center gap-4">
                                     <div class="overflow-hidden h-14 w-14 rounded-xl bg-slate-100">
                                         @if($product->image_path)
@@ -333,7 +333,7 @@
                             </div>
                         </summary>
                         <div class="px-6 pb-6">
-                            <div class="p-4 border shadow-sm rounded-2xl border-slate-200 bg-slate-50/70">
+                            <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
                                 <form method="POST" action="{{ route('products.update', $product) }}" class="grid gap-3 sm:grid-cols-3">
                                     @csrf
                                     @method('PUT')
@@ -365,7 +365,7 @@
                                             <input name="stock_quantity" value="{{ $product->stock_quantity }}" type="number" min="0" class="w-full rounded-xl border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="Stock qty">
                                             <input name="low_stock_threshold" value="{{ $product->low_stock_threshold }}" type="number" min="0" class="w-full rounded-xl border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="Low threshold">
                                         </div>
-                                        <button type="submit" class="px-4 py-2 text-xs font-semibold text-white rounded-full bg-emerald-600 hover:bg-emerald-500">
+                                        <button type="submit" class="lp-button-brand min-h-9 px-3 text-xs">
                                             Save changes
                                         </button>
                                         <span class="text-xs text-slate-500">Other fields stay unchanged.</span>
@@ -376,7 +376,11 @@
                     </details>
                 @endforeach
             @else
-                <div class="px-6 py-10 text-sm text-center text-slate-500">No products yet.</div>
+                <div class="px-6 py-12 text-center">
+                    <p class="text-sm font-semibold text-slate-800">Your catalogue is empty</p>
+                    <p class="mt-1 text-sm text-slate-500">Add a product to start taking orders and tracking stock.</p>
+                    <a href="{{ route('products.create') }}" class="lp-button-brand mt-4">Add product</a>
+                </div>
             @endif
         </div>
     </div>

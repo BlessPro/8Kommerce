@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\TwilioMessageLog;
 use App\Support\Phone;
+use App\Support\TlsOptions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
@@ -12,9 +13,10 @@ class HubtelSmsService
     public function send(string $to, string $message, array $context = []): void
     {
         $this->ensureConfigured();
+        $loggedMessage = str_contains((string) ($context['context_type'] ?? ''), 'otp') ? '[OTP REDACTED]' : $message;
 
         $normalizedTo = $this->formatForHubtel($to);
-        $response = Http::timeout(20)->get((string) config('services.hubtel.base_url'), [
+        $response = Http::withOptions(['curl' => TlsOptions::curl()])->connectTimeout(5)->timeout(15)->get((string) config('services.hubtel.base_url'), [
             'clientid' => (string) config('services.hubtel.client_id'),
             'clientsecret' => (string) config('services.hubtel.client_secret'),
             'from' => (string) config('services.hubtel.sender_id'),
@@ -28,7 +30,7 @@ class HubtelSmsService
                 'status' => 'failed',
                 'error_code' => (string) $response->status(),
                 'error_message' => $response->body(),
-                'payload' => ['body' => $message],
+                'payload' => ['body' => $loggedMessage],
             ]));
 
             throw new \RuntimeException('Hubtel SMS failed: HTTP '.$response->status());
@@ -41,7 +43,7 @@ class HubtelSmsService
                 'status' => 'failed',
                 'error_code' => (string) ($json['code'] ?? $json['statusCode'] ?? $json['ResponseCode'] ?? 'provider_failure'),
                 'error_message' => (string) ($json['message'] ?? $json['Message'] ?? 'Hubtel provider rejected message'),
-                'payload' => ['body' => $message, 'response' => $json],
+                'payload' => ['body' => $loggedMessage, 'response' => $json],
             ]));
 
             throw new \RuntimeException('Hubtel SMS provider rejected message.');
@@ -55,7 +57,7 @@ class HubtelSmsService
             'to' => $normalizedTo,
             'status' => 'sent',
             'provider_sid' => is_scalar($providerId) ? (string) $providerId : null,
-            'payload' => ['body' => $message, 'response' => $json],
+            'payload' => ['body' => $loggedMessage, 'response' => $json],
         ]));
     }
 
@@ -89,6 +91,7 @@ class HubtelSmsService
     private function formatForHubtel(string $phone): string
     {
         $normalized = Phone::normalize($phone, '+233') ?: $phone;
+
         return ltrim($normalized, '+');
     }
 

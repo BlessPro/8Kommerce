@@ -4,33 +4,33 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-xl font-semibold text-slate-900">Customer Overview</h2>
-        <p class="mt-1 text-sm text-slate-500">Track customer value, retention, and activity from real transactions.</p>
+    <div>
+        <h2 class="lp-page-heading">Customers</h2>
+        <p class="lp-page-description">Track customer value, retention, and activity from real transactions.</p>
 
-        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Total Customers</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">{{ $overview['totalCustomers'] }}</p>
+        <div class="lp-card mt-5 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
+            <div class="border-b border-r border-slate-200 p-4 lg:border-b-0">
+                <p class="lp-eyebrow">Total customers</p>
+                <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $overview['totalCustomers'] }}</p>
                 <p class="text-xs text-emerald-700">+{{ $overview['newThisMonth'] }} this month</p>
             </div>
-            <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Returning Customers</p>
+            <div class="border-b border-slate-200 p-4 lg:border-b-0 lg:border-r">
+                <p class="lp-eyebrow">Returning customers</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">{{ $overview['returningCustomers'] }}</p>
                 <p class="text-xs text-slate-600">{{ number_format($overview['returnRate'], 1) }}% return rate</p>
             </div>
-            <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Average Customer Value</p>
+            <div class="border-r border-slate-200 p-4">
+                <p class="lp-eyebrow">Average customer value</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">{{ \App\Support\Money::format((string) $overview['avgCustomerValue'], $currency) }}</p>
             </div>
-            <div class="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Orders per Customer</p>
+            <div class="p-4">
+                <p class="lp-eyebrow">Orders per customer</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">{{ number_format($overview['ordersPerCustomer'], 1) }}</p>
             </div>
         </div>
     </div>
 
-    <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="lp-card mt-6 p-4 sm:p-5">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h3 class="text-lg font-semibold text-slate-900">Customer List</h3>
@@ -51,7 +51,7 @@
                     <label class="text-xs uppercase tracking-[0.2em] text-slate-400">Search</label>
                     <input type="text" name="search" value="{{ $search }}" placeholder="Name, phone, or email" class="mt-1 w-56 rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
                 </div>
-                <button type="submit" class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Apply</button>
+                <button type="submit" class="lp-button-brand">Apply filters</button>
             </form>
         </div>
 

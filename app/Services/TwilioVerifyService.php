@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Support\Phone;
+use App\Support\Privacy;
+use App\Support\TlsOptions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Twilio\Exceptions\RestException;
+use Twilio\Http\CurlClient;
 use Twilio\Rest\Client;
 
 class TwilioVerifyService
@@ -34,7 +37,7 @@ class TwilioVerifyService
                     ->create($phone, $channel);
 
                 Log::info('Twilio Verify OTP requested', [
-                    'to' => $phone,
+                    'phone_hash' => Privacy::contactHash($phone),
                     'channel' => $channel,
                     'sid' => $verification->sid ?? null,
                     'status' => $verification->status ?? null,
@@ -43,7 +46,7 @@ class TwilioVerifyService
                 return true;
             } catch (RestException $exception) {
                 Log::warning('Twilio Verify send failed, falling back', [
-                    'phone' => $phone,
+                    'phone_hash' => Privacy::contactHash($phone),
                     'channel' => $channel,
                     'status' => $exception->getStatusCode(),
                     'code' => $exception->getCode(),
@@ -52,7 +55,7 @@ class TwilioVerifyService
             }
         } else {
             Log::warning('Twilio Verify service SID missing/invalid, using fallback OTP', [
-                'phone' => $phone,
+                'phone_hash' => Privacy::contactHash($phone),
             ]);
         }
 
@@ -79,7 +82,7 @@ class TwilioVerifyService
                 }
             } catch (RestException $exception) {
                 Log::warning('Twilio Verify check failed, falling back', [
-                    'phone' => $phone,
+                    'phone_hash' => Privacy::contactHash($phone),
                     'status' => $exception->getStatusCode(),
                     'code' => $exception->getCode(),
                     'message' => $exception->getMessage(),
@@ -94,7 +97,10 @@ class TwilioVerifyService
     {
         return new Client(
             config('services.twilio.account_sid'),
-            config('services.twilio.auth_token')
+            config('services.twilio.auth_token'),
+            null,
+            null,
+            new CurlClient(TlsOptions::curl())
         );
     }
 
@@ -106,6 +112,7 @@ class TwilioVerifyService
     private function hasVerifyService(): bool
     {
         $sid = (string) config('services.twilio.verify_service_sid');
+
         return str_starts_with($sid, 'VA');
     }
 
@@ -133,20 +140,20 @@ class TwilioVerifyService
 
         try {
             if ($fallbackChannel === 'whatsapp') {
-                $messaging->sendWhatsApp($phone, $message);
+                $messaging->sendWhatsApp($phone, $message, ['context_type' => 'auth_verify_otp']);
             } else {
-                $messaging->sendSms($phone, $message);
+                $messaging->sendSms($phone, $message, ['context_type' => 'auth_verify_otp']);
             }
 
             Log::info('OTP fallback delivered', [
-                'to' => $phone,
+                'phone_hash' => Privacy::contactHash($phone),
                 'channel' => $fallbackChannel,
             ]);
 
             return true;
         } catch (\Throwable $exception) {
             Log::error('OTP fallback delivery failed', [
-                'to' => $phone,
+                'phone_hash' => Privacy::contactHash($phone),
                 'channel' => $fallbackChannel,
                 'message' => $exception->getMessage(),
             ]);
@@ -169,6 +176,7 @@ class TwilioVerifyService
         }
 
         Cache::forget($key);
+
         return true;
     }
 

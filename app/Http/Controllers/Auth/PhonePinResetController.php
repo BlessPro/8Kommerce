@@ -7,6 +7,7 @@ use App\Models\SellerProfile;
 use App\Models\User;
 use App\Services\SmsOtpService;
 use App\Support\Phone;
+use App\Support\Privacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -32,9 +33,15 @@ class PhonePinResetController extends Controller
 
         $user = $this->resolveUserByPhone($normalized, $data['phone_number'] ?? null);
         if (! $user) {
-            throw ValidationException::withMessages([
-                'reset_phone_number' => 'Account not found for this phone number.',
+            Log::notice('PIN reset requested for unknown phone', [
+                'phone_hash' => Privacy::contactHash($normalized),
+                'ip' => $request->ip(),
             ]);
+
+            return back()
+                ->with('pin_reset_status', 'sent')
+                ->with('pin_reset_phone_masked', $this->maskPhone($normalized))
+                ->withInput();
         }
 
         try {
@@ -44,13 +51,13 @@ class PhonePinResetController extends Controller
             }
 
             Log::info('PIN reset OTP send success', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
         } catch (\Throwable $exception) {
             Log::error('PIN reset OTP send failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
             throw ValidationException::withMessages([
@@ -113,14 +120,14 @@ class PhonePinResetController extends Controller
             $approved = $smsOtp->verifyOtp($normalized, $data['otp']);
         } catch (\Throwable $exception) {
             Log::error('PIN reset OTP verify failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
         }
 
         if (! $approved) {
             Log::warning('PIN reset OTP verify rejected', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
@@ -135,7 +142,7 @@ class PhonePinResetController extends Controller
 
         Log::info('PIN reset completed', [
             'user_id' => $user->id,
-            'phone' => $normalized,
+            'phone_hash' => Privacy::contactHash($normalized),
             'ip' => $request->ip(),
             'user_agent' => (string) $request->userAgent(),
         ]);

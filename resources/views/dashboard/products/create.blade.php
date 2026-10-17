@@ -3,6 +3,7 @@
     $defaultProduct = [
         'name' => '',
         'description' => '',
+        'category' => '',
         'price' => '',
         'stock_quantity' => 0,
         'low_stock_threshold' => 5,
@@ -17,8 +18,8 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-900">Add products</h2>
+    <div class="max-w-4xl lp-card p-5 sm:p-6">
+        <h1 class="lp-page-heading">Add products</h1>
         <p class="mt-1 text-sm text-slate-500">You can upload multiple products at once.</p>
         @error('upload')
             <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ $message }}</div>
@@ -36,7 +37,7 @@
             @csrf
             <div id="product-items" class="space-y-4">
                 @foreach($oldProducts as $index => $item)
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="{{ $index }}">
+                    <fieldset class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="{{ $index }}">
                         <div class="mb-3 flex items-center justify-between">
                             <p class="text-sm font-semibold text-slate-800">Product <span class="product-number">{{ $index + 1 }}</span></p>
                             <button type="button" class="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 remove-product" @if($loop->count === 1) hidden @endif>
@@ -52,6 +53,12 @@
                             <label class="text-sm font-medium text-slate-700">Description</label>
                             <textarea name="products[{{ $index }}][description]" rows="3" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">{{ $item['description'] ?? '' }}</textarea>
                             @error("products.$index.description") <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-sm font-medium text-slate-700">Category</label>
+                            <input name="products[{{ $index }}][category]" value="{{ $item['category'] ?? '' }}" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                            <p class="mt-1 text-xs text-slate-500">Products with the same category become one storefront filter.</p>
+                            @error("products.$index.category") <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                         </div>
                         <div class="mt-4">
                             <label class="text-sm font-medium text-slate-700">Price</label>
@@ -90,16 +97,16 @@
                             <input id="is_active_{{ $index }}" name="products[{{ $index }}][is_active]" type="checkbox" value="1" @checked(($item['is_active'] ?? 1) == 1) class="h-5 w-5 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
                             <label for="is_active_{{ $index }}" class="cursor-pointer text-sm text-slate-600">Active</label>
                         </div>
-                    </div>
+                    </fieldset>
                 @endforeach
             </div>
             <div>
-                <button type="button" id="add-product" class="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+                <button type="button" id="add-product" class="lp-button-secondary" >
                     + Next product
                 </button>
             </div>
             <div class="hidden items-center gap-4 sm:flex">
-                <button type="submit" class="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-500">
+                <button type="submit" class="lp-button-brand">
                     Save products
                 </button>
                 <a href="{{ route('products.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancel</a>
@@ -118,7 +125,7 @@
     </div>
 
     <template id="product-item-template">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="__INDEX__">
+        <fieldset class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="__INDEX__">
             <div class="mb-3 flex items-center justify-between">
                 <p class="text-sm font-semibold text-slate-800">Product <span class="product-number">__NUMBER__</span></p>
                 <button type="button" class="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 remove-product">
@@ -132,6 +139,11 @@
             <div class="mt-4">
                 <label class="text-sm font-medium text-slate-700">Description</label>
                 <textarea name="products[__INDEX__][description]" rows="3" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"></textarea>
+            </div>
+            <div class="mt-4">
+                <label class="text-sm font-medium text-slate-700">Category</label>
+                <input name="products[__INDEX__][category]" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                <p class="mt-1 text-xs text-slate-500">Products with the same category become one storefront filter.</p>
             </div>
             <div class="mt-4">
                 <label class="text-sm font-medium text-slate-700">Price</label>
@@ -165,7 +177,7 @@
                 <input id="is_active___INDEX__" name="products[__INDEX__][is_active]" type="checkbox" value="1" checked class="h-5 w-5 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
                 <label for="is_active___INDEX__" class="cursor-pointer text-sm text-slate-600">Active</label>
             </div>
-        </div>
+        </fieldset>
     </template>
 
     <script>

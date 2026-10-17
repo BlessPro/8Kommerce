@@ -10,10 +10,15 @@ class Product extends Model
     use HasFactory;
 
     public const STATUS_IN_STOCK = 'in_stock';
+
     public const STATUS_SOLD_OUT = 'sold_out';
+
     public const STATUS_UNAVAILABLE = 'unavailable';
+
     public const STATUS_TRASHED = 'trashed';
+
     public const STATUS_LOW_STOCK = 'low_stock';
+
     public const STATUS_PRE_ORDER = 'pre_order';
 
     protected $fillable = [
@@ -21,6 +26,7 @@ class Product extends Model
         'name',
         'slug',
         'description',
+        'category',
         'price',
         'stock_quantity',
         'low_stock_threshold',

@@ -7,11 +7,11 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\PinSetupController;
+use App\Http\Controllers\Auth\PhoneOtpController;
 use App\Http\Controllers\Auth\PhonePinLoginController;
 use App\Http\Controllers\Auth\PhonePinResetController;
-use App\Http\Controllers\Auth\PhoneOtpController;
 use App\Http\Controllers\Auth\PhoneSignupController;
+use App\Http\Controllers\Auth\PinSetupController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
@@ -34,8 +34,6 @@ Route::middleware('guest')->group(function () {
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
-
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::post('login/phone/pin', [PhonePinLoginController::class, 'store'])
         ->middleware('phone_auth_enabled')

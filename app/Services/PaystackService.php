@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SellerProfile;
 use App\Support\Money;
+use App\Support\TlsOptions;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -166,23 +167,28 @@ class PaystackService
         ];
     }
 
-    public function listBanks(string $currency = 'GHS'): array
+    public function listBanks(string $currency = 'GHS', ?string $type = null): array
     {
         if (! config('services.paystack.secret_key')) {
             return [];
         }
 
-        return Cache::remember('paystack_banks_'.$currency, 6 * 60, function () use ($currency) {
+        return Cache::remember('paystack_banks_'.$currency.'_'.($type ?: 'all'), 6 * 60, function () use ($currency, $type) {
+            $query = ['currency' => $currency, 'country' => 'ghana', 'perPage' => 100];
+            if ($type) {
+                $query['type'] = $type;
+            }
             $response = $this->client()
-                ->get('/bank', ['currency' => $currency])
+                ->get('/bank', $query)
                 ->throw()
                 ->json();
 
             return collect($response['data'] ?? [])
-                ->map(function ($bank) {
+                ->map(function ($bank) use ($type) {
                     return [
                         'name' => $bank['name'] ?? '',
                         'code' => $bank['code'] ?? '',
+                        'type' => $bank['type'] ?? $type,
                     ];
                 })
                 ->filter(fn ($bank) => $bank['name'] && $bank['code'])
@@ -192,9 +198,25 @@ class PaystackService
         });
     }
 
+    public function resolveAccount(string $accountNumber, string $bankCode): array
+    {
+        $accountNumber = preg_replace('/\D+/', '', $accountNumber) ?: '';
+        $cacheKey = 'paystack_account_'.sha1($bankCode.'|'.$accountNumber);
+
+        return Cache::remember($cacheKey, now()->addDay(), function () use ($accountNumber, $bankCode) {
+            $response = $this->client()
+                ->get('/bank/resolve', ['account_number' => $accountNumber, 'bank_code' => $bankCode])
+                ->throw()
+                ->json();
+
+            return $response['data'] ?? [];
+        });
+    }
+
     private function client()
     {
         return Http::withToken(config('services.paystack.secret_key'))
+            ->withOptions(['curl' => TlsOptions::curl()])
             ->baseUrl('https://api.paystack.co');
     }
 }

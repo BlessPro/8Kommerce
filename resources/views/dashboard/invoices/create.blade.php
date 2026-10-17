@@ -4,8 +4,9 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-900">Create invoice</h2>
+    <div class="max-w-3xl lp-card p-5 sm:p-6">
+        <h1 class="lp-page-heading">Create invoice</h1>
+        <p class="lp-page-description">Set the amount, payment terms, and customer details.</p>
         <form class="mt-6 space-y-5" method="POST" action="{{ route('invoices.store') }}" enctype="multipart/form-data">
             @csrf
             <div>
@@ -49,7 +50,7 @@
                 @error('image') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
             <div class="flex items-center gap-4">
-                <button type="submit" class="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-500">
+                <button type="submit" class="lp-button-brand">
                     Create invoice
                 </button>
                 <a href="{{ route('invoices.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancel</a>

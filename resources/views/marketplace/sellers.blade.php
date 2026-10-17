@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>8Kommerce - Sellers Directory</title>
+  <meta name="theme-color" content="#073B4C">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            sans: ['Public Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Manrope', 'Public Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
           },
           boxShadow: {
             soft: '0 10px 30px rgba(15, 23, 42, 0.08)',
@@ -20,18 +23,17 @@
       }
     }
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet">
 </head>
-<body class="min-h-screen bg-[#eef2f7] font-sans text-slate-900">
+<body class="min-h-screen bg-[#f4f7f7] font-sans text-[#032B3A]">
   <div class="mx-auto max-w-[1500px] px-4 py-5 md:px-6 md:py-6">
     <header class="sticky top-3 z-20 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-4 shadow-soft backdrop-blur md:px-6">
       <div class="flex items-center justify-between gap-4">
         <a href="{{ url('/') }}" class="flex items-center gap-3">
-          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-extrabold text-white">8K</div>
+          <x-brand-mark class="h-11 w-auto" />
           <div>
-            <p class="text-lg font-semibold leading-none">8Kommerce</p>
+            <p class="font-display text-lg font-semibold leading-none text-[#073B4C]">8Kommerce</p>
             <p class="text-xs text-slate-500">Sellers Directory</p>
           </div>
         </a>
@@ -42,7 +44,7 @@
     <main class="mt-6 rounded-3xl bg-white p-5 shadow-card md:p-7">
       <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Marketplace</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#7A1F3D]">Marketplace</p>
           <h1 class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">All Sellers</h1>
           <p class="mt-2 text-sm text-slate-600">Sorted alphabetically by default. Filter by category, search by name, or rank by performance.</p>
         </div>
@@ -83,11 +85,11 @@
       <form method="GET" action="{{ route('marketplace.sellers') }}" class="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.25fr_0.9fr_0.7fr_auto] md:items-end">
         <div>
           <label for="q" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
-          <input id="q" name="q" value="{{ $search }}" type="text" placeholder="Business name or category" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600">
+          <input id="q" name="q" value="{{ $search }}" type="text" placeholder="Business name or category" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#A84C6A]">
         </div>
         <div>
           <label for="category" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Category</label>
-          <select id="category" name="category" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600">
+          <select id="category" name="category" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#A84C6A]">
             <option value="">All categories</option>
             @foreach($categories as $category)
               <option value="{{ $category }}" @selected($selectedCategory === $category)>{{ $category }}</option>
@@ -96,7 +98,7 @@
         </div>
         <div>
           <label for="sort" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sort</label>
-          <select id="sort" name="sort" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-emerald-600">
+          <select id="sort" name="sort" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#A84C6A]">
             <option value="alpha" @selected($sort === 'alpha')>Alphabetical (A-Z)</option>
             <option value="performance" @selected($sort === 'performance')>Top Performance</option>
           </select>

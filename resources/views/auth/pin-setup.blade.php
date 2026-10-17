@@ -1,8 +1,7 @@
 <x-guest-layout>
     <div class="flex items-center justify-between">
         <a href="/" class="inline-flex items-center gap-2">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white">8K</span>
-            <span class="text-xs uppercase tracking-[0.4em] text-slate-400">8Kommerce</span>
+            <x-brand-logo class="h-10 text-sm" />
         </a>
         <form method="POST" action="{{ route('logout') }}">
             @csrf

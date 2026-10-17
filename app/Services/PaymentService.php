@@ -2,19 +2,21 @@
 
 namespace App\Services;
 
+use App\Jobs\SendOutboundMessage;
+use App\Models\Coupon;
+use App\Models\CouponRedemption;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\Coupon;
-use App\Models\CouponRedemption;
-use Carbon\Carbon;
-use App\Services\SellerNotifier;
-use App\Services\HubtelSmsService;
-use App\Services\TwilioMessagingService;
+use App\Models\PublicCartSession;
+use App\Models\SellerNotification;
 use App\Support\Money;
+use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PaymentService
@@ -27,267 +29,283 @@ class PaymentService
         }
 
         try {
-            $payment = Payment::query()->with(['invoice.user.sellerProfile', 'product', 'order.items.product', 'order.user.sellerProfile'])->find($payment->id);
-            if (! $payment || $payment->status === Payment::STATUS_SUCCESS) {
-                return;
-            }
+            DB::transaction(function () use ($payment, $verifiedData): void {
+                $payment = Payment::query()->lockForUpdate()->with(['invoice.user.sellerProfile', 'product', 'order.items.product', 'order.user.sellerProfile'])->find($payment->id);
+                if (! $payment || $payment->status === Payment::STATUS_SUCCESS) {
+                    return;
+                }
 
-            $payment->status = Payment::STATUS_SUCCESS;
-            $payment->channel = $verifiedData['channel'] ?? null;
+                if (data_get($verifiedData, 'channel') !== 'admin_manual_confirmation') {
+                    $verificationError = $this->providerVerificationError($payment, $verifiedData);
+                    if ($verificationError !== null) {
+                        throw new \RuntimeException('Payment verification mismatch: '.$verificationError);
+                    }
+                }
 
-            $paidAt = $verifiedData['paid_at'] ?? null;
-            if ($paidAt) {
-                $payment->paid_at = Carbon::parse($paidAt);
-            } elseif (! $payment->paid_at) {
-                $payment->paid_at = now();
-            }
-            $payment->verified_at = now();
+                $payment->status = Payment::STATUS_SUCCESS;
+                $payment->channel = $verifiedData['channel'] ?? null;
 
-            $existingPayload = $payment->raw_payload ?? [];
-            $payment->raw_payload = array_replace_recursive($existingPayload, $verifiedData);
-            $commissionPercent = (string) config('plans.payments.commission_percent', '0.01');
-            $payment->commission_amount = Money::percent((string) $payment->amount, $commissionPercent);
-            $payment->transaction_fee = $this->amountFromMinor(data_get($verifiedData, 'transaction_charge'));
-            $payment->tax_amount = $this->resolveTaxAmount($verifiedData);
-            $payment->receiving_account = $this->resolveReceivingAccount($payment, $verifiedData);
-            $payment->transaction_code = $this->resolveTransactionCode($payment, $verifiedData);
-            $payment->transaction_id = $this->resolveTransactionId($payment, $verifiedData);
-            $payment->save();
+                $paidAt = $verifiedData['paid_at'] ?? null;
+                if ($paidAt) {
+                    $payment->paid_at = Carbon::parse($paidAt);
+                } elseif (! $payment->paid_at) {
+                    $payment->paid_at = now();
+                }
+                $payment->verified_at = now();
 
-            $user = $payment->user()->with('sellerProfile')->first();
-            if ($user) {
-                $customerName = (string) (data_get($payment->raw_payload, 'customer.name') ?? data_get($verifiedData, 'metadata.customer.name') ?? 'Customer');
-                $customerPhone = (string) (data_get($payment->raw_payload, 'customer.phone') ?? data_get($verifiedData, 'metadata.customer.phone') ?? '');
-                $customerLocation = (string) (data_get($payment->raw_payload, 'customer.location') ?? data_get($verifiedData, 'metadata.customer.location') ?? '');
-                $customerNote = (string) (data_get($payment->raw_payload, 'customer.note') ?? data_get($verifiedData, 'metadata.customer.note') ?? '');
-                $itemLabel = $payment->invoice?->title ?? $payment->product?->name ?? 'payment';
-                $amountLabel = Money::format((string) $payment->amount, config('services.paystack.currency', 'GHS'));
-
-                $leadMatch = $this->findMatchingLead($payment, $customerPhone);
-                $leadPaidBody = $leadMatch
-                    ? "Lead paid: {$customerName} completed payment for {$itemLabel} ({$amountLabel})."
-                    : null;
-
-                app(SellerNotifier::class)->notify(
-                    $user,
-                    \App\Models\SellerNotification::TYPE_PAYMENT_RECEIVED,
-                    'Payment received',
-                    'Payment '.$payment->reference.' was completed by '.$customerName.'.',
-                    [
-                        'payment_id' => $payment->id,
-                        'reference' => $payment->reference,
-                        'item' => $itemLabel,
-                        'amount' => (string) $payment->amount,
-                        'customer_name' => $customerName,
-                        'customer_phone' => $customerPhone,
-                        'customer_location' => $customerLocation,
-                        'customer_note' => $customerNote,
-                        'matched_lead_id' => $leadMatch?->id,
-                    ]
+                $existingPayload = $payment->raw_payload ?? [];
+                $payment->raw_payload = array_replace_recursive(
+                    $existingPayload,
+                    $this->sanitizedVerificationData($verifiedData)
                 );
+                $commissionPercent = (string) config('plans.payments.commission_percent', '0.01');
+                $payment->commission_amount = Money::percent((string) $payment->amount, $commissionPercent);
+                $payment->transaction_fee = $this->amountFromMinor(data_get($verifiedData, 'transaction_charge'));
+                $payment->tax_amount = $this->resolveTaxAmount($verifiedData);
+                $payment->receiving_account = $this->resolveReceivingAccount($payment, $verifiedData);
+                $payment->transaction_code = $this->resolveTransactionCode($payment, $verifiedData);
+                $payment->transaction_id = $this->resolveTransactionId($payment, $verifiedData);
+                $payment->save();
 
-                if ($leadMatch && $leadPaidBody) {
-                    app(SellerNotifier::class)->notify(
-                        $user,
-                        \App\Models\SellerNotification::TYPE_LEAD_CAPTURED,
-                        'Lead converted to payment',
-                        $leadPaidBody,
-                        [
-                            'lead_id' => $leadMatch->id,
-                            'payment_id' => $payment->id,
-                            'reference' => $payment->reference,
-                            'customer_phone' => $customerPhone,
-                        ],
-                        sendEmail: false
-                    );
-                }
-            }
+                $user = $payment->user()->with('sellerProfile')->first();
+                if ($user) {
+                    $customerName = (string) (data_get($payment->raw_payload, 'customer.name') ?? data_get($verifiedData, 'metadata.customer.name') ?? 'Customer');
+                    $customerPhone = (string) (data_get($payment->raw_payload, 'customer.phone') ?? data_get($verifiedData, 'metadata.customer.phone') ?? '');
+                    $customerLocation = (string) (data_get($payment->raw_payload, 'customer.location') ?? data_get($verifiedData, 'metadata.customer.location') ?? '');
+                    $customerNote = (string) (data_get($payment->raw_payload, 'customer.note') ?? data_get($verifiedData, 'metadata.customer.note') ?? '');
+                    $itemLabel = $payment->invoice?->title ?? $payment->product?->name ?? 'payment';
+                    $amountLabel = Money::format((string) $payment->amount, config('services.paystack.currency', 'GHS'));
 
-            if ($payment->invoice_id) {
-                $invoice = Invoice::find($payment->invoice_id);
-                if ($invoice) {
-                    $beforeStatus = $invoice->status;
-                    $invoice->refreshPaymentStatus();
+                    $leadMatch = $this->findMatchingLead($payment, $customerPhone);
+                    $leadPaidBody = $leadMatch
+                        ? "Lead paid: {$customerName} completed payment for {$itemLabel} ({$amountLabel})."
+                        : null;
 
-                    if ($invoice->status === Invoice::STATUS_PARTIAL && $beforeStatus !== Invoice::STATUS_PARTIAL) {
-                        if ($user) {
-                            app(SellerNotifier::class)->notify(
-                                $user,
-                                \App\Models\SellerNotification::TYPE_INVOICE_PARTIAL,
-                                'Invoice partially paid',
-                                'Invoice "'.$invoice->title.'" has a new payment.',
-                                ['invoice_id' => $invoice->id]
-                            );
-                        }
-                    }
-
-                    if ($invoice->status === Invoice::STATUS_PAID && $beforeStatus !== Invoice::STATUS_PAID) {
-                        if ($user) {
-                            app(SellerNotifier::class)->notify(
-                                $user,
-                                \App\Models\SellerNotification::TYPE_INVOICE_PAID,
-                                'Invoice fully paid',
-                                'Invoice "'.$invoice->title.'" is fully paid.',
-                                ['invoice_id' => $invoice->id]
-                            );
-                        }
-                    }
-                }
-            }
-
-            if ($payment->product_id && ! $payment->order_id) {
-                $product = Product::find($payment->product_id);
-                if ($product) {
-                    app(InventoryService::class)->decrementForDirectProductPayment($product, 1, $user);
-                }
-            }
-
-            if ($payment->order_id) {
-                $order = Order::with('items')->find($payment->order_id);
-                if ($order) {
-                    $order->status = Order::STATUS_PAID;
-                    $order->payment_status = Payment::STATUS_SUCCESS;
-                    if (! $order->paid_at) {
-                        $order->paid_at = $payment->paid_at ?: now();
-                    }
-                    $order->save();
-
-                    if ($user) {
-                        $itemsSummary = $order->items->map(function ($item) {
-                            return $item->product_name.' x'.$item->quantity;
-                        })->implode(', ');
-
+                    // Order payments get one richer notification below. Keeping this notification
+                    // for invoices/direct payments avoids sending a seller duplicate messages.
+                    if (! $payment->order_id) {
                         app(SellerNotifier::class)->notify(
                             $user,
-                            \App\Models\SellerNotification::TYPE_PAYMENT_RECEIVED,
-                            'New paid order',
-                            'Order '.$order->reference.' paid. '.$itemsSummary,
+                            SellerNotification::TYPE_PAYMENT_RECEIVED,
+                            'Payment received',
+                            'Payment '.$payment->reference.' was completed by '.$customerName.'.',
                             [
-                                'order_id' => $order->id,
-                                'reference' => $order->reference,
-                                'amount' => (string) $order->total,
-                                'customer_name' => $order->customer_name,
-                                'customer_phone' => $order->customer_phone,
-                                'customer_location' => $order->customer_location,
-                                'delivery_required' => $order->delivery_required ? 'yes' : 'no',
-                                'delivery_note' => $order->delivery_note,
+                                'payment_id' => $payment->id,
+                                'reference' => $payment->reference,
+                                'item' => $itemLabel,
+                                'amount' => (string) $payment->amount,
+                                'customer_name' => $customerName,
+                                'customer_phone' => $customerPhone,
+                                'customer_location' => $customerLocation,
+                                'customer_note' => $customerNote,
+                                'matched_lead_id' => $leadMatch?->id,
                             ]
                         );
-
-                        $sellerPhone = $user->sellerProfile?->phone ?? $user->phone;
-                        if ($sellerPhone) {
-                            $orderLink = route('products.orders', ['order' => $order->reference]);
-                            $sellerMessage = "New paid order {$order->reference}.\nAmount: ".Money::format((string) $order->total, config('services.paystack.currency', 'GHS'));
-                            if ($order->customer_phone) {
-                                $sellerMessage .= "\nPhone: {$order->customer_phone}";
-                            }
-                            if ($order->customer_location) {
-                                $sellerMessage .= "\nLocation: {$order->customer_location}";
-                            }
-                            if ($order->delivery_note) {
-                                $sellerMessage .= "\nNote: {$order->delivery_note}";
-                            }
-                            $sellerMessage .= "\nOpen: {$orderLink}";
-                            try {
-                                app(HubtelSmsService::class)->send($sellerPhone, $sellerMessage, [
-                                    'user_id' => $user->id,
-                                    'context_type' => 'seller_new_paid_order_sms',
-                                    'context_id' => $order->id,
-                                ]);
-                            } catch (\Throwable $smsException) {
-                                Log::warning('Seller SMS notify failed for new paid order', [
-                                    'order_id' => $order->id,
-                                    'seller_id' => $user->id,
-                                    'message' => $smsException->getMessage(),
-                                ]);
-                            }
-                        }
                     }
 
-                    app(InventoryService::class)->decrementForOrder($order, $user);
+                    if ($leadMatch && $leadPaidBody) {
+                        app(SellerNotifier::class)->notify(
+                            $user,
+                            SellerNotification::TYPE_LEAD_CAPTURED,
+                            'Lead converted to payment',
+                            $leadPaidBody,
+                            [
+                                'lead_id' => $leadMatch->id,
+                                'payment_id' => $payment->id,
+                                'reference' => $payment->reference,
+                                'customer_phone' => $customerPhone,
+                            ],
+                            sendEmail: false
+                        );
+                    }
+                }
 
-                    if ($order->coupon_code) {
-                        $coupon = Coupon::query()
-                            ->where('user_id', $order->user_id)
-                            ->where('code', $order->coupon_code)
-                            ->first();
+                if ($payment->invoice_id) {
+                    $invoice = Invoice::find($payment->invoice_id);
+                    if ($invoice) {
+                        $beforeStatus = $invoice->status;
+                        $invoice->refreshPaymentStatus();
 
-                        if ($coupon) {
-                            $customerPhone = (string) ($order->customer_phone ?? data_get($payment->raw_payload, 'customer.phone', ''));
-                            if ($customerPhone !== '') {
-                                CouponRedemption::query()->firstOrCreate(
-                                    [
-                                        'coupon_id' => $coupon->id,
-                                        'customer_fingerprint' => Coupon::customerFingerprint($customerPhone),
-                                    ],
-                                    [
-                                        'seller_id' => $order->user_id,
-                                        'order_id' => $order->id,
-                                        'payment_id' => $payment->id,
-                                        'ip_address' => data_get($payment->raw_payload, 'customer.ip_address'),
-                                        'used_at' => $payment->paid_at ?? now(),
-                                    ]
+                        if ($invoice->status === Invoice::STATUS_PARTIAL && $beforeStatus !== Invoice::STATUS_PARTIAL) {
+                            if ($user) {
+                                app(SellerNotifier::class)->notify(
+                                    $user,
+                                    SellerNotification::TYPE_INVOICE_PARTIAL,
+                                    'Invoice partially paid',
+                                    'Invoice "'.$invoice->title.'" has a new payment.',
+                                    ['invoice_id' => $invoice->id]
                                 );
                             }
+                        }
 
-                            $coupon->increment('used_count');
+                        if ($invoice->status === Invoice::STATUS_PAID && $beforeStatus !== Invoice::STATUS_PAID) {
+                            if ($user) {
+                                app(SellerNotifier::class)->notify(
+                                    $user,
+                                    SellerNotification::TYPE_INVOICE_PAID,
+                                    'Invoice fully paid',
+                                    'Invoice "'.$invoice->title.'" is fully paid.',
+                                    ['invoice_id' => $invoice->id]
+                                );
+                            }
                         }
                     }
                 }
-            }
 
-            $customerPhone = data_get($payment->raw_payload, 'customer.phone')
-                ?? data_get($verifiedData, 'metadata.customer.phone')
-                ?? data_get($verifiedData, 'customer.phone');
-
-            if ($customerPhone) {
-                $amount = Money::format((string) $payment->amount, config('services.paystack.currency', 'GHS'));
-                $sellerName = $user?->sellerProfile?->business_name ?? $user?->name ?? '8Kommerce seller';
-                $message = "Payment successful\nAmount: {$amount}\nSeller: {$sellerName}\nRef: {$payment->reference}";
-                try {
-                    app(HubtelSmsService::class)->send($customerPhone, $message, [
-                        'user_id' => $payment->user_id,
-                        'payment_id' => $payment->id,
-                        'context_type' => 'payment_customer_success_sms',
-                        'context_id' => $payment->id,
-                    ]);
-                    Log::info('Customer SMS notify sent', [
-                        'payment_id' => $payment->id,
-                        'phone' => $customerPhone,
-                    ]);
-                    return;
-                } catch (\Throwable $exception) {
-                    Log::error('Customer SMS notify failed, trying WhatsApp', [
-                        'payment_id' => $payment->id,
-                        'message' => $exception->getMessage(),
-                    ]);
+                if ($payment->product_id && ! $payment->order_id) {
+                    $product = Product::find($payment->product_id);
+                    if ($product) {
+                        app(InventoryService::class)->decrementForDirectProductPayment($product, 1, $user);
+                    }
                 }
 
-                try {
-                    app(TwilioMessagingService::class)->sendWhatsApp($customerPhone, $message, [
-                        'user_id' => $payment->user_id,
+                if ($payment->order_id) {
+                    $order = Order::with('items')->find($payment->order_id);
+                    if ($order) {
+                        $order->status = Order::STATUS_PAID;
+                        $order->payment_status = Payment::STATUS_SUCCESS;
+                        if (! $order->paid_at) {
+                            $order->paid_at = $payment->paid_at ?: now();
+                        }
+                        if (! $order->seller_response_due_at) {
+                            $order->seller_response_due_at = now()->addHours((int) config('orders.seller_response_hours', 24));
+                        }
+                        $order->save();
+
+                        if ($user) {
+                            $itemsSummary = $order->items->map(function ($item) {
+                                return $item->product_name.' x'.$item->quantity;
+                            })->implode(', ');
+
+                            app(SellerNotifier::class)->notify(
+                                $user,
+                                SellerNotification::TYPE_PAYMENT_RECEIVED,
+                                'New paid order',
+                                'Order '.$order->reference.' paid. '.$itemsSummary,
+                                [
+                                    'order_id' => $order->id,
+                                    'reference' => $order->reference,
+                                    'amount' => (string) $order->total,
+                                    'customer_name' => $order->customer_name,
+                                    'customer_phone' => $order->customer_phone,
+                                    'customer_location' => $order->customer_location,
+                                    'delivery_required' => $order->delivery_required ? 'yes' : 'no',
+                                    'delivery_note' => $order->delivery_note,
+                                ]
+                            );
+
+                        }
+
+                        app(InventoryService::class)->decrementForOrder($order, $user);
+
+                        if (! $payment->product_id) {
+                            $publicSlug = (string) data_get($payment->raw_payload, 'order.public_slug', '');
+                            $cartToken = (string) data_get($payment->raw_payload, 'order.cart_session_token', '');
+                            if ($publicSlug !== '' && $cartToken !== '') {
+                                PublicCartSession::query()
+                                    ->where('public_slug', $publicSlug)
+                                    ->where('session_token', $cartToken)
+                                    ->delete();
+                                Cache::put(
+                                    'public_cart_paid:'.sha1($publicSlug.'|'.$cartToken),
+                                    true,
+                                    now()->addDays(30)
+                                );
+                            }
+                        }
+
+                        if ($order->coupon_code) {
+                            $coupon = Coupon::query()
+                                ->where('user_id', $order->user_id)
+                                ->where('code', $order->coupon_code)
+                                ->first();
+
+                            if ($coupon) {
+                                $customerPhone = (string) ($order->customer_phone ?? data_get($payment->raw_payload, 'customer.phone', ''));
+                                if ($customerPhone !== '') {
+                                    CouponRedemption::query()->firstOrCreate(
+                                        [
+                                            'coupon_id' => $coupon->id,
+                                            'customer_fingerprint' => Coupon::customerFingerprint($customerPhone),
+                                        ],
+                                        [
+                                            'seller_id' => $order->user_id,
+                                            'order_id' => $order->id,
+                                            'payment_id' => $payment->id,
+                                            'ip_address' => data_get($payment->raw_payload, 'customer.ip_address'),
+                                            'used_at' => $payment->paid_at ?? now(),
+                                        ]
+                                    );
+                                }
+
+                                $coupon->increment('used_count');
+                            }
+                        }
+                    }
+                }
+
+                $customerPhone = data_get($payment->raw_payload, 'customer.phone')
+                    ?? data_get($verifiedData, 'metadata.customer.phone')
+                    ?? data_get($verifiedData, 'customer.phone');
+
+                if ($customerPhone) {
+                    $amount = Money::format((string) $payment->amount, config('services.paystack.currency', 'GHS'));
+                    $sellerName = substr((string) ($user?->sellerProfile?->business_name ?? $user?->name ?? 'LinkPay seller'), 0, 30);
+                    $trackingLine = $payment->order_id ? ' Track: '.route('customer.orders.login') : '';
+                    $message = "Paid {$amount} to {$sellerName}. Ref: {$payment->reference}.{$trackingLine}";
+                    SendOutboundMessage::dispatch(
+                        $customerPhone,
+                        $message,
+                        [
+                            'user_id' => $payment->user_id,
+                            'payment_id' => $payment->id,
+                            'context_type' => 'payment_customer_success_sms',
+                            'context_id' => $payment->id,
+                        ],
+                        true,
+                        null,
+                        'notifications',
+                    )->afterCommit();
+                } else {
+                    Log::warning('Customer WhatsApp notify skipped (no phone)', [
                         'payment_id' => $payment->id,
-                        'context_type' => 'payment_customer_success_whatsapp',
-                        'context_id' => $payment->id,
-                    ]);
-                    Log::info('Customer WhatsApp notify sent (fallback)', [
-                        'payment_id' => $payment->id,
-                        'phone' => $customerPhone,
-                    ]);
-                } catch (\Throwable $waException) {
-                    Log::warning('Customer WhatsApp notify failed (fallback)', [
-                        'payment_id' => $payment->id,
-                        'message' => $waException->getMessage(),
                     ]);
                 }
-            } else {
-                Log::warning('Customer WhatsApp notify skipped (no phone)', [
-                    'payment_id' => $payment->id,
-                ]);
-            }
+            }, 3);
         } finally {
             optional($lock)->release();
         }
+    }
+
+    public function providerVerificationError(Payment $payment, array $verifiedData): ?string
+    {
+        if (data_get($verifiedData, 'status') !== 'success') {
+            return 'transaction status';
+        }
+
+        if (! hash_equals((string) $payment->reference, (string) data_get($verifiedData, 'reference', ''))) {
+            return 'reference';
+        }
+
+        $verifiedAmount = data_get($verifiedData, 'amount');
+        if (! is_numeric($verifiedAmount) || (int) $verifiedAmount !== Money::toMinor((string) $payment->amount)) {
+            return 'amount';
+        }
+
+        $expectedCurrency = strtoupper((string) config('services.paystack.currency', 'GHS'));
+        if (strtoupper((string) data_get($verifiedData, 'currency', '')) !== $expectedCurrency) {
+            return 'currency';
+        }
+
+        $expectedSubaccount = $payment->user()->with('sellerProfile')->first()?->sellerProfile?->paystack_subaccount_code;
+        if ($expectedSubaccount) {
+            $verifiedSubaccount = data_get($verifiedData, 'subaccount.subaccount_code');
+            if (! is_string($verifiedSubaccount) || ! hash_equals($expectedSubaccount, $verifiedSubaccount)) {
+                return 'seller account';
+            }
+        }
+
+        return null;
     }
 
     private function amountFromMinor($value): string
@@ -297,6 +315,58 @@ class PaymentService
         }
 
         return Money::fromMinor($value);
+    }
+
+    /**
+     * Keep the payment evidence needed for support and reconciliation without
+     * retaining the provider's entire customer and authorization response.
+     */
+    private function sanitizedVerificationData(array $verifiedData): array
+    {
+        $safe = Arr::only($verifiedData, [
+            'id',
+            'status',
+            'reference',
+            'amount',
+            'currency',
+            'channel',
+            'paid_at',
+            'transaction_date',
+            'transaction_charge',
+            'fees',
+        ]);
+
+        $authorization = data_get($verifiedData, 'authorization');
+        if (is_array($authorization)) {
+            $safe['authorization'] = Arr::only($authorization, [
+                'authorization_code',
+                'channel',
+                'card_type',
+                'bank',
+                'last4',
+                'exp_month',
+                'exp_year',
+            ]);
+        }
+
+        $subaccount = data_get($verifiedData, 'subaccount');
+        if (is_array($subaccount)) {
+            $safe['subaccount'] = Arr::only($subaccount, ['id', 'subaccount_code']);
+        }
+
+        $metadata = data_get($verifiedData, 'metadata');
+        if (is_array($metadata)) {
+            $safe['metadata'] = Arr::only($metadata, [
+                'payment_id',
+                'order_id',
+                'transaction_code',
+                'transaction_id',
+                'subaccount',
+                'tax',
+            ]);
+        }
+
+        return $safe;
     }
 
     private function resolveTaxAmount(array $verifiedData): string

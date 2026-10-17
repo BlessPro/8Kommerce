@@ -12,37 +12,38 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <div>
         <div class="flex items-start justify-between gap-4">
             <div>
-                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Payments</p>
-                <h2 class="mt-1 text-xl font-semibold text-slate-900 sm:text-2xl">{{ \App\Support\Money::format($totalReceived, $currency) }}</h2>
-                <p class="text-sm text-slate-500">Revenue so far</p>
+                <h2 class="lp-page-heading">Payments</h2>
+                <p class="lp-page-description">Monitor settlement activity, transaction status, and refund requests.</p>
             </div>
-            <a href="{{ route('payments.export') }}" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-700 hover:border-emerald-200 hover:text-emerald-700" title="Export">
+            <a href="{{ route('payments.export') }}" class="lp-button-secondary" title="Export">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4.5 15.75v2.25A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25"/></svg>
+                Export CSV
             </a>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-3">
-            <div class="rounded-2xl bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Last 30 days</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">{{ \App\Support\Money::format($last30DaysReceived, $currency) }}</p>
+        <div class="lp-card mt-5 grid overflow-hidden sm:grid-cols-3">
+            <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r sm:p-5">
+                <p class="lp-eyebrow">Total received</p>
+                <p class="mt-2 text-xl font-semibold tabular-nums text-slate-900 sm:text-2xl">{{ \App\Support\Money::format($totalReceived, $currency) }}</p>
             </div>
-            <div class="rounded-2xl bg-slate-50 p-4">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Pending</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">{{ $pendingCount }}</p>
+            <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r sm:p-5">
+                <p class="lp-eyebrow">Last 30 days</p>
+                <p class="mt-2 text-xl font-semibold tabular-nums text-slate-900 sm:text-2xl">{{ \App\Support\Money::format($last30DaysReceived, $currency) }}</p>
+            </div>
+            <div class="p-4 sm:p-5">
+                <p class="lp-eyebrow">Pending</p>
+                <p class="mt-2 text-xl font-semibold tabular-nums text-slate-900 sm:text-2xl">{{ $pendingCount }}</p>
             </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <button type="button" class="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800" onclick="document.getElementById('transactions-list')?.scrollIntoView({behavior: 'smooth', block: 'start'});">
-                Refund
+        <div class="mt-4 flex flex-wrap gap-2">
+            <button type="button" class="lp-button-secondary" onclick="document.getElementById('transactions-list')?.scrollIntoView({behavior: 'smooth', block: 'start'});">
+                Review transactions
             </button>
-            <a href="{{ route('payments.export') }}" class="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800">
-                Export
-            </a>
-            <a href="{{ route('invoices.create') }}" class="col-span-2 rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700 sm:col-span-1">
+            <a href="{{ route('invoices.create') }}" class="lp-button-brand">
                 New invoice
             </a>
         </div>
@@ -58,9 +59,9 @@
             </div>
         @endif
 
-        <div id="transactions-list" class="mt-6 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+        <div id="transactions-list" class="lp-card mt-5 overflow-hidden">
             <details class="group" {{ $activeFilter !== 'all' ? 'open' : '' }}>
-                <summary class="flex cursor-pointer list-none items-center justify-between">
+                <summary class="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 px-4 py-3">
                     <h3 class="text-sm font-semibold text-slate-900">Transactions</h3>
                     <span class="inline-flex items-center gap-2 text-xs font-medium text-slate-500">
                         {{ $transactionFilters[$activeFilter] ?? 'All' }}
@@ -68,11 +69,11 @@
                     </span>
                 </summary>
 
-                <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
+                <div class="flex gap-1 overflow-x-auto border-b border-slate-200 px-4 py-2">
                     @foreach($transactionFilters as $filterKey => $label)
                         <a
                             href="{{ route('payments.index', ['filter' => $filterKey]) }}"
-                            class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $activeFilter === $filterKey ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600' }}"
+                            class="shrink-0 rounded px-3 py-1.5 text-xs font-semibold {{ $activeFilter === $filterKey ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-100' }}"
                         >
                             {{ $label }} <span class="ml-1 text-[11px] text-slate-400">{{ $transactionFilterCounts[$filterKey] ?? 0 }}</span>
                         </a>
@@ -80,12 +81,12 @@
                 </div>
             </details>
 
-            <div class="mt-4 space-y-2">
+            <div class="divide-y divide-slate-200">
                 @forelse($payments as $payment)
                     @php
                         $isRefundRequested = (bool) data_get($payment->raw_payload, 'refund_requested', false);
                     @endphp
-                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                    <div class="bg-white px-4 py-3 hover:bg-slate-50">
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <p class="text-sm font-semibold text-slate-900">{{ \App\Support\Money::format($payment->amount, $currency) }}</p>
@@ -118,7 +119,7 @@
                         </div>
                     </div>
                 @empty
-                    <p class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">No transactions found for this filter.</p>
+                    <div class="px-6 py-12 text-center"><p class="text-sm font-semibold text-slate-800">No transactions found</p><p class="mt-1 text-sm text-slate-500">Try another filter or return after receiving a payment.</p></div>
                 @endforelse
             </div>
         </div>
@@ -128,4 +129,3 @@
         </div>
     </div>
 @endsection
-

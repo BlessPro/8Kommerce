@@ -10,8 +10,17 @@
   - `MONITORING_ERROR_TRACKING=true` (if enabled)
   - `MONITORING_PROVIDER=sentry` (or `bugsnag`)
   - `MONITORING_DSN=<provider_dsn>`
-- Confirm worker process is running queue listener.
-- Confirm cron/scheduler is active for daily reconciliation.
+  - `QUEUE_CONNECTION=redis`
+  - `CACHE_STORE=redis`
+  - `SESSION_DRIVER=redis`
+  - `REDIS_URL` or the matching `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD`
+- Confirm a dedicated OTP worker is running:
+  - `php artisan queue:work redis --queue=otp --sleep=1 --tries=4 --backoff=5 --timeout=30 --max-time=3600`
+- Confirm a general worker is running:
+  - `php artisan queue:work redis --queue=payments,notifications,default --sleep=1 --tries=4 --backoff=5 --timeout=30 --max-time=3600`
+- Confirm a scheduler process is active:
+  - `php artisan schedule:work`
+- Scale the OTP and general workers independently when either queue regularly approaches the configured depth threshold.
 
 ## Deploy
 1. Deploy latest `main`.
@@ -52,3 +61,4 @@
 - Run:
   - `php artisan ops:failed-jobs:alert --hours=24 --threshold=1`
   - `php artisan ops:failed-jobs:retry-latest --limit=25 --dry-run`
+  - `php artisan ops:queue-health`

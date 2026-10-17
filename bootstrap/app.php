@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Middleware\AdminOnly;
+use App\Http\Middleware\EnsureActiveAccess;
+use App\Http\Middleware\EnsurePaymentsPlan;
+use App\Http\Middleware\EnsurePhoneAuthEnabled;
+use App\Http\Middleware\EnsureProfileOnboardingComplete;
+use App\Http\Middleware\EnsurePromotionAccess;
+use App\Http\Middleware\SetWebCacheHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,9 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Render and similar platforms terminate TLS at a proxy/load balancer.
-        // Trusting proxy headers keeps scheme/cookie/CSRF behavior consistent.
-        $middleware->trustProxies(at: '*');
+        // Configure the exact proxy CIDRs in production. A wildcard remains
+        // available for platforms where the proxy addresses are not stable.
+        $trustedProxies = array_values(array_filter(array_map(
+            static fn (string $proxy): string => trim($proxy),
+            explode(',', (string) env('TRUSTED_PROXIES', ''))
+        )));
+        if ($trustedProxies !== []) {
+            $middleware->trustProxies(at: $trustedProxies === ['*'] ? '*' : $trustedProxies);
+        }
 
         $middleware->validateCsrfTokens(except: [
             'webhooks/paystack',
@@ -23,16 +36,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminOnly::class,
-            'active_access' => \App\Http\Middleware\EnsureActiveAccess::class,
-            'payments_plan' => \App\Http\Middleware\EnsurePaymentsPlan::class,
-            'promotion_access' => \App\Http\Middleware\EnsurePromotionAccess::class,
-            'profile_onboarding_complete' => \App\Http\Middleware\EnsureProfileOnboardingComplete::class,
-            'phone_auth_enabled' => \App\Http\Middleware\EnsurePhoneAuthEnabled::class,
+            'admin' => AdminOnly::class,
+            'active_access' => EnsureActiveAccess::class,
+            'payments_plan' => EnsurePaymentsPlan::class,
+            'promotion_access' => EnsurePromotionAccess::class,
+            'profile_onboarding_complete' => EnsureProfileOnboardingComplete::class,
+            'phone_auth_enabled' => EnsurePhoneAuthEnabled::class,
         ]);
 
         $middleware->web(append: [
-            \App\Http\Middleware\SetWebCacheHeaders::class,
+            SetWebCacheHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -60,7 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
         });
 
-        $exceptions->report(function (\Throwable $exception): void {
+        $exceptions->report(function (Throwable $exception): void {
             if (! config('monitoring.error_tracking')) {
                 return;
             }
@@ -74,11 +87,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if ($provider === 'sentry' && app()->bound('sentry')) {
                 app('sentry')->captureException($exception);
+
                 return;
             }
 
             if ($provider === 'bugsnag' && app()->bound('bugsnag')) {
                 app('bugsnag')->notifyException($exception);
+
                 return;
             }
 

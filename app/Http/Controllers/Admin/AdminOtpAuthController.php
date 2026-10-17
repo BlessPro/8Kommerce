@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Mail\AdminOtpCode;
+use App\Jobs\SendAdminOtpEmail;
 use App\Models\User;
+use App\Support\Privacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -19,7 +20,7 @@ class AdminOtpAuthController extends Controller
 {
     public function show(): View|RedirectResponse
     {
-        if (Auth::check() && Auth::user()->is_admin) {
+        if (Auth::check() && Auth::user()->is_admin && $this->isAllowedEmail((string) Auth::user()->email)) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -36,34 +37,30 @@ class AdminOtpAuthController extends Controller
 
         $email = strtolower(trim($validated['email']));
         if (! $this->isAllowedEmail($email)) {
-            return back()->withErrors([
-                'email' => 'This email is not allowed for admin access.',
-            ])->withInput();
+            return back()->with('status', 'otp-sent')->withInput();
         }
 
         $otp = (string) random_int(100000, 999999);
         $cacheKey = $this->cacheKey($email);
 
-        Cache::put($cacheKey, Hash::make($otp), now()->addMinutes((int) config('admin.otp_ttl_minutes', 10)));
+        $ttlMinutes = max(1, (int) config('admin.otp_ttl_minutes', 10));
+        Cache::put($cacheKey, Hash::make($otp), now()->addMinutes($ttlMinutes));
         try {
-            Mail::to($email)->send(new AdminOtpCode($otp));
+            SendAdminOtpEmail::dispatch($email, $otp, $ttlMinutes)
+                ->onConnection(config('auth_phone.otp.queue_connection'))
+                ->onQueue('otp');
         } catch (\Throwable $exception) {
-            Log::error('Admin OTP mail send failed', [
-                'email' => $email,
+            Cache::forget($cacheKey);
+            Log::error('Admin OTP delivery could not be started', [
+                'email_hash' => Privacy::contactHash($email),
                 'message' => $exception->getMessage(),
             ]);
 
-            // Local/dev fallback so admins can continue testing when SMTP is not ready.
             if (config('app.debug')) {
-                return back()
-                    ->with('status', 'otp-debug')
-                    ->with('otp_preview', $otp)
-                    ->withInput();
+                return back()->with('status', 'otp-debug')->with('otp_preview', $otp)->withInput();
             }
 
-            return back()->withErrors([
-                'email' => 'Unable to send OTP email. Check SMTP sender domain/mailbox settings.',
-            ])->withInput();
+            return back()->withErrors(['email' => 'Unable to send the code right now. Please try again shortly.'])->withInput();
         }
 
         session(['admin_otp_email' => $email]);
@@ -79,21 +76,23 @@ class AdminOtpAuthController extends Controller
         ]);
 
         $email = strtolower(trim($validated['email']));
-        if (! $this->isAllowedEmail($email)) {
-            return back()->withErrors([
-                'email' => 'This email is not allowed for admin access.',
-            ])->withInput();
+        $attemptKey = 'admin-otp-verify:'.sha1($email);
+        if (! $this->isAllowedEmail($email) || RateLimiter::tooManyAttempts($attemptKey, 5)) {
+            return back()->withErrors(['otp' => 'Invalid or expired OTP. Please request a new code.'])->withInput();
         }
 
         $cacheKey = $this->cacheKey($email);
         $hash = Cache::get($cacheKey);
         if (! $hash || ! Hash::check($validated['otp'], $hash)) {
+            RateLimiter::hit($attemptKey, 600);
+
             return back()->withErrors([
                 'otp' => 'Invalid or expired OTP. Please request a new code.',
             ])->withInput();
         }
 
         Cache::forget($cacheKey);
+        RateLimiter::clear($attemptKey);
         session()->forget('admin_otp_email');
 
         $user = User::firstOrNew(['email' => $email]);

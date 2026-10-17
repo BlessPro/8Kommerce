@@ -103,6 +103,8 @@ class WebhookIdempotencyTest extends TestCase
                 'data' => [
                     'status' => 'success',
                     'reference' => $payment->reference,
+                    'amount' => 2500,
+                    'currency' => 'GHS',
                     'channel' => 'card',
                     'paid_at' => now()->toIso8601String(),
                 ],

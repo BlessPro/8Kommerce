@@ -38,8 +38,8 @@ return [
         ],
         'features' => [
             'Everything in Starter',
-            'More products (up to 400)',
-            'Up to 3 admin users',
+            'More products (up to 300)',
+            '1 admin user',
             'Priority support',
             'Stronger operational limits',
         ],
@@ -64,6 +64,7 @@ return [
             'Best performance limits',
             'Top-priority support',
         ],
+        'sales_note' => 'Contact sales for assisted onboarding.',
     ],
 
     'payments' => [
@@ -78,7 +79,4 @@ return [
         'commission_text' => 'No payment commission (payments disabled)',
     ],
 
-    'enterprise' => [
-        'price_range' => 'Contact sales',
-    ],
 ];

@@ -13,6 +13,7 @@ use App\Services\PaymentService;
 use App\Services\PaystackService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
 
@@ -75,7 +76,7 @@ class CouponRedemptionGuardTest extends TestCase
                 'phone_number' => '0541900229',
                 'phone_country' => '+233',
                 'coupon_code' => 'GUARD10',
-                'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+                'idempotency_key' => (string) Str::uuid(),
             ]);
 
         $response->assertRedirect('https://paystack.test/checkout');
@@ -121,6 +122,9 @@ class CouponRedemptionGuardTest extends TestCase
 
         app(PaymentService::class)->markSuccess($payment, [
             'status' => 'success',
+            'reference' => $payment->reference,
+            'amount' => 3500,
+            'currency' => 'GHS',
             'channel' => 'card',
             'paid_at' => now()->toIso8601String(),
         ]);

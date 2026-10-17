@@ -7,6 +7,7 @@ use App\Models\SellerProfile;
 use App\Models\User;
 use App\Services\SmsOtpService;
 use App\Support\Phone;
+use App\Support\Privacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,9 +34,20 @@ class PhoneOtpController extends Controller
         $user = $this->resolveUserByPhone($normalized, $data['phone_number'] ?? null);
 
         if (! $user) {
-            throw ValidationException::withMessages([
-                'phone_number' => 'Account not found. Use email to sign in.',
+            session([
+                'phone_login_pending_phone' => $normalized,
+                'phone_login_pending_country' => $country,
             ]);
+
+            Log::notice('OTP login requested for unknown phone', [
+                'phone_hash' => Privacy::contactHash($normalized),
+                'ip' => $request->ip(),
+            ]);
+
+            return back()
+                ->with('otp_status', 'sent')
+                ->with('otp_phone_masked', $this->maskPhone($normalized))
+                ->withInput();
         }
 
         try {
@@ -45,13 +57,13 @@ class PhoneOtpController extends Controller
             }
 
             Log::info('SMS OTP login send success', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
         } catch (\Throwable $exception) {
             Log::error('SMS OTP send failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
             throw ValidationException::withMessages([
@@ -100,7 +112,7 @@ class PhoneOtpController extends Controller
         $user = $this->resolveUserByPhone($normalized, $data['phone_number'] ?? null);
         if (! $user) {
             throw ValidationException::withMessages([
-                'phone_number' => 'Account not found. Use email to sign in.',
+                'otp' => 'Invalid or expired OTP.',
             ]);
         }
 
@@ -109,14 +121,14 @@ class PhoneOtpController extends Controller
             $approved = $smsOtp->verifyOtp($normalized, $data['otp']);
         } catch (\Throwable $exception) {
             Log::error('SMS OTP verify failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
             $approved = false;
         }
         if (! $approved) {
             Log::warning('SMS OTP login verify rejected', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
@@ -134,7 +146,7 @@ class PhoneOtpController extends Controller
 
         Log::info('SMS OTP login success', [
             'user_id' => $user->id,
-            'phone' => $normalized,
+            'phone_hash' => Privacy::contactHash($normalized),
             'ip' => $request->ip(),
         ]);
 

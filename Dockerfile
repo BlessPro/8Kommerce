@@ -19,6 +19,7 @@ FROM php:8.2-apache
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y \
+    $PHPIZE_DEPS \
     libpq-dev \
     libzip-dev \
     libonig-dev \
@@ -30,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_pgsql zip bcmath gd \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 

@@ -4,27 +4,25 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <meta name="theme-color" content="#059669">
+        <meta name="theme-color" content="#073B4C">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
         <title>{{ config('app.name', '8Kommerce') }} Admin</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen font-sans bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+    <body class="lp-application min-h-screen bg-[#f4f7f7] font-sans text-slate-900">
         <div class="min-h-screen lg:flex">
             <aside class="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:w-64 lg:flex-col lg:overflow-hidden lg:border-r lg:border-slate-200 lg:bg-white">
                 <div class="flex items-center gap-2 px-6 py-6">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white font-semibold">
-                        AD
-                    </div>
+                    <x-brand-mark class="h-9 w-auto" />
                     <div>
                         <p class="text-xs uppercase tracking-widest text-slate-400">Admin</p>
                         <p class="text-base font-semibold text-slate-900">System view</p>
@@ -47,7 +45,7 @@
             </aside>
 
             <div class="flex-1">
-                <header class="fixed top-0 right-0 left-0 z-40 border-b border-slate-200 bg-white/70 backdrop-blur lg:left-64">
+                <header class="fixed top-0 right-0 left-0 z-40 border-b border-slate-200 bg-white lg:left-64">
                     <div class="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
                         <div>
                             <p class="text-xs uppercase tracking-widest text-slate-400">Admin</p>
@@ -56,7 +54,7 @@
                         <div class="hidden items-center gap-3 sm:flex">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300">Logout</button>
+                                <button type="submit" class="lp-button-secondary">Logout</button>
                             </form>
                         </div>
                         <details class="relative sm:hidden">

@@ -13,6 +13,15 @@ class SetWebCacheHeaders
         /** @var Response $response */
         $response = $next($request);
 
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('X-Frame-Options', 'DENY');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'none'");
+        if ($request->isSecure()) {
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+
         if (! $request->isMethod('GET')) {
             return $response;
         }
@@ -44,4 +53,3 @@ class SetWebCacheHeaders
         return $response;
     }
 }
-

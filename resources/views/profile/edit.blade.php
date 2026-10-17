@@ -8,7 +8,8 @@
     $payoutMethod = old('payout_method', $profile->payout_method ?? 'MOMO');
     $momoBanks = $momoBanks ?? [];
     $bankOptions = $banks ?? [];
-    $momoBankOptions = ! empty($momoBanks) ? $momoBanks : $bankOptions;
+    $momoBankOptions = $momoBanks;
+    $fulfillmentOptions = old('fulfillment_options', $profile->resolvedFulfillmentOptions());
 @endphp
 @extends('layouts.dashboard')
 
@@ -43,7 +44,11 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('profile.seller.update') }}" class="mt-6 space-y-5">
+                @if(session('status') === 'profile-updated')
+                    <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">Store settings saved.</div>
+                @endif
+
+                <form id="store-settings-form" method="POST" action="{{ route('profile.seller.update') }}" class="mt-6 space-y-5" data-resolve-account-url="{{ route('profile.seller.resolve-account') }}">
                     @csrf
                     @method('PUT')
                     <div>
@@ -79,7 +84,6 @@
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label id="settlement-label" class="text-sm font-medium text-slate-700">MoMo provider</label>
-                                @if(! empty($bankOptions))
                                     <select name="settlement_bank_code" id="settlement-bank-code" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">
                                         <option value="">Select provider</option>
                                         @foreach($momoBankOptions as $bank)
@@ -100,45 +104,45 @@
                                                 data-type="momo"
                                                 {{ old('settlement_bank_code', $profile->settlement_bank_code) === $bank['code'] ? 'selected' : '' }}
                                             >
-                                                {{ $bank['name'] }} ({{ $bank['code'] }})
+                                                {{ $bank['name'] }}
                                             </option>
                                         @endforeach
-                                        @if(! empty($bankOptions))
-                                            @foreach($bankOptions as $bank)
-                                                <option
-                                                    value="{{ $bank['code'] }}"
-                                                    data-network="UNKNOWN"
-                                                    data-type="bank"
-                                                    @if($payoutMethod === 'BANK') style="display:block" @else style="display:none" @endif
-                                                    {{ old('settlement_bank_code', $profile->settlement_bank_code) === $bank['code'] && ! collect($momoBankOptions)->contains(fn($b) => $b['code'] === $bank['code']) ? 'selected' : '' }}
-                                                >
-                                                    {{ $bank['name'] }} ({{ $bank['code'] }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @endif
-                                @else
-                                    <input name="settlement_bank_code" value="{{ old('settlement_bank_code', $profile->settlement_bank_code) }}" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
-                                    <p class="mt-2 text-xs text-slate-500">Bank list unavailable. Enter the bank code manually.</p>
-                                @endif
+                                        @foreach($bankOptions as $bank)
+                                            <option
+                                                value="{{ $bank['code'] }}"
+                                                data-network="UNKNOWN"
+                                                data-type="bank"
+                                                @if($payoutMethod !== 'BANK') hidden disabled @endif
+                                                {{ old('settlement_bank_code', $profile->settlement_bank_code) === $bank['code'] && ! collect($momoBankOptions)->contains(fn($b) => $b['code'] === $bank['code']) ? 'selected' : '' }}
+                                            >
+                                                {{ $bank['name'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <p data-provider-empty="momo" class="mt-2 text-xs text-amber-700" @if(!empty($momoBankOptions)) hidden @endif>MoMo providers are temporarily unavailable. Refresh the page and try again.</p>
+                                    <p data-provider-empty="bank" class="mt-2 text-xs text-amber-700" @if(!empty($bankOptions) || $payoutMethod !== 'BANK') hidden @endif>Banks are temporarily unavailable. Refresh the page and try again.</p>
                                 @error('settlement_bank_code') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label id="account-number-label" class="text-sm font-medium text-slate-700">Wallet number</label>
                                 <input id="account-number" name="account_number" value="{{ old('account_number', $profile->account_number) }}" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="e.g. 0541900229" />
                                 <p id="momo-network-hint" class="mt-2 hidden text-xs text-slate-500"></p>
+                                 <p id="account-resolution-status" class="mt-2 min-h-4 text-xs text-slate-500" aria-live="polite"></p>
                                 @error('account_number') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="text-sm font-medium text-slate-700">Account name</label>
-                                <input name="account_name" value="{{ old('account_name', $profile->account_name) }}" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                                <input id="account-name" name="account_name" value="{{ old('account_name', $profile->account_name) }}" readonly placeholder="Verified name appears here" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-100 text-slate-700 focus:border-emerald-500 focus:ring-emerald-500" />
                                 @error('account_name') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="text-sm font-medium text-slate-700">Current login PIN</label>
+                                <input name="current_pin" type="password" inputmode="numeric" autocomplete="current-password" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="Required when payout details change" />
+                                <p class="mt-2 text-xs leading-5 text-slate-500">Your PIN confirms it is really you before we change where payouts are sent. It is checked securely by 8Kommerce and is never sent to Paystack.</p>
+                                @error('current_pin') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-500">
-                        Save profile
-                    </button>
                 </form>
                 <form method="POST" action="{{ route('profile.seller.test') }}" class="mt-4">
                     @csrf
@@ -152,6 +156,44 @@
                         {{ route('public.listing', $profile->public_slug) }}
                     </a>
                 </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div><p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Order fulfilment</p><h2 class="mt-1 text-lg font-semibold text-slate-900">Delivery and pickup</h2><p class="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Add the pickup stations and delivery areas customers can choose at checkout. Each option has its own fee and instructions.</p></div>
+                    <button type="button" class="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50" data-add-fulfillment-option>Add option</button>
+                </div>
+
+                <div class="mt-5" data-fulfillment-settings-form>
+                    <div class="grid gap-3" data-fulfillment-option-list>
+                        @foreach($fulfillmentOptions as $index => $option)
+                            <section class="rounded-xl border border-slate-200 bg-slate-50/60 p-4" data-fulfillment-option>
+                                <div class="grid gap-4 sm:grid-cols-[0.75fr_1.4fr_0.65fr_auto] sm:items-end">
+                                    <div><label class="text-xs font-semibold text-slate-600">Option type</label><select form="store-settings-form" name="fulfillment_options[{{ $index }}][type]" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"><option value="pickup" @selected(($option['type'] ?? '') === 'pickup')>Pickup station</option><option value="delivery" @selected(($option['type'] ?? '') === 'delivery')>Delivery area</option></select></div>
+                                    <div><label class="text-xs font-semibold text-slate-600">Station or delivery area</label><input form="store-settings-form" name="fulfillment_options[{{ $index }}][label]" value="{{ $option['label'] ?? '' }}" maxlength="160" required placeholder="e.g. East Legon pickup or Greater Accra" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                                    <div><label class="text-xs font-semibold text-slate-600">Fee ({{ $currency }})</label><input form="store-settings-form" name="fulfillment_options[{{ $index }}][fee]" value="{{ $option['fee'] ?? '0.00' }}" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                                    <button type="button" class="min-h-10 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50" data-remove-fulfillment-option>Remove</button>
+                                </div>
+                                <div class="mt-4"><label class="text-xs font-semibold text-slate-600">Details for customers <span class="font-normal text-slate-400">(optional)</span></label><textarea form="store-settings-form" name="fulfillment_options[{{ $index }}][details]" rows="2" maxlength="180" placeholder="Opening hours, landmarks, delivery time or special instructions" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">{{ $option['details'] ?? '' }}</textarea></div>
+                            </section>
+                        @endforeach
+                    </div>
+                    <div class="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500" data-fulfillment-empty @if(count($fulfillmentOptions)) hidden @endif>No options yet. Add a pickup station or delivery area to show it at checkout.</div>
+                    @if($errors->has('fulfillment_options') || $errors->has('fulfillment_options.*'))<p class="mt-2 text-xs text-rose-600">{{ $errors->first('fulfillment_options.*') ?: $errors->first('fulfillment_options') }}</p>@endif
+                    <div class="mt-5"><p class="text-xs text-slate-500">Use a fee of 0 for a free option.</p></div>
+                </div>
+
+                <template data-fulfillment-option-template>
+                    <section class="rounded-xl border border-slate-200 bg-slate-50/60 p-4" data-fulfillment-option>
+                        <div class="grid gap-4 sm:grid-cols-[0.75fr_1.4fr_0.65fr_auto] sm:items-end">
+                            <div><label class="text-xs font-semibold text-slate-600">Option type</label><select form="store-settings-form" name="fulfillment_options[__INDEX__][type]" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"><option value="pickup">Pickup station</option><option value="delivery">Delivery area</option></select></div>
+                            <div><label class="text-xs font-semibold text-slate-600">Station or delivery area</label><input form="store-settings-form" name="fulfillment_options[__INDEX__][label]" maxlength="160" required placeholder="e.g. East Legon pickup or Greater Accra" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                            <div><label class="text-xs font-semibold text-slate-600">Fee ({{ $currency }})</label><input form="store-settings-form" name="fulfillment_options[__INDEX__][fee]" value="0.00" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                            <button type="button" class="min-h-10 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50" data-remove-fulfillment-option>Remove</button>
+                        </div>
+                        <div class="mt-4"><label class="text-xs font-semibold text-slate-600">Details for customers <span class="font-normal text-slate-400">(optional)</span></label><textarea form="store-settings-form" name="fulfillment_options[__INDEX__][details]" rows="2" maxlength="180" placeholder="Opening hours, landmarks, delivery time or special instructions" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></textarea></div>
+                    </section>
+                </template>
             </div>
 
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -181,14 +223,25 @@
         </div>
     </div>
 
+    <div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8">
+        <button form="store-settings-form" type="submit" class="inline-flex min-h-12 items-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2">
+            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
+            Save store settings
+        </button>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const storeSettingsForm = document.getElementById('store-settings-form');
             const accountInput = document.getElementById('account-number');
+            const accountNameInput = document.getElementById('account-name');
+            const resolutionStatus = document.getElementById('account-resolution-status');
             const hint = document.getElementById('momo-network-hint');
             const bankSelect = document.querySelector('select[name="settlement_bank_code"]');
             const payoutRadios = document.querySelectorAll('input[name="payout_method"]');
             const settlementLabel = document.getElementById('settlement-label');
             const accountLabel = document.getElementById('account-number-label');
+            const providerEmptyMessages = document.querySelectorAll('[data-provider-empty]');
 
             const detectGhNetwork = (value) => {
                 const digits = (value || '').replace(/\D+/g, '');
@@ -222,11 +275,6 @@
                 return picked ? picked.value : 'MOMO';
             };
 
-            const setPayoutMethod = (value) => {
-                Array.from(payoutRadios).forEach((r) => { r.checked = (r.value === value); });
-                updateLabels();
-            };
-
             const updateLabels = () => {
                 const method = getPayoutMethod();
                 if (settlementLabel) settlementLabel.textContent = method === 'BANK' ? 'Bank' : 'MoMo provider';
@@ -234,13 +282,24 @@
                 if (accountInput) accountInput.placeholder = method === 'BANK' ? 'e.g. bank account number' : 'e.g. 0541900229';
                 if (bankSelect) {
                     const options = Array.from(bankSelect.options);
+                    const selectedOption = bankSelect.selectedOptions[0];
                     options.forEach((option, index) => {
-                        if (index === 0) return;
+                        if (index === 0) {
+                            option.textContent = method === 'BANK' ? 'Select bank' : 'Select provider';
+                            return;
+                        }
                         const type = option.dataset.type || 'bank';
-                        const visible = method === 'BANK' ? true : type === 'momo';
-                        option.style.display = visible ? 'block' : 'none';
+                        const visible = method === 'BANK' ? type === 'bank' : type === 'momo';
+                        option.hidden = !visible;
+                        option.disabled = !visible;
                     });
+                    if (selectedOption?.disabled) bankSelect.value = '';
                 }
+                providerEmptyMessages.forEach((message) => {
+                    const relevant = message.dataset.providerEmpty === (method === 'BANK' ? 'bank' : 'momo');
+                    const hasOptions = bankSelect && Array.from(bankSelect.options).some((option) => option.dataset.type === (method === 'BANK' ? 'bank' : 'momo'));
+                    message.hidden = !relevant || hasOptions;
+                });
             };
 
             const maybeAutoSelectBank = (networkLabel) => {
@@ -253,7 +312,7 @@
                         ? 'AIRTELTIGO'
                         : (networkLabel.toUpperCase().includes('TELECEL') || networkLabel.toUpperCase().includes('VODAFONE') ? 'TELECEL' : 'UNKNOWN'));
 
-                const best = options.find((o) => o.dataset.network === normalizedNetwork && o.style.display !== 'none');
+                const best = options.find((o) => o.dataset.network === normalizedNetwork && !o.hidden && !o.disabled);
                 if (best) {
                     bankSelect.value = best.value;
                 }
@@ -262,14 +321,6 @@
             const refresh = () => {
                 if (!accountInput || !hint) return;
                 const network = detectGhNetwork(accountInput.value);
-
-                // MoMo-first: if we cannot detect a MoMo prefix, switch to BANK mode (so bank becomes primary).
-                if (!network && getPayoutMethod() === 'MOMO') {
-                    const digits = (accountInput.value || '').replace(/\D+/g, '');
-                    if (digits.length >= 9) {
-                        setPayoutMethod('BANK');
-                    }
-                }
 
                 if (!network || getPayoutMethod() === 'BANK') {
                     hint.textContent = '';
@@ -282,15 +333,101 @@
                 maybeAutoSelectBank(network);
             };
 
+            let resolutionTimer = null;
+            let resolutionRequest = null;
+            const setResolutionStatus = (message, tone = 'muted') => {
+                if (!resolutionStatus) return;
+                resolutionStatus.textContent = message;
+                resolutionStatus.className = 'mt-2 min-h-4 text-xs ' + (tone === 'success'
+                    ? 'text-emerald-700'
+                    : tone === 'error' ? 'text-rose-600' : 'text-slate-500');
+            };
+            const scheduleAccountResolution = () => {
+                window.clearTimeout(resolutionTimer);
+                resolutionRequest?.abort();
+
+                const digits = (accountInput?.value || '').replace(/\D+/g, '');
+                const minimumLength = getPayoutMethod() === 'MOMO' ? 9 : 6;
+                if (!bankSelect?.value || digits.length < minimumLength) {
+                    setResolutionStatus(bankSelect?.value || !digits ? '' : 'Enter a complete account number.');
+                    return;
+                }
+
+                setResolutionStatus('Checking account name…');
+                resolutionTimer = window.setTimeout(async () => {
+                    resolutionRequest = new AbortController();
+                    try {
+                        const response = await fetch(storeSettingsForm.dataset.resolveAccountUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                            },
+                            body: JSON.stringify({
+                                payout_method: getPayoutMethod(),
+                                settlement_bank_code: bankSelect.value,
+                                account_number: accountInput.value,
+                            }),
+                            signal: resolutionRequest.signal,
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.account_name) throw new Error(result.message || 'Account could not be verified.');
+
+                        accountNameInput.value = result.account_name;
+                        setResolutionStatus('Verified account: ' + result.account_name, 'success');
+                    } catch (error) {
+                        if (error.name === 'AbortError') return;
+                        accountNameInput.value = '';
+                        setResolutionStatus(error.message || 'Account verification failed. Try again.', 'error');
+                    }
+                }, 650);
+            };
+
             if (accountInput) {
-                accountInput.addEventListener('input', refresh);
+                accountInput.addEventListener('input', () => {
+                    accountNameInput.value = '';
+                    refresh();
+                    scheduleAccountResolution();
+                });
+                bankSelect?.addEventListener('change', () => {
+                    accountNameInput.value = '';
+                    scheduleAccountResolution();
+                });
                 Array.from(payoutRadios).forEach((r) => r.addEventListener('change', () => {
+                    bankSelect.value = '';
+                    accountNameInput.value = '';
+                    setResolutionStatus('');
                     updateLabels();
                     refresh();
+                    scheduleAccountResolution();
                 }));
                 updateLabels();
                 refresh();
             }
+
+            const fulfillmentList = document.querySelector('[data-fulfillment-option-list]');
+            const fulfillmentTemplate = document.querySelector('[data-fulfillment-option-template]');
+            const fulfillmentEmpty = document.querySelector('[data-fulfillment-empty]');
+            let fulfillmentIndex = fulfillmentList?.querySelectorAll('[data-fulfillment-option]').length || 0;
+
+            const refreshFulfillmentEmptyState = () => {
+                if (fulfillmentEmpty && fulfillmentList) fulfillmentEmpty.hidden = fulfillmentList.children.length > 0;
+            };
+            document.querySelector('[data-add-fulfillment-option]')?.addEventListener('click', () => {
+                if (!fulfillmentList || !fulfillmentTemplate) return;
+                const markup = fulfillmentTemplate.innerHTML.replaceAll('__INDEX__', String(fulfillmentIndex++));
+                fulfillmentList.insertAdjacentHTML('beforeend', markup);
+                fulfillmentList.lastElementChild?.querySelector('input[name$="[label]"]')?.focus();
+                refreshFulfillmentEmptyState();
+            });
+            fulfillmentList?.addEventListener('click', (event) => {
+                const remove = event.target.closest('[data-remove-fulfillment-option]');
+                if (!remove) return;
+                remove.closest('[data-fulfillment-option]')?.remove();
+                refreshFulfillmentEmptyState();
+            });
+            refreshFulfillmentEmptyState();
         });
     </script>
 @endsection

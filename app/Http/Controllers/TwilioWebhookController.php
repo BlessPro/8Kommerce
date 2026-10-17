@@ -6,11 +6,23 @@ use App\Models\TwilioMessageLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Twilio\Security\RequestValidator;
 
 class TwilioWebhookController extends Controller
 {
     public function status(Request $request): Response
     {
+        $signature = (string) $request->header('X-Twilio-Signature', '');
+        $authToken = (string) config('services.twilio.auth_token', '');
+        $callbackUrl = (string) config('services.twilio.status_callback_url', '');
+        $signedUrl = $callbackUrl !== '' ? $callbackUrl : $request->fullUrl();
+
+        if ($signature === '' || $authToken === '' || ! (new RequestValidator($authToken))->validate($signature, $signedUrl, $request->all())) {
+            Log::warning('Rejected invalid Twilio status callback', ['ip' => $request->ip()]);
+
+            return response('invalid signature', 403);
+        }
+
         $sid = (string) $request->input('MessageSid', '');
         $status = (string) $request->input('MessageStatus', '');
         $errorCode = $request->input('ErrorCode');
@@ -46,4 +58,3 @@ class TwilioWebhookController extends Controller
         return response('ok', 200);
     }
 }
-

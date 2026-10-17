@@ -14,13 +14,17 @@ class TelemetryController extends Controller
             'event' => ['required', 'string', 'max:64'],
             'level' => ['nullable', 'string', 'in:info,warn,error'],
             'metric_ms' => ['nullable', 'integer', 'min:0', 'max:600000'],
-            'meta' => ['nullable', 'array'],
+            'meta' => ['nullable', 'array', 'max:20'],
         ]);
 
         $event = (string) $data['event'];
         $level = (string) ($data['level'] ?? 'info');
         $metricMs = $data['metric_ms'] ?? null;
         $meta = $data['meta'] ?? [];
+        $encodedMeta = json_encode($meta);
+        if ($encodedMeta === false || strlen($encodedMeta) > 8192) {
+            $meta = ['discarded' => 'payload_too_large'];
+        }
         $user = $request->user();
 
         $context = [
@@ -98,4 +102,3 @@ class TelemetryController extends Controller
         return $parts['host'] ?? null;
     }
 }
-

@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderFeedback;
 use App\Models\OrderFeedbackToken;
 use App\Models\SellerNotification;
+use App\Services\SellerNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -50,7 +51,7 @@ class PublicOrderFeedbackController extends Controller
         $feedbackToken->used_at = now();
         $feedbackToken->save();
 
-        app(\App\Services\SellerNotifier::class)->notify(
+        app(SellerNotifier::class)->notify(
             $order->user,
             SellerNotification::TYPE_ORDER_ACCEPTED,
             'Order completed by customer',
@@ -75,7 +76,7 @@ class PublicOrderFeedbackController extends Controller
         $order = $feedbackToken->order;
         $photoPath = null;
         if ($request->hasFile('issue_photo')) {
-            $photoPath = $request->file('issue_photo')->store('order-issues', 'public');
+            $photoPath = $request->file('issue_photo')->store('order-issues', 'local');
         }
 
         $feedback = OrderFeedback::create([
@@ -93,7 +94,7 @@ class PublicOrderFeedbackController extends Controller
         $feedbackToken->used_at = now();
         $feedbackToken->save();
 
-        app(\App\Services\SellerNotifier::class)->notify(
+        app(SellerNotifier::class)->notify(
             $order->user,
             SellerNotification::TYPE_ADMIN_MESSAGE,
             'Order issue reported',

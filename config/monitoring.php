@@ -24,4 +24,13 @@ return [
         'critical_threshold' => (int) env('MONITORING_RECON_CRITICAL_THRESHOLD', 1),
         'high_threshold' => (int) env('MONITORING_RECON_HIGH_THRESHOLD', 3),
     ],
+
+    'queue' => [
+        'max_depth' => (int) env('MONITORING_QUEUE_MAX_DEPTH', 100),
+        'alert_cooldown_seconds' => (int) env('MONITORING_QUEUE_ALERT_COOLDOWN', 300),
+        'names' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('MONITORING_QUEUE_NAMES', 'otp,payments,notifications,default'))
+        ))),
+    ],
 ];

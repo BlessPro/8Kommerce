@@ -385,10 +385,18 @@ class CustomerController extends Controller
     private function mapOrderStatus(string $status): string
     {
         return match ($status) {
-            Order::STATUS_ACCEPTED, Order::STATUS_PAID => 'Delivered',
             Order::STATUS_PENDING_PAYMENT => 'Pending',
+            Order::STATUS_PAID => 'Paid',
+            Order::STATUS_ACCEPTED => 'Accepted',
+            Order::STATUS_PROCESSING => 'Processing',
+            Order::STATUS_READY => 'Ready',
+            Order::STATUS_SHIPPED => 'Shipped',
+            Order::STATUS_DELIVERED, Order::STATUS_COMPLETED => 'Delivered',
             Order::STATUS_CANNOT_FULFILL => 'Failed',
-            default => 'Delivered',
+            Order::STATUS_DISPUTED_PENDING_ADMIN => 'Issue reported',
+            Order::STATUS_REFUNDED => 'Refunded',
+            Order::STATUS_COMPLAINT_REJECTED => 'Issue closed',
+            default => str($status)->replace('_', ' ')->title()->toString(),
         };
     }
 

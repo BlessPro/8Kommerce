@@ -4,12 +4,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <meta name="theme-color" content="#059669">
+        <meta name="theme-color" content="#073B4C">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
         @php
             $defaultOgImage = url('/images/og-default.jpg');
@@ -36,40 +36,46 @@
         <meta name="twitter:image" content="{{ $ogImage }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
 
-    <body class="min-h-screen font-sans bg-gradient-to-br from-amber-50 via-white to-emerald-50 text-slate-900">
-        <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-semibold">8K</div>
+    <body class="lp-application min-h-screen bg-[#f4f7f7] font-sans text-slate-900 antialiased {{ in_array(($storefrontTheme ?? null), ['perfume', 'market', 'fashion'], true) ? 'public-layout-storefront-immersive' : '' }}">
+        @if(! in_array(($storefrontTheme ?? null), ['perfume', 'market', 'fashion'], true))
+        <header class="sticky top-0 z-40 border-b border-[#D5E1E4] bg-white/95">
+            <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+            <a href="{{ url('/') }}" class="flex items-center gap-3">
+                <x-brand-mark class="h-9 w-auto" />
                 <div>
-                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">8Kommerce</p>
-                    <p class="text-base font-semibold text-slate-900">Pay by WhatsApp</p>
+                    <p class="text-sm font-semibold leading-tight text-slate-950">8Kommerce</p>
+                    <p class="text-xs text-slate-500">Secure social commerce</p>
                 </div>
+            </a>
+            <div class="flex items-center gap-1 text-sm font-medium text-slate-600 sm:gap-2">
+                <a href="{{ route('customer.orders.login') }}" class="min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950">Track orders</a>
+                <a href="{{ route('pricing') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 sm:inline-flex">Pricing</a>
+                <a href="{{ route('legal.privacy') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 md:inline-flex">Privacy</a>
+                <a href="{{ route('login') }}" class="inline-flex min-h-10 items-center rounded-xl border border-[#d8ddd6] bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:border-slate-400">Seller login</a>
             </div>
-            <div class="flex items-center gap-3 text-sm font-medium text-slate-600">
-                <a href="{{ route('public.orders.track') }}" class="rounded-full border border-transparent px-4 py-2 hover:border-emerald-200 hover:text-emerald-700">Track order</a>
-                <a href="{{ route('pricing') }}" class="rounded-full border border-transparent px-4 py-2 hover:border-emerald-200 hover:text-emerald-700">Pricing</a>
-                <a href="{{ route('legal.privacy') }}" class="rounded-full border border-transparent px-4 py-2 hover:border-emerald-200 hover:text-emerald-700">Privacy</a>
-                <a href="{{ route('login') }}" class="rounded-full border border-slate-200 px-4 py-2 hover:border-emerald-200 hover:text-emerald-700">Seller login</a>
             </div>
         </header>
+        @endif
 
-        <main class="mx-auto w-full max-w-6xl px-6 pb-16">
+        <main class="{{ in_array(($storefrontTheme ?? null), ['perfume', 'market', 'fashion'], true) ? 'storefront-immersive-main' : 'mx-auto w-full max-w-7xl px-4 pb-20 pt-5 sm:px-6 sm:pt-8' }}">
             {{ $slot ?? '' }}
             @yield('content')
         </main>
 
-        <footer class="mx-auto mb-10 flex w-full max-w-6xl items-center justify-between px-6 text-xs text-slate-500">
+        @if(! in_array(($storefrontTheme ?? null), ['perfume', 'market', 'fashion'], true))
+        <footer class="mx-auto mb-8 flex w-full max-w-7xl items-center justify-between border-t border-[#e2e6df] px-4 pt-6 text-xs text-slate-500 sm:px-6">
             <p>© {{ date('Y') }} 8Kommerce</p>
             <div class="flex items-center gap-4">
                 <a href="{{ route('legal.privacy') }}" class="hover:text-emerald-700">Privacy</a>
                 <a href="{{ route('legal.terms') }}" class="hover:text-emerald-700">Terms</a>
             </div>
         </footer>
+        @endif
     </body>
     
 </html>

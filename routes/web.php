@@ -1,34 +1,35 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminInvoiceController;
+use App\Http\Controllers\Admin\AdminOrderFeedbackController;
+use App\Http\Controllers\Admin\AdminOtpAuthController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\CouponController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerOrderHubController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GoalsTargetController;
+use App\Http\Controllers\InsightsController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaystackWebhookController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\PublicListingController;
+use App\Http\Controllers\PublicOrderFeedbackController;
 use App\Http\Controllers\PublicOrderTrackingController;
 use App\Http\Controllers\PublicProductController;
 use App\Http\Controllers\SellerProfileController;
-use App\Http\Controllers\InsightsController;
-use App\Http\Controllers\GoalsTargetController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\TwilioWebhookController;
-use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\AdminInvoiceController;
-use App\Http\Controllers\BillingController;
-use App\Http\Controllers\PricingController;
 use App\Http\Controllers\SellerPublicPreviewController;
-use App\Http\Controllers\Admin\AdminOtpAuthController;
-use App\Http\Controllers\Admin\AdminOrderFeedbackController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\CouponController;
-use App\Http\Controllers\LandingController;
-use App\Http\Controllers\LegalController;
-use App\Http\Controllers\PublicOrderFeedbackController;
 use App\Http\Controllers\TelemetryController;
+use App\Http\Controllers\TwilioWebhookController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,12 @@ Route::post('/s/{public_slug}/cart/checkout', [PublicListingController::class, '
     ->middleware('throttle:public-checkout')
     ->name('public.cart.checkout');
 Route::get('/orders/track', [PublicOrderTrackingController::class, 'show'])->name('public.orders.track');
+Route::get('/track', [CustomerOrderHubController::class, 'login'])->name('customer.orders.login');
+Route::post('/track/verify', [CustomerOrderHubController::class, 'verify'])->middleware('throttle:10,1')->name('customer.orders.verify');
+Route::post('/track/send-otp', [CustomerOrderHubController::class, 'sendOtp'])->middleware('throttle:5,15')->name('customer.orders.send-otp');
+Route::get('/track/orders', [CustomerOrderHubController::class, 'index'])->name('customer.orders.index');
+Route::get('/track/orders/{order}', [CustomerOrderHubController::class, 'show'])->name('customer.orders.show');
+Route::post('/track/logout', [CustomerOrderHubController::class, 'logout'])->name('customer.orders.logout');
 Route::get('/order-feedback/{token}', [PublicOrderFeedbackController::class, 'show'])->name('public.order.feedback.show');
 Route::post('/order-feedback/{token}/received', [PublicOrderFeedbackController::class, 'received'])
     ->middleware('throttle:8,1')
@@ -113,6 +120,9 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         ->middleware('throttle:3,10')
         ->name('legal.data-deletion.store');
     Route::put('/profile/seller', [SellerProfileController::class, 'update'])->name('profile.seller.update');
+    Route::post('/profile/seller/resolve-account', [SellerProfileController::class, 'resolveAccount'])
+        ->middleware('throttle:10,1')
+        ->name('profile.seller.resolve-account');
     Route::post('/profile/seller/test-connection', [SellerProfileController::class, 'testConnection'])->name('profile.seller.test');
 
     Route::middleware('profile_onboarding_complete')->group(function () {
@@ -129,6 +139,12 @@ Route::middleware(['auth', 'active_access'])->group(function () {
             Route::post('/coupons', [CouponController::class, 'store'])->name('coupons.store');
             Route::patch('/coupons/{coupon}', [CouponController::class, 'update'])->name('coupons.update');
             Route::get('/public-preview', [SellerPublicPreviewController::class, 'show'])->name('public.preview');
+            Route::patch('/public-preview', [SellerPublicPreviewController::class, 'update'])
+                ->middleware('throttle:30,1')
+                ->name('public.preview.update');
+            Route::delete('/public-preview/settings', [SellerPublicPreviewController::class, 'reset'])
+                ->middleware('throttle:10,1')
+                ->name('public.preview.reset');
         });
 
         Route::middleware('payments_plan')->group(function () {
@@ -143,6 +159,10 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/orders/{order}/accept', [NotificationController::class, 'acceptOrder'])->name('notifications.orders.accept');
         Route::post('/notifications/orders/{order}/reject', [NotificationController::class, 'rejectOrder'])->name('notifications.orders.reject');
+        Route::post('/notifications/orders/{order}/processing', [NotificationController::class, 'startProcessing'])->name('notifications.orders.processing');
+        Route::post('/notifications/orders/{order}/ready', [NotificationController::class, 'markReady'])->name('notifications.orders.ready');
+        Route::post('/notifications/orders/{order}/shipped', [NotificationController::class, 'markShipped'])->name('notifications.orders.shipped');
+        Route::post('/notifications/orders/{order}/delivered', [NotificationController::class, 'markDelivered'])->name('notifications.orders.delivered');
         Route::get('/goals-target', [GoalsTargetController::class, 'index'])->name('goals.index');
         Route::get('/insights', [InsightsController::class, 'index'])->name('insights.index');
     });
@@ -203,6 +223,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('invoices.show');
     Route::get('/order-feedback', [AdminOrderFeedbackController::class, 'index'])->name('order-feedback.index');
+    Route::get('/order-feedback/{feedback}/photo', [AdminOrderFeedbackController::class, 'photo'])->name('order-feedback.photo');
     Route::post('/order-feedback/{feedback}/refund', [AdminOrderFeedbackController::class, 'approveRefund'])
         ->middleware('throttle:20,1')
         ->name('order-feedback.refund');

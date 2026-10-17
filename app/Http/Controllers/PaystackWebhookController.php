@@ -15,6 +15,16 @@ class PaystackWebhookController extends Controller
     public function handle(Request $request, PaystackService $paystack, PaymentService $payments)
     {
         $payload = $request->getContent();
+        if (strlen($payload) > 1_000_000) {
+            return response()->json(['status' => 'payload_too_large'], 413);
+        }
+
+        $secret = (string) config('services.paystack.secret_key', '');
+        $signature = (string) $request->header('x-paystack-signature', '');
+        if ($secret === '' || $signature === '' || ! hash_equals(hash_hmac('sha512', $payload, $secret), $signature)) {
+            return response()->json(['status' => 'invalid_signature'], 401);
+        }
+
         $eventHash = hash('sha256', $payload);
         $eventName = (string) $request->input('event');
         $reference = data_get($request->input('data'), 'reference');
@@ -92,23 +102,12 @@ class PaystackWebhookController extends Controller
             ]);
         }
 
-        $signature = $request->header('x-paystack-signature');
-        $expected = hash_hmac('sha512', $payload, config('services.paystack.secret_key'));
-
-        if (! $signature || ! hash_equals($expected, $signature)) {
-            $this->updateEvent($event, [
-                'status' => WebhookEvent::STATUS_FAILED,
-                'verification_status' => 'invalid_signature',
-                'error_message' => 'Signature mismatch',
-            ]);
-            return response()->json(['status' => 'invalid_signature'], 401);
-        }
-
         if ($eventName !== 'charge.success') {
             $this->updateEvent($event, [
                 'status' => WebhookEvent::STATUS_IGNORED,
                 'verification_status' => 'ignored_event',
             ]);
+
             return response()->json(['status' => 'ignored']);
         }
 
@@ -118,6 +117,7 @@ class PaystackWebhookController extends Controller
                 'verification_status' => 'missing_reference',
                 'error_message' => 'Missing reference',
             ]);
+
             return response()->json(['status' => 'missing_reference']);
         }
 
@@ -135,6 +135,7 @@ class PaystackWebhookController extends Controller
                 'reference' => $reference,
                 'error_message' => 'Payment not found',
             ]);
+
             return response()->json(['status' => 'payment_not_found']);
         }
 
@@ -148,6 +149,7 @@ class PaystackWebhookController extends Controller
                 'status' => WebhookEvent::STATUS_PROCESSED,
                 'verification_status' => 'already_processed',
             ]);
+
             return response()->json(['status' => 'already_processed']);
         }
 
@@ -156,14 +158,12 @@ class PaystackWebhookController extends Controller
             $verifiedStatus = data_get($verification, 'data.status');
 
             if ($verifiedStatus !== 'success') {
-                $this->markPaymentFailed($payment, 'verification_failed', [
-                    'verified_status' => $verifiedStatus,
-                ]);
                 $this->updateEvent($event, [
                     'status' => WebhookEvent::STATUS_FAILED,
                     'verification_status' => 'verification_failed',
                     'error_message' => 'Verify API did not return success',
                 ]);
+
                 return response()->json(['status' => 'verification_failed']);
             }
 
@@ -173,9 +173,6 @@ class PaystackWebhookController extends Controller
                 'verification_status' => 'success',
             ]);
         } catch (\Throwable $exception) {
-            $this->markPaymentFailed($payment, 'verification_exception', [
-                'message' => $exception->getMessage(),
-            ]);
             Log::warning('Webhook verification/markSuccess failed', [
                 'reference' => $reference,
                 'message' => $exception->getMessage(),
@@ -207,24 +204,6 @@ class PaystackWebhookController extends Controller
                 'message' => $exception->getMessage(),
             ]);
         }
-    }
-
-    private function markPaymentFailed(Payment $payment, string $reason, array $meta = []): void
-    {
-        if ($payment->status === Payment::STATUS_SUCCESS) {
-            return;
-        }
-
-        $raw = $payment->raw_payload ?? [];
-        $raw['fallback'] = array_merge([
-            'reason' => $reason,
-            'at' => now()->toIso8601String(),
-        ], $meta);
-
-        $payment->status = Payment::STATUS_FAILED;
-        $payment->raw_payload = $raw;
-        $payment->verified_at = now();
-        $payment->save();
     }
 
     private function isDuplicateEventHashException(QueryException $exception): bool

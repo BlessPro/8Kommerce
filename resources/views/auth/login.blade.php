@@ -1,174 +1,131 @@
 <x-guest-layout>
     @php($phoneAuthEnabled = (bool) config('auth_phone.enabled', true))
-    <div class="flex items-center justify-between">
-        <a href="/" class="inline-flex items-center gap-2">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white">8K</span>
-            <span class="text-xs uppercase tracking-[0.4em] text-slate-400">8Kommerce</span>
-        </a>
-        <a href="{{ route('register') }}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-500">Create account</a>
-    </div>
 
-    <h1 class="mt-6 text-2xl font-semibold text-slate-900">Welcome back</h1>
-    <p class="mt-2 text-sm text-slate-500">Sign in with either Email or PIN.</p>
+    <div class="auth-login-content">
+        <header class="flex items-center justify-between">
+            <a href="/" class="inline-flex items-center gap-2.5 text-slate-950" aria-label="8Kommerce home">
+                <x-brand-logo class="h-8 text-[15px]" />
+            </a>
+            <a href="{{ route('register') }}" class="text-sm font-semibold text-[#073B4C] hover:text-[#032B3A] lg:hidden">Create account</a>
+        </header>
 
-    <x-auth-session-status class="mt-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" :status="session('status')" />
-
-    <div class="mt-6 inline-flex rounded-full border border-slate-200 bg-white/80 p-1 text-sm">
-        <button type="button" class="login-tab rounded-full px-4 py-2 font-semibold text-emerald-700 bg-emerald-50" data-target="login-email">Email</button>
-        <button type="button" class="login-tab rounded-full px-4 py-2 font-semibold text-slate-500" data-target="login-pin">PIN</button>
-    </div>
-
-    <div id="login-email" class="mt-6">
-        <form class="space-y-5" method="POST" action="{{ route('login') }}">
-            @csrf
-
-            <div>
-                <label for="email" class="text-xs uppercase tracking-[0.3em] text-slate-400">Email address</label>
-                <input id="email" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" type="email" name="email" value="{{ old('email') }}" autocomplete="username" placeholder="you@company.com" />
-                <x-input-error :messages="$errors->get('email')" class="mt-2" />
-            </div>
-
-            <div>
-                <label for="pin" class="text-xs uppercase tracking-[0.3em] text-slate-400">4-digit PIN</label>
-                <input id="pin" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" type="password" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="1234" />
-                <x-input-error :messages="$errors->get('pin')" class="mt-2" />
-            </div>
-
-            <button type="submit" class="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
-                Sign in with Email
-            </button>
-        </form>
-    </div>
-
-    <div id="login-pin" class="mt-6 hidden">
-        <form class="space-y-4" method="POST" action="{{ route('login.phone.pin') }}">
-            @csrf
-            <div>
-                <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Phone number</label>
-                <div class="mt-2 flex gap-2">
-                    <select name="phone_country" class="rounded-xl border-slate-200 bg-white/80 px-3 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="+233">+233</option>
-                    </select>
-                    <input name="phone_number" value="{{ old('phone_number', session('phone_login_pending_phone')) }}" class="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="0541900229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" />
+        <div class="auth-login-main">
+            <div class="mx-auto w-full max-w-[410px]">
+                <div class="text-center">
+                    <p class="lp-eyebrow text-[#7A1F3D]">Seller workspace</p>
+                    <h1 class="mt-3 text-[28px] font-semibold tracking-[-0.025em] text-slate-950 sm:text-[32px]">Welcome back</h1>
+                    <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Sign in with your business phone number and PIN.</p>
                 </div>
-                <x-input-error :messages="$errors->get('phone_number')" class="mt-2" />
-            </div>
 
-            <div>
-                <label for="pin-phone" class="text-xs uppercase tracking-[0.3em] text-slate-400">4-digit PIN</label>
-                <input id="pin-phone" name="pin" value="{{ old('pin') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" type="password" placeholder="1234" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" />
-                <x-input-error :messages="$errors->get('pin')" class="mt-2" />
-            </div>
+                <nav class="auth-login-switcher mt-7" aria-label="Authentication options">
+                    <span aria-current="page">Sign in</span>
+                    <a href="{{ route('register') }}">Create account</a>
+                </nav>
 
-            <button type="submit" class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
-                Sign in with PIN
-            </button>
-        </form>
-    </div>
+                <x-auth-session-status class="mt-5 rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" :status="session('status')" />
 
-    @if($phoneAuthEnabled)
-        <div class="mt-6 border-t border-slate-200 pt-5">
-            <button type="button" id="toggle-pin-reset" class="text-sm font-semibold text-emerald-600 hover:text-emerald-500">
-                Forgot PIN?
-            </button>
-            <p class="mt-1 text-xs text-slate-500">Use OTP to reset your PIN.</p>
-        </div>
-
-        <div id="pin-reset-panel" class="mt-4 hidden">
-            @if (session('pin_reset_status') === 'sent')
-                <div class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    PIN reset OTP sent to {{ session('pin_reset_phone_masked', 'your phone number') }}.
-                </div>
-            @endif
-
-            <form class="space-y-4" method="POST" action="{{ route('login.phone.pin.reset.send') }}">
-                @csrf
-                <div>
-                    <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Business phone number</label>
-                    <div class="mt-2 flex gap-2">
-                        <select name="phone_country" class="rounded-xl border-slate-200 bg-white/80 px-3 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="+233">+233</option>
-                        </select>
-                        <input name="phone_number" value="{{ old('phone_number', session('pin_reset_pending_phone')) }}" class="w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="0541900229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" />
+                <form class="mt-6 space-y-5" method="POST" action="{{ route('login.phone.pin') }}">
+                    @csrf
+                    <div>
+                        <label for="login-phone" class="auth-field-label">Phone number <span>*</span></label>
+                        <div class="auth-phone-control mt-2">
+                            <span class="auth-field-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" fill="none"><path d="M6.5 3.5h2l1 3-1.4 1.4a11 11 0 0 0 4 4l1.4-1.4 3 1v2a2 2 0 0 1-2 2C8.4 15.5 4.5 11.6 4.5 5.5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                            <select name="phone_country" aria-label="Country code"><option value="+233">GH +233</option></select>
+                            <span class="auth-phone-divider" aria-hidden="true"></span>
+                            <input id="login-phone" name="phone_number" value="{{ old('phone_number', session('phone_login_pending_phone')) }}" placeholder="54 190 0229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" autofocus required />
+                        </div>
+                        <x-input-error :messages="$errors->get('phone_number')" class="mt-2" />
                     </div>
-                    <x-input-error :messages="$errors->get('reset_phone_number')" class="mt-2" />
-                </div>
-                <button type="submit" class="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
-                    Send reset OTP
-                </button>
-            </form>
 
-            <form class="mt-4 space-y-4" method="POST" action="{{ route('login.phone.pin.reset.complete') }}">
-                @csrf
-                <input type="hidden" name="phone_country" value="{{ old('phone_country', session('pin_reset_pending_country', '+233')) }}" />
-                <div>
-                    <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Business phone number</label>
-                    <input name="phone_number" value="{{ old('phone_number', session('pin_reset_pending_phone')) }}" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="0541900229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" />
-                    <x-input-error :messages="$errors->get('reset_phone_number')" class="mt-2" />
-                </div>
-                <div>
-                    <label for="reset_otp" class="text-xs uppercase tracking-[0.3em] text-slate-400">OTP</label>
-                    <input id="reset_otp" name="otp" value="{{ old('otp') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="123456" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" />
-                    <x-input-error :messages="$errors->get('reset_otp')" class="mt-2" />
-                </div>
-                <div>
-                    <label for="reset_pin" class="text-xs uppercase tracking-[0.3em] text-slate-400">New 4-digit PIN</label>
-                    <input id="reset_pin" name="reset_pin" value="{{ old('reset_pin') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" type="password" placeholder="1234" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" />
-                    <x-input-error :messages="$errors->get('reset_pin')" class="mt-2" />
-                </div>
-                <div>
-                    <label for="reset_pin_confirmation" class="text-xs uppercase tracking-[0.3em] text-slate-400">Confirm new PIN</label>
-                    <input id="reset_pin_confirmation" name="reset_pin_confirmation" value="{{ old('reset_pin_confirmation') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" type="password" placeholder="1234" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" />
-                </div>
-                <button type="submit" class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
-                    Verify OTP and reset PIN
-                </button>
-            </form>
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <label for="pin-phone" class="auth-field-label">PIN <span>*</span></label>
+                            @if($phoneAuthEnabled)
+                                <button type="button" id="toggle-pin-reset" class="text-xs font-semibold text-[#073B4C] hover:text-[#032B3A]">Forgot PIN?</button>
+                            @else
+                                <span class="text-xs text-slate-400">4–6 digits</span>
+                            @endif
+                        </div>
+                        <div class="auth-pin-control mt-2">
+                            <span class="auth-field-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" fill="none"><rect x="4.5" y="8" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                            </span>
+                            <input id="pin-phone" name="pin" type="password" placeholder="Enter your 4–6 digit PIN" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6" autocomplete="current-password" required />
+                            <button type="button" id="toggle-pin-visibility" class="auth-password-toggle" aria-label="Show PIN" aria-pressed="false">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.5-4 7.5-4 7.5 4 7.5 4-2.5 4-7.5 4-7.5-4-7.5-4Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+                            </button>
+                        </div>
+                        <x-input-error :messages="$errors->get('pin')" class="mt-2" />
+                    </div>
+
+                    <button type="submit" class="lp-button-brand min-h-[46px] w-full">Sign in securely</button>
+                </form>
+
+                @if($phoneAuthEnabled)
+                    <div id="pin-reset-panel" class="auth-reset-panel mt-5 hidden">
+                        <div class="mb-4">
+                            <h2 class="text-sm font-semibold text-slate-900">Reset your PIN</h2>
+                            <p class="mt-1 text-xs leading-5 text-slate-500">We’ll send a one-time code to your business phone.</p>
+                        </div>
+
+                        @if (session('pin_reset_status') === 'sent')
+                            <div class="mb-4 rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">PIN reset OTP sent to {{ session('pin_reset_phone_masked', 'your phone number') }}.</div>
+                        @endif
+
+                        <form class="space-y-3" method="POST" action="{{ route('login.phone.pin.reset.send') }}">
+                            @csrf
+                            <label class="auth-field-label">Business phone number</label>
+                            <div class="flex gap-2">
+                                <select name="phone_country" class="w-24 px-3 py-2.5 text-sm"><option value="+233">+233</option></select>
+                                <input name="phone_number" value="{{ old('phone_number', session('pin_reset_pending_phone')) }}" class="w-full px-3 py-2.5" placeholder="054 190 0229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" />
+                            </div>
+                            <x-input-error :messages="$errors->get('reset_phone_number')" class="mt-1" />
+                            <button type="submit" class="lp-button-secondary w-full">Send reset OTP</button>
+                        </form>
+
+                        <form class="mt-5 space-y-3 border-t border-slate-200 pt-5" method="POST" action="{{ route('login.phone.pin.reset.complete') }}">
+                            @csrf
+                            <input type="hidden" name="phone_country" value="{{ old('phone_country', session('pin_reset_pending_country', '+233')) }}" />
+                            <div><label class="auth-field-label">Business phone number</label><input name="phone_number" value="{{ old('phone_number', session('pin_reset_pending_phone')) }}" class="mt-1.5 w-full px-3 py-2.5" placeholder="054 190 0229" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" data-strip-leading-zero="true" /><x-input-error :messages="$errors->get('reset_phone_number')" class="mt-1" /></div>
+                            <div><label for="reset_otp" class="auth-field-label">OTP</label><input id="reset_otp" name="otp" value="{{ old('otp') }}" class="mt-1.5 w-full px-3 py-2.5" placeholder="123456" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" /><x-input-error :messages="$errors->get('reset_otp')" class="mt-1" /></div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label for="reset_pin" class="auth-field-label">New PIN</label><input id="reset_pin" name="reset_pin" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="4 digits" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" /><x-input-error :messages="$errors->get('reset_pin')" class="mt-1" /></div>
+                                <div><label for="reset_pin_confirmation" class="auth-field-label">Confirm PIN</label><input id="reset_pin_confirmation" name="reset_pin_confirmation" class="mt-1.5 w-full px-3 py-2.5" type="password" placeholder="Repeat PIN" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" /></div>
+                            </div>
+                            <button type="submit" class="lp-button-brand w-full">Verify and reset PIN</button>
+                        </form>
+                    </div>
+                @endif
+            </div>
         </div>
-    @endif
 
-    <p class="mt-6 text-sm text-slate-500">
-        New to 8Kommerce? <a class="font-semibold text-emerald-600 hover:text-emerald-500" href="{{ route('register') }}">Create an account</a>.
-    </p>
+        <footer class="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400 lg:justify-start">
+            <span>© {{ date('Y') }} 8Kommerce</span>
+            <a href="{{ route('legal.terms') }}" class="hover:text-slate-700">Terms</a>
+            <a href="{{ route('legal.privacy') }}" class="hover:text-slate-700">Privacy</a>
+        </footer>
+    </div>
 
     <script>
-        const tabButtons = document.querySelectorAll('.login-tab');
-        const panels = {
-            'login-email': document.getElementById('login-email'),
-            'login-pin': document.getElementById('login-pin'),
-        };
-
-        const setActiveTab = (target) => {
-            tabButtons.forEach((button) => {
-                const isActive = button.dataset.target === target;
-                button.classList.toggle('text-emerald-700', isActive);
-                button.classList.toggle('bg-emerald-50', isActive);
-                button.classList.toggle('text-slate-500', !isActive);
-            });
-            Object.entries(panels).forEach(([key, panel]) => {
-                if (!panel) return;
-                panel.classList.toggle('hidden', key !== target);
-            });
-        };
-
-        tabButtons.forEach((button) => {
-            button.addEventListener('click', () => setActiveTab(button.dataset.target));
-        });
-
-        const pinTabErrors = @json($errors->has('phone_number'));
-        setActiveTab(pinTabErrors ? 'login-pin' : 'login-email');
-
         const togglePinReset = document.getElementById('toggle-pin-reset');
         const pinResetPanel = document.getElementById('pin-reset-panel');
+        const pinInput = document.getElementById('pin-phone');
+        const togglePinVisibility = document.getElementById('toggle-pin-visibility');
         const shouldOpenReset = @json($phoneAuthEnabled && (session('pin_reset_status') || $errors->has('reset_phone_number') || $errors->has('reset_otp') || $errors->has('reset_pin')));
 
         if (togglePinReset && pinResetPanel) {
-            if (shouldOpenReset) {
-                pinResetPanel.classList.remove('hidden');
-            }
+            if (shouldOpenReset) pinResetPanel.classList.remove('hidden');
+            togglePinReset.addEventListener('click', () => pinResetPanel.classList.toggle('hidden'));
+        }
 
-            togglePinReset.addEventListener('click', () => {
-                pinResetPanel.classList.toggle('hidden');
+        if (togglePinVisibility && pinInput) {
+            togglePinVisibility.addEventListener('click', () => {
+                const showing = pinInput.type === 'text';
+                pinInput.type = showing ? 'password' : 'text';
+                togglePinVisibility.setAttribute('aria-pressed', String(!showing));
+                togglePinVisibility.setAttribute('aria-label', showing ? 'Show PIN' : 'Hide PIN');
             });
         }
     </script>

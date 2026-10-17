@@ -29,7 +29,7 @@ class EnsureActiveAccess
         // Safety: older users may not have trial fields populated.
         $user->startTrialIfMissing();
 
-        if (! $user->pin_hash && ! $request->routeIs('pin.setup.*', 'logout')) {
+        if (! $user->pin_hash && ! $request->routeIs('pin.setup.*', 'logout', 'legal.data-deletion.store')) {
             return redirect()
                 ->route('pin.setup.show')
                 ->with('status', 'Set your PIN to continue.');

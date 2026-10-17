@@ -16,6 +16,8 @@ class BillingController extends Controller
         return view('billing.show', [
             'user' => $user,
             'plans' => config('plans'),
+            'manualActivationEnabled' => (bool) config('billing.manual_activation_enabled') && app()->environment('local'),
+            'recurringBillingEnabled' => (bool) config('billing.recurring_enabled'),
         ]);
     }
 
@@ -32,6 +34,8 @@ class BillingController extends Controller
 
     public function activate(Request $request, string $plan): RedirectResponse
     {
+        abort_unless(config('billing.manual_activation_enabled') && app()->environment('local'), 404);
+
         $user = $request->user();
         $user->startTrialIfMissing();
 

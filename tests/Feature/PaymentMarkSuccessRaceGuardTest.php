@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendOutboundMessage;
 use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -11,6 +12,7 @@ use App\Models\SellerProfile;
 use App\Models\User;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PaymentMarkSuccessRaceGuardTest extends TestCase
@@ -19,6 +21,8 @@ class PaymentMarkSuccessRaceGuardTest extends TestCase
 
     public function test_mark_success_is_idempotent_for_stock_and_coupon_side_effects(): void
     {
+        Queue::fake();
+
         $seller = User::factory()->create([
             'plan_type' => User::PLAN_FREE_TRIAL,
         ]);
@@ -92,6 +96,10 @@ class PaymentMarkSuccessRaceGuardTest extends TestCase
         $service = app(PaymentService::class);
         $verifiedData = [
             'status' => 'success',
+            'reference' => $payment->reference,
+            'amount' => 18000,
+            'currency' => 'GHS',
+            'subaccount' => ['subaccount_code' => 'ACCT_test_sub'],
             'channel' => 'card',
             'paid_at' => now()->toIso8601String(),
         ];
@@ -109,6 +117,6 @@ class PaymentMarkSuccessRaceGuardTest extends TestCase
         $this->assertSame('3', (string) $product->stock_quantity);
         $this->assertSame(1, $coupon->used_count);
         $this->assertDatabaseCount('coupon_redemptions', 1);
+        Queue::assertPushed(SendOutboundMessage::class, 1);
     }
 }
-

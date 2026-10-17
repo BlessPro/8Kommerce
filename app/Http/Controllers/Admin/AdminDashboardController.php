@@ -6,22 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\SellerNotification;
 use App\Models\SellerProfile;
 use App\Models\TwilioMessageLog;
 use App\Models\User;
 use App\Models\WebhookEvent;
-use App\Services\PaymentService;
 use App\Services\PaymentReconciliationService;
+use App\Services\PaymentService;
 use App\Services\PaystackService;
 use App\Services\SellerNotifier;
+use App\Support\Csv;
 use App\Support\Money;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
@@ -30,7 +33,7 @@ class AdminDashboardController extends Controller
     {
         $totalSellers = User::has('sellerProfile')->count();
         $connectedSellers = SellerProfile::whereNotNull('paystack_subaccount_code')->count();
-        $totalProducts = \App\Models\Product::count();
+        $totalProducts = Product::count();
         $totalInvoices = Invoice::count();
         $totalPayments = Payment::where('status', Payment::STATUS_SUCCESS)->count();
         $totalReceived = $this->sumPayments(Payment::where('status', Payment::STATUS_SUCCESS));
@@ -170,6 +173,7 @@ class AdminDashboardController extends Controller
                 $request,
                 ['message' => $exception->getMessage()]
             );
+
             return back()->withErrors(['failed_jobs' => 'Retry failed: '.$exception->getMessage()]);
         }
     }
@@ -199,6 +203,7 @@ class AdminDashboardController extends Controller
                 $request,
                 ['message' => $exception->getMessage()]
             );
+
             return back()->withErrors(['failed_jobs' => 'Forget failed: '.$exception->getMessage()]);
         }
     }
@@ -228,6 +233,7 @@ class AdminDashboardController extends Controller
                 $request,
                 ['message' => $exception->getMessage()]
             );
+
             return back()->withErrors(['failed_jobs' => 'Retry all failed: '.$exception->getMessage()]);
         }
     }
@@ -359,7 +365,7 @@ class AdminDashboardController extends Controller
 
         $handle = fopen('php://temp', 'r+');
         foreach ($rows as $row) {
-            fputcsv($handle, $row);
+            fputcsv($handle, Csv::row($row));
         }
         rewind($handle);
         $content = stream_get_contents($handle);
@@ -468,6 +474,7 @@ class AdminDashboardController extends Controller
         foreach ($payments as $payment) {
             if ($payment->status === Payment::STATUS_SUCCESS) {
                 $skipped++;
+
                 continue;
             }
 
@@ -676,6 +683,7 @@ class AdminDashboardController extends Controller
                 $request,
                 ['message' => $exception->getMessage()]
             );
+
             return back()->withErrors(['seller' => 'Paystack sync failed: '.$exception->getMessage()]);
         }
     }
@@ -696,7 +704,7 @@ class AdminDashboardController extends Controller
 
         app(SellerNotifier::class)->notify(
             $seller,
-            \App\Models\SellerNotification::TYPE_ADMIN_MESSAGE,
+            SellerNotification::TYPE_ADMIN_MESSAGE,
             'Account suspended',
             'Your account was suspended by admin. '.($seller->suspension_note ? 'Reason: '.$seller->suspension_note : ''),
             ['by_admin' => $request->user()->id],
@@ -725,7 +733,7 @@ class AdminDashboardController extends Controller
 
         app(SellerNotifier::class)->notify(
             $seller,
-            \App\Models\SellerNotification::TYPE_ADMIN_MESSAGE,
+            SellerNotification::TYPE_ADMIN_MESSAGE,
             'Account restored',
             'Your account has been re-activated by admin.',
             ['by_admin' => $request->user()->id],
@@ -754,7 +762,7 @@ class AdminDashboardController extends Controller
 
         app(SellerNotifier::class)->notify(
             $seller,
-            \App\Models\SellerNotification::TYPE_ADMIN_MESSAGE,
+            SellerNotification::TYPE_ADMIN_MESSAGE,
             $validated['title'],
             $validated['body'],
             ['by_admin' => $request->user()->id],

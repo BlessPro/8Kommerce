@@ -7,6 +7,7 @@ use App\Models\SellerProfile;
 use App\Models\User;
 use App\Services\SmsOtpService;
 use App\Support\Phone;
+use App\Support\Privacy;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,13 +48,13 @@ class PhoneSignupController extends Controller
             }
 
             Log::info('Signup OTP send success', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
         } catch (\Throwable $exception) {
             Log::error('Signup OTP send failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
 
@@ -108,7 +109,7 @@ class PhoneSignupController extends Controller
             $approved = $smsOtp->verifyOtp($normalized, $data['otp']);
         } catch (\Throwable $exception) {
             Log::error('Signup OTP verify failed', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'message' => $exception->getMessage(),
             ]);
             $approved = false;
@@ -116,7 +117,7 @@ class PhoneSignupController extends Controller
 
         if (! $approved) {
             Log::warning('Signup OTP verify rejected', [
-                'phone' => $normalized,
+                'phone_hash' => Privacy::contactHash($normalized),
                 'ip' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
@@ -156,7 +157,7 @@ class PhoneSignupController extends Controller
 
         Log::info('Phone signup success', [
             'user_id' => $user->id,
-            'phone' => $normalized,
+            'phone_hash' => Privacy::contactHash($normalized),
             'ip' => $request->ip(),
         ]);
 

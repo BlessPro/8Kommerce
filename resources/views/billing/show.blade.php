@@ -26,6 +26,13 @@
         </div>
     @endif
 
+    @if(! $recurringBillingEnabled && ! $manualActivationEnabled)
+        <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <p class="font-semibold">Online subscription checkout is not active yet.</p>
+            <p class="mt-1 text-amber-800">Your current access remains unchanged. Plan selection will open after recurring billing and renewal webhooks are configured.</p>
+        </div>
+    @endif
+
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Current status</p>
@@ -75,16 +82,21 @@
                             <li>Team: {{ data_get($cfg, 'limits.team_members', '--') }}</li>
                             <li>Fee: {{ data_get($cfg, 'transaction_fee', '--') }}</li>
                         </ul>
-                        <form method="POST" action="{{ route('billing.activate', ['plan' => $plan['code']]) }}" class="mt-4">
-                            @csrf
-                            <button class="w-full rounded-full {{ $plan['code'] === \App\Models\User::PLAN_GROWTH ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'border border-slate-200 text-slate-700 hover:border-emerald-200 hover:text-emerald-700' }} px-4 py-2 text-xs font-semibold">
-                                Activate {{ $cfg['name'] ?? $plan['code'] }}
+                        @if($manualActivationEnabled)
+                            <form method="POST" action="{{ route('billing.activate', ['plan' => $plan['code']]) }}" class="mt-4">
+                                @csrf
+                                <button class="lp-button-secondary w-full text-xs">
+                                    Activate {{ $cfg['name'] ?? $plan['code'] }} locally
+                                </button>
+                            </form>
+                        @else
+                            <button type="button" disabled class="mt-4 min-h-10 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-400">
+                                Subscription setup pending
                             </button>
-                        </form>
+                        @endif
                     </div>
                 @endforeach
             </div>
         </div>
     </div>
 @endsection
-

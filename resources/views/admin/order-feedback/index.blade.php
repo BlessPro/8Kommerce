@@ -43,7 +43,7 @@
                         </div>
                         <p class="mt-3 text-sm text-slate-700">{{ $feedback->issue_note }}</p>
                         @if($feedback->issue_photo_path)
-                            <a href="{{ asset('storage/'.$feedback->issue_photo_path) }}" target="_blank" rel="noreferrer noopener" class="mt-2 inline-flex text-xs font-semibold text-emerald-700 hover:text-emerald-600">
+                            <a href="{{ route('admin.order-feedback.photo', $feedback) }}" target="_blank" rel="noreferrer noopener" class="mt-2 inline-flex text-xs font-semibold text-emerald-700 hover:text-emerald-600">
                                 View attached photo
                             </a>
                         @endif
@@ -83,4 +83,3 @@
         </div>
     </div>
 @endsection
-

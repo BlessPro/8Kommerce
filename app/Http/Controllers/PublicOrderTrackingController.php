@@ -12,6 +12,10 @@ class PublicOrderTrackingController extends Controller
 {
     public function show(Request $request)
     {
+        if (! config('orders.legacy_reference_tracking_enabled', false)) {
+            return redirect()->route('customer.orders.login');
+        }
+
         $reference = trim((string) $request->query('reference', ''));
         $phoneInput = trim((string) $request->query('phone_number', ''));
         $lookupError = null;
@@ -68,6 +72,10 @@ class PublicOrderTrackingController extends Controller
         if ($successPayment || in_array($order->status, [
             Order::STATUS_PAID,
             Order::STATUS_ACCEPTED,
+            Order::STATUS_PROCESSING,
+            Order::STATUS_READY,
+            Order::STATUS_SHIPPED,
+            Order::STATUS_DELIVERED,
             Order::STATUS_CANNOT_FULFILL,
             Order::STATUS_COMPLETED,
             Order::STATUS_DISPUTED_PENDING_ADMIN,
@@ -95,6 +103,34 @@ class PublicOrderTrackingController extends Controller
                 'body' => 'Seller confirmed they can fulfill this order.',
                 'time' => $decisionNotification?->created_at ?? $order->updated_at,
                 'state' => 'done',
+            ]);
+        } elseif ($order->status === Order::STATUS_PROCESSING) {
+            $timeline->push([
+                'title' => 'Order processing',
+                'body' => 'Seller is preparing your order.',
+                'time' => $order->processing_at ?? $order->updated_at,
+                'state' => 'done',
+            ]);
+        } elseif ($order->status === Order::STATUS_READY) {
+            $timeline->push([
+                'title' => 'Order ready',
+                'body' => $order->delivery_required ? 'Order is ready for dispatch.' : 'Order is ready for pickup.',
+                'time' => $order->ready_at ?? $order->updated_at,
+                'state' => 'done',
+            ]);
+        } elseif ($order->status === Order::STATUS_SHIPPED) {
+            $timeline->push([
+                'title' => 'Order shipped',
+                'body' => 'Your order is on the way.',
+                'time' => $order->shipped_at ?? $order->updated_at,
+                'state' => 'done',
+            ]);
+        } elseif ($order->status === Order::STATUS_DELIVERED) {
+            $timeline->push([
+                'title' => 'Delivery confirmation requested',
+                'body' => 'Seller marked the order delivered. Customer confirmation is pending.',
+                'time' => $order->delivered_at ?? $order->updated_at,
+                'state' => 'pending',
             ]);
         } elseif ($order->status === Order::STATUS_COMPLETED) {
             $timeline->push([

@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\Product;
 
 class CreateProductRequest extends FormRequest
 {
@@ -22,6 +22,7 @@ class CreateProductRequest extends FormRequest
                 'products' => ['required', 'array', 'min:1', 'max:20'],
                 'products.*.name' => ['required', 'string', 'max:120'],
                 'products.*.description' => ['nullable', 'string', 'max:2000'],
+                'products.*.category' => ['nullable', 'string', 'max:80'],
                 'products.*.price' => ['required', 'numeric', 'min:0.01'],
                 'products.*.stock_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000'],
                 'products.*.low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000'],
@@ -34,6 +35,7 @@ class CreateProductRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'category' => ['nullable', 'string', 'max:80'],
             'price' => ['required', 'numeric', 'min:0.01'],
             'stock_quantity' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000'],

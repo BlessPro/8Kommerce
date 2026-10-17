@@ -4,12 +4,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <meta name="theme-color" content="#059669">
+        <meta name="theme-color" content="#073B4C">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
         <title>{{ config('app.name', '8Kommerce') }}</title>
         <script>
@@ -24,19 +24,19 @@
         </script>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet" />
         <style>
             body, aside, header, main, nav, section, div, a, button, input, textarea, select {
                 transition: background-color .2s ease, color .2s ease, border-color .2s ease;
             }
             html.theme-dark body {
-                background: linear-gradient(140deg, #020617 0%, #0f172a 45%, #022c22 100%);
+                background: #031f2a;
                 color: #e2e8f0;
             }
             html.theme-dark aside,
             html.theme-dark header,
             html.theme-dark .js-mobile-menu-panel {
-                background-color: #0b1220 !important;
+                background-color: #0b3543 !important;
             }
             html.theme-dark .bg-white,
             html.theme-dark .bg-white\/70,
@@ -44,12 +44,12 @@
             html.theme-dark .bg-slate-50,
             html.theme-dark .bg-slate-50\/60,
             html.theme-dark .bg-slate-50\/70 {
-                background-color: #0f172a !important;
+                background-color: #0b3543 !important;
             }
             html.theme-dark .bg-emerald-50,
             html.theme-dark .bg-emerald-50\/60,
             html.theme-dark .bg-emerald-50\/70 {
-                background-color: rgba(16, 185, 129, 0.16) !important;
+                background-color: rgba(169, 212, 222, 0.16) !important;
             }
             html.theme-dark .bg-blue-50,
             html.theme-dark .bg-blue-50\/60,
@@ -78,7 +78,7 @@
                 border-color: #334155 !important;
             }
             html.theme-dark .border-emerald-200,
-            html.theme-dark .border-emerald-100 { border-color: rgba(16, 185, 129, 0.45) !important; }
+            html.theme-dark .border-emerald-100 { border-color: rgba(169, 212, 222, 0.45) !important; }
             html.theme-dark .border-blue-200,
             html.theme-dark .border-blue-100 { border-color: rgba(59, 130, 246, 0.45) !important; }
             html.theme-dark .border-indigo-200,
@@ -96,7 +96,7 @@
             html.theme-dark .text-emerald-500,
             html.theme-dark .text-emerald-600,
             html.theme-dark .text-emerald-700,
-            html.theme-dark .text-emerald-800 { color: #6ee7b7 !important; }
+            html.theme-dark .text-emerald-800 { color: #a9d4de !important; }
             html.theme-dark .text-blue-500,
             html.theme-dark .text-blue-600,
             html.theme-dark .text-blue-700,
@@ -121,13 +121,20 @@
             }
             html.theme-dark aside .bg-emerald-50,
             html.theme-dark .js-mobile-menu-panel .bg-emerald-50 {
-                background-color: rgba(16, 185, 129, 0.18) !important;
+                background-color: rgba(169, 212, 222, 0.18) !important;
             }
-            html.theme-dark .hover\:bg-emerald-50:hover { background-color: rgba(16, 185, 129, 0.12) !important; }
+            html.theme-dark .hover\:bg-emerald-50:hover { background-color: rgba(169, 212, 222, 0.12) !important; }
             html.theme-dark .shadow-sm,
             html.theme-dark .shadow-2xl,
             html.theme-dark .shadow-lg {
                 box-shadow: 0 12px 34px rgba(2, 6, 23, 0.45) !important;
+            }
+            .desktop-tour-focus {
+                position: relative;
+                z-index: 73;
+                outline: 3px solid #a84c6a;
+                outline-offset: 3px;
+                border-radius: 10px;
             }
 
             /* Forms: keep readable text and placeholders in all modes */
@@ -153,7 +160,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen font-sans bg-gradient-to-br from-slate-50 via-white to-emerald-50 text-slate-900">
+    <body class="lp-application min-h-screen bg-[#f4f7f7] font-sans text-slate-900 antialiased">
         @php
             $user = auth()->user();
             $profile = $user->sellerProfile;
@@ -163,90 +170,110 @@
             $onboarding = app(\App\Services\OnboardingService::class)->forUser($user);
             $navClass = function (string $route) {
                 return request()->routeIs($route)
-                    ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700'
-                    : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700';
+                    ? 'lp-nav-item lp-nav-item-active'
+                    : 'lp-nav-item';
             };
         @endphp
 
         <div class="min-h-screen lg:flex">
-            <aside class="hidden lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:max-h-screen lg:w-64 lg:flex-col lg:overflow-hidden lg:border-r lg:border-slate-200 lg:bg-white">
-                <div class="flex items-center gap-2 px-6 py-6">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-semibold">
-                        8K
-                    </div>
-                    <div>
-                        <p class="text-sm uppercase tracking-widest text-slate-400">8Kommerce</p>
-                        <p class="text-base font-semibold text-slate-900">{{ $profile?->business_name ?? 'Seller' }}</p>
+            <aside class="hidden lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
+                <div class="flex items-center gap-3 px-5 pb-4 pt-5">
+                    <x-brand-mark class="h-10 w-auto" />
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold tracking-tight text-slate-950">8Kommerce</p>
+                        <p class="truncate text-xs text-slate-500">{{ $profile?->business_name ?? 'Seller workspace' }}</p>
                     </div>
                 </div>
 
-                <nav class="space-y-1 px-4">
-                    <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }} js-tour-dashboard-nav">Dashboard</a>
-                    <button type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 js-quick-actions-open js-tour-quick-action">Quick Action</button>
-                    <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}">Profile</a>
-                    <a href="{{ route('products.index') }}" class="{{ $navClass('products.*') }} js-tour-products-nav">Products</a>
-                    <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}">Coupons</a>
-                    <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}">Customers</a>
-                    @if($canUsePayments)
-                        <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}">Invoices</a>
-                    <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }} js-tour-payments-nav">Payments</a>
-                    @else
-                        <a href="{{ route('billing.upgrade') }}" class="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">
-                            <span>Invoices</span>
-                            <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Upgrade</span>
-                        </a>
-                        <a href="{{ route('billing.upgrade') }}" class="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">
-                            <span>Payments</span>
-                            <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Upgrade</span>
-                        </a>
-                    @endif
-                    <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}">Notifications</a>
-                    <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals and Target</a>
-                    <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
-                    <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}">Billing</a>
-                    @if(auth()->user()->is_admin)
-                        <a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}">Admin</a>
-                    @endif
-                    @if($profile)
-                        <a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}">Public page</a>
-                    @endif
-                    @if(! $onboarding['is_complete'])
-                        <a href="{{ route('onboarding.index') }}" class="{{ $navClass('onboarding.*') }}">Onboarding</a>
-                    @endif
+                <div class="px-4 pb-4">
+                    <button type="button" class="lp-button-brand js-quick-actions-open js-tour-quick-action w-full">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                        Create
+                    </button>
+                </div>
+
+                <nav class="space-y-4 px-3 pb-5">
+                    <div class="space-y-1">
+                        <p class="lp-eyebrow px-3 pb-1">Overview</p>
+                        <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }} js-tour-dashboard-nav">Dashboard</a>
+                        <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}">Activity</a>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="lp-eyebrow px-3 pb-1">Sell</p>
+                        <a href="{{ route('products.index') }}" class="{{ $navClass('products.*') }} js-tour-products-nav">Products & orders</a>
+                        <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}">Customers</a>
+                        <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}">Coupons</a>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="lp-eyebrow px-3 pb-1">Money</p>
+                        @if($canUsePayments)
+                            <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }} js-tour-payments-nav">Payments</a>
+                            <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}">Invoices</a>
+                        @else
+                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item justify-between"><span>Payments</span><span class="lp-status bg-amber-50 text-amber-700">Upgrade</span></a>
+                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item justify-between"><span>Invoices</span><span class="lp-status bg-amber-50 text-amber-700">Upgrade</span></a>
+                        @endif
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="lp-eyebrow px-3 pb-1">Grow</p>
+                        <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
+                        <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="lp-eyebrow px-3 pb-1">Store & account</p>
+                        @if($profile)
+                            <a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}">Storefront</a>
+                        @endif
+                        <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}">Store settings</a>
+                        <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}">Plan & billing</a>
+                        @if(! $onboarding['is_complete'])
+                            <a href="{{ route('onboarding.index') }}" class="{{ $navClass('onboarding.*') }}">Setup guide</a>
+                        @endif
+                        @if(auth()->user()->is_admin)
+                            <a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}">Admin</a>
+                        @endif
+                    </div>
                 </nav>
 
-                <div class="mt-auto px-6 py-5">
-                    <p class="text-xs uppercase tracking-widest text-slate-400">Payout status</p>
+                <div class="mt-auto border-t border-[#e2e6df] px-6 py-5">
+                    <p class="lp-eyebrow">Payout status</p>
                     @if($profile?->paystack_subaccount_code)
-                        <p class="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Paystack Connected</p>
+                        <p class="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Paystack connected</p>
                     @else
-                        <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Not Connected</p>
+                        <p class="mt-2 flex items-center gap-2 text-sm font-medium text-amber-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Needs attention</p>
                     @endif
                 </div>
             </aside>
 
             <div class="flex-1 overflow-x-hidden lg:pl-64">
-                <header class="fixed top-0 left-0 right-0 z-40 border-b border-slate-200 bg-white/70 backdrop-blur lg:left-64">
-                    <div class="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+                <header class="fixed left-0 right-0 top-0 z-40 border-b border-[#D5E1E4] bg-white/95 lg:left-64">
+                    <div class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-7">
                         <div>
-                            <p class="text-xs uppercase tracking-widest text-slate-400 sm:hidden">8Kommerce</p>
-                            <p class="hidden text-xs uppercase tracking-widest text-slate-400 sm:block">Dashboard</p>
-                            <h1 class="text-lg font-semibold text-slate-900">{{ $title ?? 'Overview' }}</h1>
+                            <p class="lp-eyebrow sm:hidden">8Kommerce</p>
+                            <p class="hidden text-xs font-medium text-slate-500 sm:block">Seller workspace</p>
+                            <h1 class="font-display text-xl font-semibold tracking-tight text-slate-950">{{ $title ?? 'Overview' }}</h1>
                         </div>
-                        <div class="hidden items-center sm:flex">
-                            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                                <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-700 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+                        <div class="hidden items-center gap-3 sm:flex">
+                            <button type="button" class="lp-button-brand js-quick-actions-open">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                                Create
+                            </button>
+                            <div class="flex items-center gap-2 rounded-lg border border-[#D5E1E4] bg-white p-1">
+                                <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
                                     <svg class="h-4 w-4 js-theme-icon-moon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3c0 .3-.01.6-.01.91A8.99 8.99 0 0 0 21 12.79Z"/></svg>
                                     <svg class="hidden h-4 w-4 js-theme-icon-sun" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.114 6.364-1.591-1.591M7.477 7.477 5.886 5.886m12.228 0-1.591 1.591M7.477 16.523l-1.591 1.591M12 16.5A4.5 4.5 0 1 0 12 7.5a4.5 4.5 0 0 0 0 9Z"/></svg>
                                 </button>
-                                <div class="text-right">
-                                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Account</p>
-                                    <p class="text-sm font-medium text-slate-700">{{ auth()->user()->email }}</p>
+                                <div class="hidden max-w-44 px-1 text-right lg:block">
+                                    <p class="truncate text-sm font-medium text-slate-700">{{ auth()->user()->email }}</p>
+                                    <p class="text-[11px] text-slate-400">{{ $user->planDisplayName() }}</p>
                                 </div>
-                                <div class="h-7 w-px bg-slate-200"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-emerald-200 hover:text-emerald-700">Logout</button>
+                                    <button type="submit" class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Logout</button>
                                 </form>
                             </div>
                         </div>
@@ -277,33 +304,31 @@
                     </div>
                 </header>
 
-                <main class="px-4 py-6 pb-24 pt-24 sm:px-6 sm:pb-6 lg:px-8">
+                <main class="mx-auto max-w-[1360px] px-4 py-5 pb-24 pt-20 sm:px-6 sm:pb-8 lg:px-7 lg:pt-24">
                     @php
                         $trialActive = $user->isOnTrial() && $user->trial_ends_at;
                         $daysLeft = $trialActive ? max(0, now()->diffInDays($user->trial_ends_at, false)) : null;
                     @endphp
                     @if($publicUrl || $trialActive)
-                        <div class="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                        <div class="lp-card mb-6 px-5 py-4">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="min-w-0">
                                     @if($trialActive)
                                         <p class="font-semibold text-emerald-800">
                                             Trial active - {{ $daysLeft }} day{{ $daysLeft === 1 ? '' : 's' }} left (ends {{ $user->trial_ends_at->toFormattedDateString() }})
                                         </p>
-                                        <a href="{{ route('billing.show') }}" class="mt-2 inline-flex rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">
+                                        <a href="{{ route('billing.show') }}" class="mt-2 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-600">
                                             Manage plan
                                         </a>
                                     @endif
                                 </div>
                                 @if($publicUrl)
                                     <div class="ml-auto flex flex-wrap items-center gap-3 sm:justify-end">
-                                        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Public link</p>
-                                        <a href="{{ $publicUrl }}" target="_blank" rel="noreferrer noopener" class="text-sm font-semibold text-emerald-700 hover:text-emerald-600">
-                                            {{ $publicUrl }}
-                                        </a>
+                                        <p class="lp-eyebrow">Store live</p>
+                                        <a href="{{ $publicUrl }}" target="_blank" rel="noreferrer noopener" class="max-w-64 truncate text-sm font-semibold text-emerald-700 hover:text-emerald-600">View storefront</a>
                                         <button
                                             type="button"
-                                            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700 js-copy-public-link js-tour-copy-public-link"
+                                            class="lp-button-secondary min-h-9 px-3 py-1.5 text-xs js-copy-public-link js-tour-copy-public-link"
                                             data-copy-value="{{ $publicUrl }}"
                                         >
                                             Copy link
@@ -318,34 +343,34 @@
                 </main>
             </div>
         </div>
-        <nav class="fixed bottom-3 left-3 right-3 z-40 lg:hidden">
-            <div class="grid grid-cols-5 items-end rounded-[2rem] border border-slate-700/70 bg-slate-950/95 px-2 pb-2 pt-1 shadow-2xl backdrop-blur-xl">
-                <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] {{ request()->routeIs('dashboard') ? 'text-emerald-400' : 'text-slate-300' }}">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 11.25 8.25-7.5 8.25 7.5v8.25a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75V15a2.25 2.25 0 1 0-4.5 0v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-8.25Z"/></svg>
+        <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
+            <div class="grid grid-cols-5 items-center px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1">
+                <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('dashboard') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 11.25 8.25-7.5 8.25 7.5v8.25a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75V15a2.25 2.25 0 1 0-4.5 0v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-8.25Z"/></svg>
                     <span class="font-medium">Home</span>
                 </a>
-                <a href="{{ $canPromotion ? route('products.orders') : route('billing.upgrade') }}" class="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] {{ request()->routeIs('products.orders') ? 'text-emerald-400' : 'text-slate-300' }}">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5m-15 3h13.5m-12 3h10.5m-9 3h7.5"/></svg>
+                <a href="{{ $canPromotion ? route('products.orders') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('products.orders') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5m-15 3h13.5m-12 3h10.5m-9 3h7.5"/></svg>
                     <span class="font-medium">Orders</span>
                 </a>
-                <button type="button" class="group -mt-6 flex flex-col items-center gap-1 px-1 py-1 text-[11px] text-slate-200 js-quick-actions-open">
-                    <span class="flex h-14 w-14 items-center justify-center rounded-full border-4 border-slate-900 bg-blue-600 shadow-[0_10px_22px_rgba(37,99,235,0.5)] transition group-active:scale-95">
-                        <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v13.5m6.75-6.75H5.25"/></svg>
+                <button type="button" class="group flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] text-emerald-700 js-quick-actions-open">
+                    <span class="flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-white transition group-active:scale-95">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v13.5m6.75-6.75H5.25"/></svg>
                     </span>
                     <span class="font-semibold">Quick</span>
                 </button>
-                <a href="{{ $canPromotion ? route('products.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] {{ request()->routeIs('products.*') ? 'text-emerald-400' : 'text-slate-300' }}">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 6.75h9a2.25 2.25 0 0 1 2.25 2.25v7.5A2.25 2.25 0 0 1 16.5 18.75h-9a2.25 2.25 0 0 1-2.25-2.25V9A2.25 2.25 0 0 1 7.5 6.75Zm3-3h3m-1.5 0v3"/></svg>
+                <a href="{{ $canPromotion ? route('products.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('products.*') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 6.75h9a2.25 2.25 0 0 1 2.25 2.25v7.5A2.25 2.25 0 0 1 16.5 18.75h-9a2.25 2.25 0 0 1-2.25-2.25V9A2.25 2.25 0 0 1 7.5 6.75Zm3-3h3m-1.5 0v3"/></svg>
                     <span class="font-medium">Products</span>
                 </a>
-                <a href="{{ $canUsePayments ? route('payments.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] {{ request()->routeIs('payments.*') ? 'text-emerald-400' : 'text-slate-300' }}">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12a2.25 2.25 0 0 1 2.25 2.25v9A2.25 2.25 0 0 1 18 18.75H6a2.25 2.25 0 0 1-2.25-2.25v-9ZM3.75 9.75h16.5"/></svg>
+                <a href="{{ $canUsePayments ? route('payments.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('payments.*') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12a2.25 2.25 0 0 1 2.25 2.25v9A2.25 2.25 0 0 1 18 18.75H6a2.25 2.25 0 0 1-2.25-2.25v-9ZM3.75 9.75h16.5"/></svg>
                     <span class="font-medium">Payments</span>
                 </a>
             </div>
         </nav>
         <div class="pointer-events-none fixed inset-0 z-40 bg-slate-900/40 opacity-0 transition-opacity duration-300 js-mobile-menu-backdrop"></div>
-        <aside class="fixed right-0 top-0 z-50 h-full w-[84%] max-w-xs translate-x-full border-l border-slate-200 bg-white p-4 shadow-2xl transition-transform duration-300 ease-out js-mobile-menu-panel lg:hidden">
+        <aside class="fixed right-0 top-0 z-50 h-full w-[88%] max-w-sm translate-x-full overflow-y-auto border-l border-[#e2e6df] bg-[#fbfcf9] p-5 shadow-2xl transition-transform duration-300 ease-out js-mobile-menu-panel lg:hidden">
             <div class="mb-3 flex items-center justify-between">
                 <p class="text-sm font-semibold text-slate-900">Menu</p>
                 <div class="flex items-center gap-2">
@@ -356,30 +381,40 @@
                     <button type="button" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 js-mobile-menu-close">Close</button>
                 </div>
             </div>
-            <nav class="space-y-2 text-sm">
-                <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Dashboard</a>
-                <button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 js-quick-actions-open">Quick Action</button>
-                <a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Profile</a>
-                <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Products</a>
-                <a href="{{ route('coupons.index') }}" class="{{ request()->routeIs('coupons.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Coupons</a>
-                <a href="{{ route('customers.index') }}" class="{{ request()->routeIs('customers.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Customers</a>
-                @if($canUsePayments)
-                    <a href="{{ route('invoices.index') }}" class="{{ request()->routeIs('invoices.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Invoices</a>
-                    <a href="{{ route('payments.index') }}" class="{{ request()->routeIs('payments.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Payments</a>
-                @else
-                    <a href="{{ route('billing.upgrade') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">Invoices <span class="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Upgrade</span></a>
-                    <a href="{{ route('billing.upgrade') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">Payments <span class="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Upgrade</span></a>
-                @endif
-                <a href="{{ route('notifications.index') }}" class="{{ request()->routeIs('notifications.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Notifications</a>
-                <a href="{{ route('goals.index') }}" class="{{ request()->routeIs('goals.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Goals and Target</a>
-                <a href="{{ route('insights.index') }}" class="{{ request()->routeIs('insights.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Insights</a>
-                <a href="{{ route('billing.show') }}" class="{{ request()->routeIs('billing.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Billing</a>
-                @if(auth()->user()->is_admin)
-                    <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.*') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Admin</a>
-                @endif
-                @if($profile)
-                    <a href="{{ route('public.preview') }}" class="{{ request()->routeIs('public.preview') ? 'block rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 font-semibold' : 'block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700' }}">Public page</a>
-                @endif
+            <button type="button" class="lp-button-brand js-quick-actions-open mb-5 w-full">Create new</button>
+            <nav class="space-y-5 text-sm">
+                <div class="space-y-1">
+                    <p class="lp-eyebrow px-3">Overview</p>
+                    <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }}">Dashboard</a>
+                    <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}">Activity</a>
+                </div>
+                <div class="space-y-1">
+                    <p class="lp-eyebrow px-3">Sell</p>
+                    <a href="{{ route('products.index') }}" class="{{ $navClass('products.*') }}">Products & orders</a>
+                    <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}">Customers</a>
+                    <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}">Coupons</a>
+                </div>
+                <div class="space-y-1">
+                    <p class="lp-eyebrow px-3">Money</p>
+                    @if($canUsePayments)
+                        <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }}">Payments</a>
+                        <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}">Invoices</a>
+                    @else
+                        <a href="{{ route('billing.upgrade') }}" class="lp-nav-item">Payments & invoices <span class="ml-auto text-xs text-amber-700">Upgrade</span></a>
+                    @endif
+                </div>
+                <div class="space-y-1">
+                    <p class="lp-eyebrow px-3">Grow</p>
+                    <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
+                    <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
+                </div>
+                <div class="space-y-1">
+                    <p class="lp-eyebrow px-3">Store & account</p>
+                    @if($profile)<a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}">Storefront</a>@endif
+                    <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}">Store settings</a>
+                    <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}">Plan & billing</a>
+                    @if(auth()->user()->is_admin)<a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}">Admin</a>@endif
+                </div>
             </nav>
             <form method="POST" action="{{ route('logout') }}" class="mt-3 border-t border-slate-100 pt-3">
                 @csrf
@@ -467,7 +502,7 @@
                 Resume onboarding
             </a>
         @endif
-        <div class="js-desktop-tour hidden lg:block">
+        <div class="js-desktop-tour hidden">
             <div class="pointer-events-none fixed inset-0 z-[70] bg-slate-900/45 js-desktop-tour-overlay"></div>
             <div class="pointer-events-none fixed z-[71] rounded-xl border-2 border-emerald-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.48)] transition-all duration-200 js-desktop-tour-highlight"></div>
             <section class="fixed z-[72] w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl pointer-events-auto js-desktop-tour-card">
@@ -614,6 +649,7 @@
                     Math.max(0, desktopTourSteps.length - 1)
                 );
                 let desktopTourOpen = false;
+                let desktopTourFocusedEl = null;
 
                 const setDesktopTourOpen = (open) => {
                     if (!desktopTourRoot) {
@@ -632,7 +668,12 @@
                     if (!target) {
                         return;
                     }
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    if (desktopTourFocusedEl && desktopTourFocusedEl !== target) {
+                        desktopTourFocusedEl.classList.remove('desktop-tour-focus');
+                    }
+                    desktopTourFocusedEl = target;
+                    desktopTourFocusedEl.classList.add('desktop-tour-focus');
+                    target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
                     const rect = target.getBoundingClientRect();
                     const pad = 8;
                     const highlightTop = Math.max(8, rect.top - pad);
@@ -675,7 +716,9 @@
                     if (desktopTourNext) {
                         desktopTourNext.textContent = desktopTourIndex === desktopTourSteps.length - 1 ? 'Finish' : 'Next';
                     }
-                    window.requestAnimationFrame(positionDesktopTour);
+                    window.requestAnimationFrame(() => {
+                        window.requestAnimationFrame(positionDesktopTour);
+                    });
                 };
 
                 const openDesktopTour = (reset = false) => {
@@ -696,6 +739,10 @@
 
                 const closeDesktopTour = (dismissed = true) => {
                     setDesktopTourOpen(false);
+                    if (desktopTourFocusedEl) {
+                        desktopTourFocusedEl.classList.remove('desktop-tour-focus');
+                        desktopTourFocusedEl = null;
+                    }
                     if (dismissed) {
                         postOnboardingState({ desktop_tour_dismissed: true });
                     }
@@ -703,6 +750,10 @@
 
                 const completeDesktopTour = () => {
                     setDesktopTourOpen(false);
+                    if (desktopTourFocusedEl) {
+                        desktopTourFocusedEl.classList.remove('desktop-tour-focus');
+                        desktopTourFocusedEl = null;
+                    }
                     postOnboardingState({
                         desktop_tour_completed: true,
                         desktop_tour_dismissed: true,

@@ -6,16 +6,19 @@ use App\Http\Requests\CreateProductRequest;
 use App\Models\AnalyticsEvent;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\Payment;
-use App\Services\OgImageService;
+use App\Models\Product;
 use App\Services\InventoryService;
+use App\Services\OgImageService;
+use App\Support\Csv;
 use App\Support\Money;
 use App\Support\Phone;
 use App\Support\WhatsApp;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -93,6 +96,7 @@ class ProductController extends Controller
                 foreach ($group as $payment) {
                     $sum = Money::add($sum, (string) $payment->amount);
                 }
+
                 return [
                     'count' => $group->count(),
                     'total' => $sum,
@@ -180,7 +184,7 @@ class ProductController extends Controller
                 return $order->customer_phone ?: 'unknown-'.$order->id;
             })
             ->map(function ($group) {
-                /** @var \Illuminate\Support\Collection<int, Order> $group */
+                /** @var Collection<int, Order> $group */
                 $first = $group->first();
                 $groupTotal = '0.00';
                 foreach ($group as $order) {
@@ -276,7 +280,7 @@ class ProductController extends Controller
 
         $handle = fopen('php://temp', 'r+');
         foreach ($rows as $row) {
-            fputcsv($handle, $row);
+            fputcsv($handle, Csv::row($row));
         }
         rewind($handle);
         $content = stream_get_contents($handle);
@@ -427,6 +431,7 @@ class ProductController extends Controller
                     'user_id' => $user->id,
                     'name' => (string) $item['name'],
                     'description' => $item['description'] ?? null,
+                    'category' => filled($item['category'] ?? null) ? trim((string) $item['category']) : null,
                     'price' => $item['price'],
                     'is_active' => (bool) ($item['is_active'] ?? false),
                     'status' => $item['status'] ?? Product::STATUS_IN_STOCK,
@@ -473,6 +478,7 @@ class ProductController extends Controller
         }
 
         $data['user_id'] = $user->id;
+        $data['category'] = filled($data['category'] ?? null) ? trim((string) $data['category']) : null;
         $data['is_active'] = $request->boolean('is_active');
         $data['status'] = $request->input('status', Product::STATUS_IN_STOCK);
         $data['stock_quantity'] = max(0, (int) $request->input('stock_quantity', 0));
@@ -518,6 +524,7 @@ class ProductController extends Controller
         $this->authorizeProduct($product);
 
         $data = $request->validated();
+        $data['category'] = filled($data['category'] ?? null) ? trim((string) $data['category']) : null;
         // Quick-edit forms may not send is_active; preserve current value in that case.
         $data['is_active'] = $request->has('is_active')
             ? $request->boolean('is_active')
@@ -626,7 +633,7 @@ class ProductController extends Controller
             ->where('entity_type', 'product')
             ->when($start, fn ($q) => $q->whereBetween('created_at', [$start, $end]));
         $eventRows = $eventQuery
-            ->selectRaw("date(created_at) as day, event_type, count(*) as total")
+            ->selectRaw('date(created_at) as day, event_type, count(*) as total')
             ->groupBy('day', 'event_type')
             ->orderBy('day')
             ->get();
@@ -636,12 +643,12 @@ class ProductController extends Controller
             ->where('status', Payment::STATUS_SUCCESS)
             ->when($start, fn ($q) => $q->whereBetween('created_at', [$start, $end]));
         $paymentRows = $paymentQuery
-            ->selectRaw("date(created_at) as day, count(*) as count, sum(amount) as total")
+            ->selectRaw('date(created_at) as day, count(*) as count, sum(amount) as total')
             ->groupBy('day')
             ->orderBy('day')
             ->get();
         $orderRows = $this->paidOrderItemsQuery($userId, $start, $end)
-            ->selectRaw("date(coalesce(orders.paid_at, orders.created_at)) as day, sum(order_items.quantity) as count, sum(order_items.line_total) as total")
+            ->selectRaw('date(coalesce(orders.paid_at, orders.created_at)) as day, sum(order_items.quantity) as count, sum(order_items.line_total) as total')
             ->groupBy('day')
             ->orderBy('day')
             ->get();
@@ -669,11 +676,11 @@ class ProductController extends Controller
         $series = [];
 
         if ($start) {
-            $period = \Carbon\CarbonPeriod::create($start, '1 day', $end);
+            $period = CarbonPeriod::create($start, '1 day', $end);
             foreach ($period as $date) {
                 $key = $date->format('Y-m-d');
-                $views = $eventMap[$key][\App\Models\AnalyticsEvent::TYPE_PRODUCT_IMPRESSION] ?? 0;
-                $clicks = $eventMap[$key][\App\Models\AnalyticsEvent::TYPE_PRODUCT_CLICK] ?? 0;
+                $views = $eventMap[$key][AnalyticsEvent::TYPE_PRODUCT_IMPRESSION] ?? 0;
+                $clicks = $eventMap[$key][AnalyticsEvent::TYPE_PRODUCT_CLICK] ?? 0;
                 $payments = $paymentMap[$key]['count'] ?? 0;
                 $revenue = $paymentMap[$key]['total'] ?? '0.00';
                 $conversion = $clicks > 0 ? round(($payments / $clicks) * 100, 2) : 0.0;
@@ -695,8 +702,8 @@ class ProductController extends Controller
                 ->unique()
                 ->sort();
             foreach ($allDays as $key) {
-                $views = $eventMap[$key][\App\Models\AnalyticsEvent::TYPE_PRODUCT_IMPRESSION] ?? 0;
-                $clicks = $eventMap[$key][\App\Models\AnalyticsEvent::TYPE_PRODUCT_CLICK] ?? 0;
+                $views = $eventMap[$key][AnalyticsEvent::TYPE_PRODUCT_IMPRESSION] ?? 0;
+                $clicks = $eventMap[$key][AnalyticsEvent::TYPE_PRODUCT_CLICK] ?? 0;
                 $payments = $paymentMap[$key]['count'] ?? 0;
                 $revenue = $paymentMap[$key]['total'] ?? '0.00';
                 $conversion = $clicks > 0 ? round(($payments / $clicks) * 100, 2) : 0.0;

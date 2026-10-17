@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnalyticsEvent;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\AnalyticsService;
@@ -11,12 +12,12 @@ use App\Services\PaystackService;
 use App\Support\Email;
 use App\Support\Money;
 use App\Support\Phone;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Str;
 
 class PublicInvoiceController extends Controller
 {
@@ -29,7 +30,7 @@ class PublicInvoiceController extends Controller
         $analytics->trackEvent(
             $request,
             $invoice->user_id,
-            \App\Models\AnalyticsEvent::TYPE_INVOICE_VIEW,
+            AnalyticsEvent::TYPE_INVOICE_VIEW,
             'invoice',
             (string) $invoice->id
         );
@@ -138,7 +139,7 @@ class PublicInvoiceController extends Controller
         $analytics->trackEvent(
             $request,
             $invoice->user_id,
-            \App\Models\AnalyticsEvent::TYPE_INVOICE_CLICK,
+            AnalyticsEvent::TYPE_INVOICE_CLICK,
             'invoice',
             (string) $invoice->id
         );
@@ -204,7 +205,7 @@ class PublicInvoiceController extends Controller
 
         if ($reference) {
             $payment = Payment::where('reference', $reference)
-                ->with(['invoice.user.sellerProfile', 'product', 'order.user.sellerProfile'])
+                ->with(['invoice.user.sellerProfile', 'product', 'order.items', 'order.user.sellerProfile'])
                 ->first();
 
             if (! $payment) {
@@ -213,7 +214,7 @@ class PublicInvoiceController extends Controller
                     $paymentId = data_get($verification, 'data.metadata.payment_id');
                     if ($paymentId) {
                         $payment = Payment::where('id', $paymentId)
-                            ->with(['invoice.user.sellerProfile', 'product', 'order.user.sellerProfile'])
+                            ->with(['invoice.user.sellerProfile', 'product', 'order.items', 'order.user.sellerProfile'])
                             ->first();
                     }
                 } catch (\Throwable $exception) {
@@ -247,6 +248,10 @@ class PublicInvoiceController extends Controller
                 ?? $payment->order?->user?->sellerProfile?->public_slug;
         }
         $listingUrl = $listingSlug ? route('public.listing', $listingSlug) : null;
+
+        if ($payment?->status === Payment::STATUS_SUCCESS && $listingSlug) {
+            $request->session()->forget('public_cart:'.$listingSlug);
+        }
 
         return view('public.success', [
             'payment' => $payment,

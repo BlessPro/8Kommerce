@@ -30,9 +30,9 @@
                             @csrf
                             <button type="submit" class="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">Accept order</button>
                         </form>
-                        <form method="POST" action="{{ route('notifications.orders.reject', $order) }}">
+                        <form method="POST" action="{{ route('notifications.orders.reject', $order) }}" onsubmit="return confirm('Cancel this paid order and request a refund?')">
                             @csrf
-                            <button type="submit" class="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50">Cannot fulfill</button>
+                            <button type="submit" class="rounded-xl border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50">Cancel & request refund</button>
                         </form>
                     </div>
                 </div>

@@ -6,15 +6,15 @@
 @section('content')
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h2 class="text-lg font-semibold text-slate-900">Invoices</h2>
-            <p class="text-sm text-slate-600">Create one-time payment links.</p>
+            <h2 class="lp-page-heading">Invoices</h2>
+            <p class="lp-page-description">Create and monitor one-time payment links.</p>
         </div>
-        <a href="{{ route('invoices.create') }}" class="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+        <a href="{{ route('invoices.create') }}" class="lp-button-brand">
             New invoice
         </a>
     </div>
 
-    <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="lp-card mt-5 overflow-hidden">
         <div class="divide-y divide-slate-100">
             @forelse($invoices as $invoice)
                 <div class="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -32,7 +32,7 @@
                     </div>
                 </div>
             @empty
-                <div class="px-6 py-10 text-center text-sm text-slate-500">No invoices yet.</div>
+                <div class="px-6 py-12 text-center"><p class="text-sm font-semibold text-slate-800">No invoices yet</p><p class="mt-1 text-sm text-slate-500">Create a payment link for a customer or service.</p><a href="{{ route('invoices.create') }}" class="lp-button-brand mt-4">Create invoice</a></div>
             @endforelse
         </div>
     </div>

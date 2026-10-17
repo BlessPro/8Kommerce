@@ -18,14 +18,16 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
+    public function test_users_can_authenticate_with_phone_and_pin(): void
     {
         $user = User::factory()->create([
+            'phone' => '+233541900229',
             'pin_hash' => Hash::make('2486'),
         ]);
 
-        $response = $this->post('/login', [
-            'email' => $user->email,
+        $response = $this->post(route('login.phone.pin'), [
+            'phone_country' => '+233',
+            'phone_number' => '0541900229',
             'pin' => '2486',
         ]);
 
@@ -33,16 +35,28 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_users_can_not_authenticate_with_invalid_pin(): void
+    public function test_users_can_not_authenticate_with_invalid_phone_pin(): void
     {
         $user = User::factory()->create([
+            'phone' => '+233541900229',
             'pin_hash' => Hash::make('2486'),
         ]);
 
-        $this->post('/login', [
-            'email' => $user->email,
+        $this->post(route('login.phone.pin'), [
+            'phone_country' => '+233',
+            'phone_number' => '0541900229',
             'pin' => '9999',
         ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_email_login_endpoint_is_not_available(): void
+    {
+        $this->post('/login', [
+            'email' => 'seller@example.com',
+            'pin' => '2486',
+        ])->assertStatus(405);
 
         $this->assertGuest();
     }

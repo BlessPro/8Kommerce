@@ -12,7 +12,7 @@
         <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Pricing</p>
         <h1 class="mt-3 text-4xl font-semibold text-slate-900">Simple subscription plans</h1>
         <p class="mt-3 max-w-3xl text-base text-slate-600">
-            Choose the plan that matches your business stage. Subscriptions are monthly and billed from Mobile Money.
+            Choose the plan that matches your business stage. Plans renew monthly once online subscription billing is enabled.
         </p>
 
         <div class="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5">

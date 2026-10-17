@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\SellerNotification;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class InventoryService
 {
@@ -67,14 +68,17 @@ class InventoryService
 
     public function decrementForDirectProductPayment(Product $product, int $quantity = 1, ?User $user = null): Product
     {
-        if (! $product->isInventoryManaged()) {
-            return $product;
-        }
+        return DB::transaction(function () use ($product, $quantity, $user): Product {
+            $locked = Product::query()->lockForUpdate()->findOrFail($product->id);
+            if (! $locked->isInventoryManaged()) {
+                return $locked;
+            }
 
-        $product->stock_quantity = max(0, (int) $product->stock_quantity - max(1, $quantity));
-        $product->save();
+            $locked->stock_quantity = max(0, (int) $locked->stock_quantity - max(1, $quantity));
+            $locked->save();
 
-        return $this->syncStatusAndAlert($product, $user, true);
+            return $this->syncStatusAndAlert($locked, $user, true);
+        }, 3);
     }
 
     public function decrementForOrder(Order $order, ?User $user = null): void

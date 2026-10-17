@@ -2,31 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payment;
+use App\Models\AnalyticsEvent;
+use App\Models\Lead;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Product;
-use App\Models\SellerProfile;
-use App\Models\Lead;
 use App\Models\PublicCartSession;
-use App\Services\SellerNotifier;
-use App\Services\OgImageService;
+use App\Models\SellerNotification;
+use App\Models\SellerProfile;
 use App\Services\AnalyticsService;
+use App\Services\OgImageService;
 use App\Services\PaystackService;
+use App\Services\SellerNotifier;
 use App\Support\Email;
 use App\Support\Money;
 use App\Support\Phone;
 use App\Support\WhatsApp;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PublicListingController extends Controller
 {
     private const CART_TOKEN_COOKIE = 'lp_cart_token';
+
     private const CART_TTL_DAYS = 30;
 
     public function show(string $public_slug, Request $request, AnalyticsService $analytics)
@@ -38,10 +42,11 @@ class PublicListingController extends Controller
             }])
             ->firstOrFail();
 
-        $template = $request->query('template', 'products');
-        if (! in_array($template, ['products', 'services'], true)) {
-            $template = 'products';
+        $storefrontTheme = $profile->storefront_theme ?: 'classic';
+        if (! in_array($storefrontTheme, SellerProfile::STOREFRONT_THEMES, true)) {
+            $storefrontTheme = 'classic';
         }
+        $template = 'products';
         $statusFilter = $request->query('status', 'all');
         $allowedStatusFilters = [
             'all',
@@ -58,7 +63,7 @@ class PublicListingController extends Controller
         $analytics->trackEvent(
             $request,
             $profile->user_id,
-            \App\Models\AnalyticsEvent::TYPE_LISTING_VIEW,
+            AnalyticsEvent::TYPE_LISTING_VIEW,
             'listing',
             (string) $profile->id
         );
@@ -67,13 +72,16 @@ class PublicListingController extends Controller
             $analytics->trackEvent(
                 $request,
                 $profile->user_id,
-                \App\Models\AnalyticsEvent::TYPE_PRODUCT_IMPRESSION,
+                AnalyticsEvent::TYPE_PRODUCT_IMPRESSION,
                 'product',
                 (string) $product->id
             );
         }
 
+        $settings = $profile->resolvedStorefrontSettings();
         $allProducts = $profile->user->products->values();
+        $allProducts = $this->sortProducts($allProducts, $settings['sort_order']);
+        $allProducts = $this->promoteFeaturedProducts($allProducts, $settings['featured_product_ids']);
         $products = $statusFilter === 'all'
             ? $allProducts
             : $allProducts->where('status', $statusFilter)->values();
@@ -96,10 +104,11 @@ class PublicListingController extends Controller
             'cart' => $cart,
             'currency' => config('services.paystack.currency', 'GHS'),
             'template' => $template,
+            'storefrontTheme' => $storefrontTheme,
             'isOwner' => $isOwner,
             'paymentsEnabled' => $profile->user?->canUsePaymentsFeature() ?? false,
-            'ogTitle' => $profile->business_name,
-            'ogDescription' => 'Browse products & services and contact on WhatsApp',
+            'ogTitle' => $settings['seo_title'] ?: $profile->business_name,
+            'ogDescription' => $settings['seo_description'] ?: 'Browse products & services and contact on WhatsApp',
             'ogImage' => $this->resolveSellerOgImage($profile),
             'ogUrl' => route('public.listing', $profile->public_slug),
             'ogType' => 'website',
@@ -108,6 +117,11 @@ class PublicListingController extends Controller
 
     private function resolveSellerOgImage(SellerProfile $profile): string
     {
+        $heroImage = $profile->resolvedStorefrontSettings()['hero_image_path'];
+        if ($heroImage && str_starts_with($heroImage, 'storefront-heroes/') && Storage::disk('public')->exists($heroImage)) {
+            return url(Storage::url($heroImage));
+        }
+
         // WhatsApp preview for seller page: first active product's OG image (largest/consistent).
         $firstWithImage = $profile->user->products()
             ->where('is_active', true)
@@ -159,8 +173,7 @@ class PublicListingController extends Controller
         Product $product,
         PaystackService $paystack,
         AnalyticsService $analytics
-    )
-    {
+    ) {
         $validated = $this->validateCheckoutContact($request);
 
         $profile = SellerProfile::where('public_slug', $public_slug)->firstOrFail();
@@ -196,8 +209,13 @@ class PublicListingController extends Controller
         $phoneParts = array_filter(array_map('trim', explode(',', (string) $phoneInput)));
         $primaryPhone = $phoneParts[0] ?? $phoneInput;
         $phone = Phone::normalize($primaryPhone, $validated['phone_country'] ?? '+233');
-        $location = trim((string) ($validated['location'] ?? ''));
         $note = trim((string) ($validated['note'] ?? ''));
+        $fulfillment = $this->resolveFulfillment($profile, $validated);
+        $location = $fulfillment['location'];
+        $deliveryRequired = $fulfillment['delivery_required'];
+        $fulfillmentFee = $fulfillment['fee'];
+        $total = Money::add((string) $product->price, $fulfillmentFee);
+        $cartSessionToken = $this->resolveCartToken($request);
         if (! $phone) {
             return back()->withErrors(['phone_number' => 'Please enter a valid phone number.'])->withInput();
         }
@@ -213,14 +231,14 @@ class PublicListingController extends Controller
         $analytics->trackEvent(
             $request,
             $profile->user_id,
-            \App\Models\AnalyticsEvent::TYPE_PRODUCT_CLICK,
+            AnalyticsEvent::TYPE_PRODUCT_CLICK,
             'product',
             (string) $product->id
         );
         $analytics->trackEvent(
             $request,
             $profile->user_id,
-            \App\Models\AnalyticsEvent::TYPE_CHECKOUT_STARTED,
+            AnalyticsEvent::TYPE_CHECKOUT_STARTED,
             'product',
             (string) $product->id
         );
@@ -233,12 +251,13 @@ class PublicListingController extends Controller
             'customer_name' => null,
             'customer_phone' => $phone,
             'customer_location' => $location !== '' ? $location : null,
-            'delivery_required' => false,
+            'delivery_required' => $deliveryRequired,
+            'fulfillment_type' => $fulfillment['type'],
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => (string) $product->price,
             'coupon_code' => null,
             'discount_amount' => '0.00',
-            'total' => (string) $product->price,
+            'total' => $total,
             'currency' => config('services.paystack.currency', 'GHS'),
         ]);
 
@@ -256,7 +275,7 @@ class PublicListingController extends Controller
             'product_id' => $product->id,
             'order_id' => $order->id,
             'reference' => $reference,
-            'amount' => (string) $product->price,
+            'amount' => $total,
             'status' => Payment::STATUS_PENDING,
             'raw_payload' => [
                 'customer' => [
@@ -267,7 +286,12 @@ class PublicListingController extends Controller
                 ],
                 'order' => [
                     'id' => $order->id,
-                    'delivery_required' => false,
+                    'public_slug' => $public_slug,
+                    'cart_session_token' => $cartSessionToken,
+                    'delivery_required' => $deliveryRequired,
+                    'fulfillment_method' => $fulfillment['method'],
+                    'fulfillment_label' => $fulfillment['label'],
+                    'fulfillment_fee' => $fulfillmentFee,
                     'delivery_note' => $note !== '' ? $note : null,
                     'items' => [[
                         'product_id' => $product->id,
@@ -280,11 +304,11 @@ class PublicListingController extends Controller
             ],
         ]);
 
-        $platformFee = $paystack->platformChargeFor((string) $product->price);
+        $platformFee = $paystack->platformChargeFor($total);
 
         try {
             $data = $paystack->initializeTransaction(
-                (string) $product->price,
+                $total,
                 $email,
                 [
                     'reference' => $reference,
@@ -351,7 +375,7 @@ class PublicListingController extends Controller
         $analytics->trackEvent(
             $request,
             $profile->user_id,
-            \App\Models\AnalyticsEvent::TYPE_ADD_TO_CART,
+            AnalyticsEvent::TYPE_ADD_TO_CART,
             'product',
             (string) $product->id
         );
@@ -392,6 +416,10 @@ class PublicListingController extends Controller
         }
 
         $this->persistCartRaw($request, $public_slug, $updated);
+
+        if ($request->expectsJson()) {
+            return response()->json($this->cartResponseData($request, $profile));
+        }
 
         return back()->with('status', 'cart-updated');
     }
@@ -456,6 +484,11 @@ class PublicListingController extends Controller
         }
         $idempotencyKey = (string) $validated['idempotency_key'];
         $idempotencyScope = 'public_cart_checkout:'.$public_slug;
+        $fulfillment = $this->resolveFulfillment($profile, $validated);
+        $location = $fulfillment['location'];
+        $deliveryRequired = $fulfillment['delivery_required'];
+        $fulfillmentFee = $fulfillment['fee'];
+        $cartSessionToken = $this->resolveCartToken($request);
         if (! $this->acquireIdempotencyKey($request, $idempotencyScope, $idempotencyKey)) {
             return back()->withErrors([
                 'paystack' => 'This checkout is already being processed. Please wait a moment.',
@@ -465,17 +498,17 @@ class PublicListingController extends Controller
         $subtotal = (string) $cart['total'];
         $discountAmount = '0.00';
         $couponCode = null;
-        $total = $subtotal;
+        $total = Money::add($subtotal, $fulfillmentFee);
 
         $analytics->trackEvent(
             $request,
             $profile->user_id,
-            \App\Models\AnalyticsEvent::TYPE_CHECKOUT_STARTED,
+            AnalyticsEvent::TYPE_CHECKOUT_STARTED,
             'listing',
             (string) $profile->id
         );
 
-        $reference = (string) \Illuminate\Support\Str::uuid();
+        $reference = (string) Str::uuid();
         $email = Email::placeholder($reference);
 
         $order = Order::create([
@@ -486,7 +519,8 @@ class PublicListingController extends Controller
             'customer_name' => null,
             'customer_phone' => $phone,
             'customer_location' => $location !== '' ? $location : null,
-            'delivery_required' => false,
+            'delivery_required' => $deliveryRequired,
+            'fulfillment_type' => $fulfillment['type'],
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => $subtotal,
             'coupon_code' => $couponCode,
@@ -522,9 +556,14 @@ class PublicListingController extends Controller
                 ],
                 'order' => [
                     'id' => $order->id,
+                    'public_slug' => $public_slug,
+                    'cart_session_token' => $cartSessionToken,
                     'coupon_code' => $couponCode,
                     'discount_amount' => $discountAmount,
-                    'delivery_required' => false,
+                    'delivery_required' => $deliveryRequired,
+                    'fulfillment_method' => $fulfillment['method'],
+                    'fulfillment_label' => $fulfillment['label'],
+                    'fulfillment_fee' => $fulfillmentFee,
                     'delivery_note' => $note !== '' ? $note : null,
                     'items' => $cart['items']->map(function (array $row) {
                         return [
@@ -577,8 +616,6 @@ class PublicListingController extends Controller
                 'paystack' => 'Could not initialize payment. Please try again shortly.',
             ])->withInput();
         }
-
-        $this->persistCartRaw($request, $public_slug, []);
 
         return redirect()->away($data['authorization_url'] ?? route('public.listing', $public_slug));
     }
@@ -635,7 +672,7 @@ class PublicListingController extends Controller
 
         app(SellerNotifier::class)->notify(
             $profile->user,
-            \App\Models\SellerNotification::TYPE_LEAD_CAPTURED,
+            SellerNotification::TYPE_LEAD_CAPTURED,
             'New interested customer',
             'A customer expressed interest in '.$product->name.'. Contacts: '.$raw,
             [
@@ -727,6 +764,25 @@ class PublicListingController extends Controller
         ];
     }
 
+    private function cartResponseData(Request $request, SellerProfile $profile): array
+    {
+        $currency = config('services.paystack.currency', 'GHS');
+        $cart = $this->buildCartSummary($request, $profile);
+
+        return [
+            'message' => 'Cart updated.',
+            'count' => $cart['count'],
+            'total' => Money::format($cart['total'], $currency),
+            'raw_total' => $cart['total'],
+            'items' => $cart['items']->mapWithKeys(function (array $item) use ($currency) {
+                return [(string) $item['product']->id => [
+                    'quantity' => $item['quantity'],
+                    'line_total' => Money::format($item['line_total'], $currency),
+                ]];
+            })->all(),
+        ];
+    }
+
     private function validateCheckoutContact(Request $request): array
     {
         $rules = [
@@ -744,6 +800,7 @@ class PublicListingController extends Controller
             ],
             'phone_country' => ['nullable', 'string', 'max:8'],
             'location' => ['nullable', 'string', 'max:160'],
+            'fulfillment_method' => ['nullable', 'string', 'max:40'],
             'note' => ['nullable', 'string', 'max:500'],
             'idempotency_key' => ['required', 'string', 'min:16', 'max:120'],
         ];
@@ -751,6 +808,74 @@ class PublicListingController extends Controller
         return $request->validate($rules, [
             'phone_number.required' => 'A phone number is required so the seller can reach you.',
         ]);
+    }
+
+    private function resolveFulfillment(SellerProfile $profile, array $validated): array
+    {
+        $customerLocation = trim((string) ($validated['location'] ?? ''));
+        $options = collect($profile->resolvedFulfillmentOptions())->mapWithKeys(function (array $option) use ($customerLocation) {
+            $deliveryRequired = $option['type'] === 'delivery';
+
+            return [$option['key'] => [
+                'type' => $deliveryRequired ? Order::FULFILLMENT_DELIVERY : Order::FULFILLMENT_PICKUP,
+                'label' => ($deliveryRequired ? 'Delivery area: ' : 'Pickup station: ').$option['label'],
+                'fee' => $option['fee'],
+                'location' => $deliveryRequired ? ($customerLocation ?: null) : $option['label'],
+                'delivery_required' => $deliveryRequired,
+            ]];
+        })->all();
+
+        if ($options === []) {
+            $settings = $profile->resolvedStorefrontSettings();
+
+            if ($settings['fulfillment_pickup_enabled']) {
+                $options['pickup'] = [
+                    'type' => Order::FULFILLMENT_PICKUP,
+                    'label' => 'Pickup · '.($settings['pickup_station'] ?: 'Seller pickup station'),
+                    'fee' => (string) $settings['pickup_price'],
+                    'location' => $settings['pickup_station'] ?: null,
+                    'delivery_required' => false,
+                ];
+            }
+            foreach (['accra' => 'Accra delivery', 'tema' => 'Tema delivery'] as $area => $label) {
+                if ($settings['delivery_'.$area.'_enabled']) {
+                    $options['delivery_'.$area] = [
+                        'type' => Order::FULFILLMENT_DELIVERY,
+                        'label' => $label,
+                        'fee' => (string) $settings['delivery_'.$area.'_price'],
+                        'location' => trim((string) ($validated['location'] ?? '')) ?: null,
+                        'delivery_required' => true,
+                    ];
+                }
+            }
+        }
+
+        if ($options === []) {
+            $location = trim((string) ($validated['location'] ?? ''));
+
+            return [
+                'method' => $location !== '' ? 'delivery' : 'pickup',
+                'type' => $location !== '' ? Order::FULFILLMENT_DELIVERY : Order::FULFILLMENT_PICKUP,
+                'label' => $location !== '' ? 'Delivery' : 'Pickup',
+                'fee' => '0.00',
+                'location' => $location !== '' ? $location : null,
+                'delivery_required' => $location !== '',
+            ];
+        }
+
+        $method = (string) ($validated['fulfillment_method'] ?? '');
+        if (! isset($options[$method])) {
+            throw ValidationException::withMessages([
+                'fulfillment_method' => 'Choose an available delivery or pickup option.',
+            ]);
+        }
+        if ($options[$method]['delivery_required'] && ! $options[$method]['location']) {
+            throw ValidationException::withMessages([
+                'location' => 'Enter the delivery address or nearest landmark.',
+            ]);
+        }
+
+        return ['method' => $method, ...$options[$method]];
     }
 
     private function acquireIdempotencyKey(Request $request, string $scope, string $key): bool
@@ -775,8 +900,19 @@ class PublicListingController extends Controller
         $sessionCart = is_array($sessionCart) ? $sessionCart : [];
         $token = $this->resolveCartToken($request);
 
+        if (Cache::pull('public_cart_paid:'.sha1($publicSlug.'|'.$token), false)) {
+            $request->session()->forget($sessionKey);
+            PublicCartSession::query()
+                ->where('public_slug', $publicSlug)
+                ->where('session_token', $token)
+                ->delete();
+
+            return [];
+        }
+
         if (! empty($sessionCart)) {
             $this->persistCartSession($publicSlug, $token, $sessionCart);
+
             return $sessionCart;
         }
 
@@ -809,6 +945,7 @@ class PublicListingController extends Controller
                 ->where('public_slug', $publicSlug)
                 ->where('session_token', $token)
                 ->delete();
+
             return;
         }
 
@@ -832,6 +969,11 @@ class PublicListingController extends Controller
 
     private function resolveCartToken(Request $request): string
     {
+        $cached = (string) $request->attributes->get('lp_cart_token', '');
+        if ($cached !== '' && Str::isUuid($cached)) {
+            return $cached;
+        }
+
         $token = (string) $request->cookie(self::CART_TOKEN_COOKIE, '');
         if ($token === '' || ! Str::isUuid($token)) {
             $token = (string) Str::uuid();
@@ -847,6 +989,35 @@ class PublicListingController extends Controller
             sameSite: 'lax'
         ));
 
+        $request->attributes->set('lp_cart_token', $token);
+
         return $token;
+    }
+
+    private function sortProducts($products, ?string $sortOrder)
+    {
+        return match ($sortOrder) {
+            'price_asc' => $products->sortBy(fn (Product $product) => (float) $product->price)->values(),
+            'price_desc' => $products->sortByDesc(fn (Product $product) => (float) $product->price)->values(),
+            'name' => $products->sortBy(fn (Product $product) => mb_strtolower($product->name))->values(),
+            'availability' => $products->sortBy(fn (Product $product) => match ($product->status) {
+                Product::STATUS_IN_STOCK => 0,
+                Product::STATUS_LOW_STOCK => 1,
+                Product::STATUS_PRE_ORDER => 2,
+                Product::STATUS_SOLD_OUT => 3,
+                default => 4,
+            })->values(),
+            default => $products->sortByDesc('created_at')->values(),
+        };
+    }
+
+    private function promoteFeaturedProducts($products, array $featuredIds)
+    {
+        $featuredIds = array_map('intval', $featuredIds);
+        $featured = collect($featuredIds)
+            ->map(fn (int $id) => $products->firstWhere('id', $id))
+            ->filter();
+
+        return $featured->concat($products->whereNotIn('id', $featuredIds))->values();
     }
 }

@@ -76,11 +76,13 @@
                         required
                     />
                     @error('phone_number') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @include('public.partials.fulfillment-options', ['baseTotal' => (string) $product->price])
                     <input
                         name="location"
                         value="{{ old('location') }}"
                         placeholder="Location (optional)"
                         class="sm:col-span-3 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
+                        data-fulfillment-address
                     />
                     @error('location') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     <textarea
@@ -95,6 +97,8 @@
                     <div class="sm:col-span-3 flex flex-wrap gap-3">
                         <button
                             type="submit"
+                            data-fulfillment-pay-button
+                            data-pay-label="Pay now"
                             class="rounded-full px-5 py-3 text-sm font-semibold text-white {{ ($canPay && ($paymentsEnabled ?? true)) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-300 cursor-not-allowed' }}"
                             {{ ($profile->paystack_subaccount_code && $canPay && ($paymentsEnabled ?? true)) ? '' : 'disabled' }}
                         >

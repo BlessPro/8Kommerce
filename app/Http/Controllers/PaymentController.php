@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use App\Services\PaystackService;
+use App\Support\Csv;
 use App\Support\Money;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -269,7 +270,7 @@ class PaymentController extends Controller
         $handle = fopen('php://temp', 'r+');
 
         foreach ($dataset['rows'] as $row) {
-            fputcsv($handle, array_values($row));
+            fputcsv($handle, Csv::row(array_values($row)));
         }
 
         rewind($handle);

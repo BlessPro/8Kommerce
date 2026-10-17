@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\PublicCartSession;
+use App\Models\Payment;
 use App\Models\Product;
+use App\Models\PublicCartSession;
 use App\Models\SellerProfile;
 use App\Models\User;
+use App\Services\PaymentService;
+use App\Services\PaystackService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -59,7 +62,7 @@ class PublicSavedCartPersistenceTest extends TestCase
             ->assertSeeText('1 item(s)');
     }
 
-    public function test_checkout_clears_persisted_cart_for_browser_token(): void
+    public function test_checkout_keeps_cart_until_verified_payment_then_clears_it(): void
     {
         $seller = User::factory()->create([
             'plan_type' => User::PLAN_FREE_TRIAL,
@@ -97,24 +100,45 @@ class PublicSavedCartPersistenceTest extends TestCase
             'expires_at' => now()->addDays(10),
         ]);
 
-        $paystackMock = \Mockery::mock(\App\Services\PaystackService::class);
+        $paystackMock = \Mockery::mock(PaystackService::class);
         $paystackMock->shouldReceive('platformChargeFor')->once()->andReturn('0.00');
         $paystackMock->shouldReceive('initializeTransaction')->once()->andReturn([
             'authorization_url' => 'https://paystack.test/checkout',
         ]);
-        $this->app->instance(\App\Services\PaystackService::class, $paystackMock);
+        $this->app->instance(PaystackService::class, $paystackMock);
 
         $this->withCookie('lp_cart_token', $token)
             ->post(route('public.cart.checkout', $profile->public_slug), [
                 'phone_number' => '0541900229',
                 'phone_country' => '+233',
-                'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+                'idempotency_key' => (string) Str::uuid(),
             ])
             ->assertRedirect('https://paystack.test/checkout');
+
+        $this->assertDatabaseHas('public_cart_sessions', [
+            'public_slug' => $profile->public_slug,
+            'session_token' => $token,
+        ]);
+
+        $payment = Payment::query()->firstOrFail();
+        app(PaymentService::class)->markSuccess($payment, [
+            'status' => 'success',
+            'reference' => $payment->reference,
+            'amount' => 5500,
+            'currency' => 'GHS',
+            'subaccount' => ['subaccount_code' => 'ACCT_test_sub'],
+            'channel' => 'card',
+            'paid_at' => now()->toIso8601String(),
+        ]);
 
         $this->assertDatabaseMissing('public_cart_sessions', [
             'public_slug' => $profile->public_slug,
             'session_token' => $token,
         ]);
+
+        $this->withCookie('lp_cart_token', $token)
+            ->get(route('public.listing', $profile->public_slug))
+            ->assertOk()
+            ->assertSeeText('0 item(s)');
     }
 }

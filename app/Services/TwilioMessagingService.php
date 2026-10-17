@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\TwilioMessageLog;
 use App\Support\Phone;
+use App\Support\TlsOptions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Twilio\Exceptions\RestException;
+use Twilio\Http\CurlClient;
 use Twilio\Rest\Client;
 
 class TwilioMessagingService
@@ -15,10 +17,7 @@ class TwilioMessagingService
     {
         $this->ensureWhatsAppConfigured();
 
-        $client = new Client(
-            config('services.twilio.account_sid'),
-            config('services.twilio.auth_token')
-        );
+        $client = $this->client();
 
         $from = (string) config('services.twilio.whatsapp_from');
         $to = $this->formatWhatsApp($to);
@@ -38,7 +37,7 @@ class TwilioMessagingService
                 'from' => $from,
                 'status' => $message->status ?? 'queued',
                 'provider_sid' => $message->sid ?? null,
-                'payload' => ['body' => $body],
+                'payload' => ['body' => $this->loggedBody($body, $context)],
                 'sent_at' => Carbon::now(),
             ]));
         } catch (RestException $e) {
@@ -57,7 +56,7 @@ class TwilioMessagingService
                 'status' => 'failed',
                 'error_code' => (string) $e->getCode(),
                 'error_message' => $e->getMessage(),
-                'payload' => ['body' => $body],
+                'payload' => ['body' => $this->loggedBody($body, $context)],
                 'sent_at' => Carbon::now(),
             ]));
 
@@ -69,10 +68,7 @@ class TwilioMessagingService
     {
         $this->ensureSmsConfigured();
 
-        $client = new Client(
-            config('services.twilio.account_sid'),
-            config('services.twilio.auth_token')
-        );
+        $client = $this->client();
 
         $to = $this->formatE164($to);
         $payload = ['body' => $body];
@@ -97,7 +93,7 @@ class TwilioMessagingService
                 'from' => $payload['from'] ?? $payload['messagingServiceSid'] ?? null,
                 'status' => $message->status ?? 'queued',
                 'provider_sid' => $message->sid ?? null,
-                'payload' => ['body' => $body],
+                'payload' => ['body' => $this->loggedBody($body, $context)],
                 'sent_at' => Carbon::now(),
             ]));
         } catch (RestException $e) {
@@ -108,7 +104,7 @@ class TwilioMessagingService
                 'status' => 'failed',
                 'error_code' => (string) $e->getCode(),
                 'error_message' => $e->getMessage(),
-                'payload' => ['body' => $body],
+                'payload' => ['body' => $this->loggedBody($body, $context)],
                 'sent_at' => Carbon::now(),
             ]));
 
@@ -128,6 +124,17 @@ class TwilioMessagingService
         return 'whatsapp:'.$value;
     }
 
+    private function client(): Client
+    {
+        return new Client(
+            config('services.twilio.account_sid'),
+            config('services.twilio.auth_token'),
+            null,
+            null,
+            new CurlClient(TlsOptions::curl())
+        );
+    }
+
     private function formatE164(string $value): string
     {
         $value = trim($value);
@@ -137,6 +144,7 @@ class TwilioMessagingService
 
         $defaultCountry = (string) config('services.twilio.default_country', '+233');
         $normalized = Phone::normalize($value, $defaultCountry);
+
         return $normalized ?: $value;
     }
 
@@ -158,6 +166,11 @@ class TwilioMessagingService
         if (! str_starts_with($messagingServiceSid, 'MG') && ! $smsFrom) {
             throw new \RuntimeException('Twilio SMS is not configured (TWILIO_MESSAGING_SERVICE_SID or TWILIO_SMS_FROM).');
         }
+    }
+
+    private function loggedBody(string $body, array $context): string
+    {
+        return str_contains((string) ($context['context_type'] ?? ''), 'otp') ? '[OTP REDACTED]' : $body;
     }
 
     private function logMessage(array $data): void

@@ -42,19 +42,19 @@ class PhonePinAuthFlowTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('pin.setup.show'));
 
         $this->post(route('pin.setup.store'), [
-            'pin' => '2486',
-            'pin_confirmation' => '2486',
+            'pin' => '248619',
+            'pin_confirmation' => '248619',
         ])->assertRedirect(route('dashboard'));
 
         $user->refresh();
-        $this->assertTrue(Hash::check('2486', (string) $user->pin_hash));
+        $this->assertTrue(Hash::check('248619', (string) $user->pin_hash));
 
         auth()->logout();
 
         $this->post(route('login.phone.pin'), [
             'phone_country' => '+233',
             'phone_number' => '0541900229',
-            'pin' => '2486',
+            'pin' => '248619',
         ])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticatedAs($user);
@@ -89,12 +89,12 @@ class PhonePinAuthFlowTest extends TestCase
             'phone_country' => '+233',
             'phone_number' => '+233541900229',
             'otp' => '123456',
-            'reset_pin' => '8642',
-            'reset_pin_confirmation' => '8642',
+            'reset_pin' => '864209',
+            'reset_pin_confirmation' => '864209',
         ])->assertRedirect(route('login'));
 
         $user->refresh();
-        $this->assertTrue(Hash::check('8642', (string) $user->pin_hash));
+        $this->assertTrue(Hash::check('864209', (string) $user->pin_hash));
         $this->assertFalse(Hash::check('2486', (string) $user->pin_hash));
     }
 
@@ -115,8 +115,8 @@ class PhonePinAuthFlowTest extends TestCase
 
         $this->get(route('login'))
             ->assertStatus(200)
-            ->assertDontSee('Phone PIN')
-            ->assertSee('either Email or PIN');
+            ->assertDontSee('Email address')
+            ->assertSee('business phone number');
 
         $this->get(route('register'))
             ->assertStatus(200)

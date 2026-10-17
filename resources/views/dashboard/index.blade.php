@@ -1,217 +1,175 @@
 @php
-    $title = 'Dashboard';
+    $title = 'Overview';
     $listingUrl = $profile ? route('public.listing', $profile->public_slug) : null;
+    $greeting = now()->hour < 12 ? 'Good morning' : (now()->hour < 17 ? 'Good afternoon' : 'Good evening');
 @endphp
 
-@once
-    <style>
-        @keyframes dashboard-marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        .dashboard-marquee-track {
-            display: inline-flex;
-            min-width: max-content;
-            animation: dashboard-marquee 16s linear infinite;
-        }
-    </style>
-@endonce
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-5 lg:gap-6">
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
-            <p class="text-xs uppercase tracking-[0.3em] text-emerald-500">Orders</p>
-            <p class="mt-4 text-2xl font-semibold text-slate-900">
-                {{ number_format($ordersCount) }}
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Confirmed in {{ now()->format('F') }}</p>
-        </div>
-        <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm">
-            <p class="text-xs uppercase tracking-[0.3em] text-blue-500">Amount received</p>
-            <p class="mt-4 text-2xl font-semibold text-slate-900">
-                {{ \App\Support\Money::format($amountReceived, $currency) }}
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Successful payments this month</p>
-        </div>
-        <div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-sm">
-            <p class="text-xs uppercase tracking-[0.3em] text-indigo-500">Traffic</p>
-            <p class="mt-4 text-2xl font-semibold text-slate-900">
-                {{ number_format($trafficCount) }}
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Views and clicks this month</p>
-        </div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
-            <p class="text-xs uppercase tracking-[0.3em] text-amber-600">New customers</p>
-            <p class="mt-4 text-2xl font-semibold text-slate-900">
-                {{ number_format($newCustomersCount) }}
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Unique buyers this month</p>
-        </div>
-        <div class="col-span-2 overflow-hidden rounded-xl border border-fuchsia-200 bg-fuchsia-50/70 p-3 shadow-sm lg:hidden">
-            <div class="dashboard-marquee-track items-center gap-10 text-sm font-semibold text-fuchsia-700">
-                <span>Conversion Rate {{ number_format($salesConversionRate, 1) }}%</span>
-                <span>Orders {{ number_format($ordersCount) }}</span>
-                <span>Traffic {{ number_format($trafficCount) }}</span>
-                <span>New Customers {{ number_format($newCustomersCount) }}</span>
-                <span>Conversion Rate {{ number_format($salesConversionRate, 1) }}%</span>
-                <span>Orders {{ number_format($ordersCount) }}</span>
-                <span>Traffic {{ number_format($trafficCount) }}</span>
-                <span>New Customers {{ number_format($newCustomersCount) }}</span>
-            </div>
-        </div>
-        <div class="hidden rounded-2xl border border-fuchsia-200 bg-fuchsia-50/60 p-5 shadow-sm lg:block">
-            <p class="text-xs uppercase tracking-[0.3em] text-fuchsia-500">Conversion rate</p>
-            <p class="mt-4 text-2xl font-semibold text-slate-900">
-                {{ number_format($salesConversionRate, 1) }}%
-            </p>
-            <p class="mt-2 text-xs text-slate-500">Orders ÷ Traffic ({{ now()->format('F') }})</p>
-        </div>
-    </div>
-
-    <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-        <div class="flex items-center justify-between">
+    <section class="border-b border-slate-200 pb-6">
+        <div class="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-amber-700">Inventory alerts</p>
-                <p class="mt-1 text-sm text-amber-900">Low stock and sold out products that need attention.</p>
+                <p class="text-sm font-semibold text-emerald-700">{{ $greeting }}, {{ $profile?->business_name ?? 'Seller' }}</p>
+                <h2 class="lp-page-heading mt-1">Store overview</h2>
+                <p class="lp-page-description">Review this month's performance, handle anything that needs attention, and keep selling.</p>
             </div>
-            <a href="{{ route('products.index', ['stock' => \App\Models\Product::STATUS_LOW_STOCK]) }}" class="rounded-full border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Review low stock</a>
+            <div class="flex flex-wrap gap-2">
+                @if($listingUrl)
+                    <a href="{{ $listingUrl }}" target="_blank" rel="noreferrer noopener" class="lp-button-secondary">View store</a>
+                @endif
+                <button type="button" class="js-quick-actions-open lp-button-brand">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                    Create new
+                </button>
+            </div>
         </div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @forelse($inventoryAlerts as $item)
-                <div class="rounded-xl border border-amber-100 bg-white px-4 py-3">
-                    <p class="text-sm font-semibold text-slate-900">{{ $item->name }}</p>
-                    <p class="mt-1 text-xs text-slate-600">
-                        {{ $item->status === \App\Models\Product::STATUS_SOLD_OUT ? 'Sold out' : 'Low stock' }}
-                        · Qty {{ $item->stock_quantity }}
-                        · Threshold {{ $item->low_stock_threshold }}
-                    </p>
-                    <a href="{{ route('products.edit', $item) }}" class="mt-2 inline-flex text-xs font-semibold text-amber-700 hover:text-amber-800">Restock / Edit</a>
-                </div>
-            @empty
-                <div class="col-span-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    No low-stock alerts right now.
-                </div>
-            @endforelse
-        </div>
-    </div>
+    </section>
 
-    <div class="mt-8 grid items-stretch gap-6 lg:grid-cols-2">
-        <div class="min-h-0 h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Customer insights</h2>
-                <span class="text-xs uppercase tracking-[0.3em] text-slate-400">Top customers</span>
-            </div>
-            <div class="mt-4 flex flex-col gap-4 flex-1 min-h-0">
-                <div class="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
-                    <p class="text-xs uppercase tracking-[0.3em] text-emerald-600">Average payment</p>
-                    <p class="mt-2 text-lg font-semibold text-emerald-800">{{ \App\Support\Money::format($averagePayment, $currency) }}</p>
+    <section class="lp-card mt-5 grid grid-cols-2 overflow-hidden lg:grid-cols-4" aria-label="Store performance this month">
+        @php
+            $metrics = [
+                ['label' => 'Amount received', 'value' => \App\Support\Money::format($amountReceived, $currency), 'hint' => 'Successful payments in '.now()->format('F'), 'tone' => 'bg-emerald-50 text-emerald-700'],
+                ['label' => 'Orders', 'value' => number_format($ordersCount), 'hint' => 'Confirmed this month', 'tone' => 'bg-slate-100 text-slate-600'],
+                ['label' => 'Store visits', 'value' => number_format($trafficCount), 'hint' => 'Views and product clicks', 'tone' => 'bg-slate-100 text-slate-600'],
+                ['label' => 'Conversion', 'value' => number_format($salesConversionRate, 1).'%', 'hint' => number_format($newCustomersCount).' new customers', 'tone' => 'bg-slate-100 text-slate-600'],
+            ];
+        @endphp
+        @foreach($metrics as $metric)
+            <article class="border-b border-r border-slate-200 p-4 last:border-r-0 lg:border-b-0 sm:p-5">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-500">{{ $metric['label'] }}</p>
+                        <p class="mt-2 truncate text-xl font-semibold tabular-nums tracking-tight text-slate-950 sm:text-2xl">{{ $metric['value'] }}</p>
+                    </div>
+                    <span class="inline-flex h-3 w-3 shrink-0 rounded-full {{ $metric['tone'] }}"></span>
                 </div>
-                <div class="space-y-3 flex-1 overflow-y-auto pr-1">
-                    @forelse($topCustomers as $customer)
-                        <div class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900">{{ $customer['email'] }}</p>
-                                <p class="text-xs text-slate-500">{{ $customer['count'] }} payments</p>
-                            </div>
-                            <span class="text-sm font-semibold text-slate-700">
-                                {{ \App\Support\Money::format($customer['total'], $currency) }}
-                            </span>
+                <p class="mt-2 text-xs text-slate-500">{{ $metric['hint'] }}</p>
+            </article>
+        @endforeach
+    </section>
+
+    @if($inventoryAlerts->isNotEmpty())
+        <section class="mt-5 rounded-lg border border-amber-200 bg-[#fffaf0] p-4 sm:p-5">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 4.2 2.7 17.4A1.5 1.5 0 0 0 4 19.7h16a1.5 1.5 0 0 0 1.3-2.3L13.7 4.2a1.5 1.5 0 0 0-3.4 0Z"/></svg>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-amber-950">{{ $inventoryAlerts->count() }} product{{ $inventoryAlerts->count() === 1 ? '' : 's' }} need attention</h2>
+                        <p class="mt-1 text-sm text-amber-800">Restock low inventory before customers reach checkout.</p>
+                    </div>
+                </div>
+                <a href="{{ route('products.index', ['stock' => \App\Models\Product::STATUS_LOW_STOCK]) }}" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-amber-950 px-4 py-2 text-sm font-semibold text-white">Review inventory</a>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($inventoryAlerts as $item)
+                    <a href="{{ route('products.edit', $item) }}" class="rounded-xl border border-amber-200/70 bg-white/80 px-4 py-3 transition hover:bg-white">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="truncate text-sm font-semibold text-slate-900">{{ $item->name }}</p>
+                            <span class="text-xs font-semibold text-amber-700">Qty {{ $item->stock_quantity }}</span>
                         </div>
-                    @empty
-                        <p class="text-sm text-slate-500">No customer data yet.</p>
-                    @endforelse
-                </div>
+                        <p class="mt-1 text-xs text-slate-500">{{ $item->status === \App\Models\Product::STATUS_SOLD_OUT ? 'Sold out' : 'Low stock' }} · Edit product</p>
+                    </a>
+                @endforeach
             </div>
-        </div>
-        <div class="min-h-0 h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Recent activity</h2>
-                <a href="{{ route('notifications.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">View all</a>
+        </section>
+    @endif
+
+    <section class="mt-5 grid items-start gap-5 lg:grid-cols-[1.15fr_.85fr]">
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-center justify-between gap-4">
+                <div><p class="lp-eyebrow">Latest</p><h2 class="lp-section-title mt-1">Recent activity</h2></div>
+                <a href="{{ route('notifications.index') }}" class="text-sm font-semibold text-emerald-700 hover:text-emerald-600">View all</a>
             </div>
-            <div class="mt-4 space-y-3">
+            <div class="mt-5 divide-y divide-[#e8ebe6]">
                 @forelse($activity as $item)
-                    <div class="rounded-xl border border-slate-100 px-4 py-3">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-slate-900">{{ $item['title'] }}</p>
-                            <span class="text-xs text-slate-500">{{ $item['created_at']->diffForHumans() }}</span>
+                    <div class="flex items-start gap-3 py-4 first:pt-0 last:pb-0">
+                        <span class="lp-icon-box mt-0.5">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16v10H4V7Zm0 3h16"/></svg>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-4">
+                                <p class="text-sm font-semibold text-slate-900">{{ $item['title'] }}</p>
+                                <span class="whitespace-nowrap text-xs text-slate-400">{{ $item['created_at']->diffForHumans() }}</span>
+                            </div>
+                            <p class="mt-1 truncate text-sm text-slate-500">{{ $item['subtitle'] }}</p>
                         </div>
-                        <p class="mt-1 text-xs text-slate-500">{{ $item['subtitle'] }}</p>
                         @if($item['type'] === 'payment')
-                            <p class="mt-2 text-sm font-semibold text-emerald-700">{{ \App\Support\Money::format($item['amount'], $currency) }}</p>
+                            <p class="text-sm font-semibold text-emerald-700">{{ \App\Support\Money::format($item['amount'], $currency) }}</p>
                         @endif
                     </div>
                 @empty
-                    <p class="text-sm text-slate-500">No activity yet.</p>
+                    <div class="py-10 text-center"><p class="text-sm font-medium text-slate-700">No activity yet</p><p class="mt-1 text-sm text-slate-400">New orders and payments will appear here.</p></div>
                 @endforelse
             </div>
-            <div class="mt-4">
-                <a href="{{ route('notifications.index') }}" class="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-                    View full activity
-                </a>
-            </div>
-        </div>
-    </div>
+        </article>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Invoices to share</h2>
-                <a href="{{ route('invoices.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">View all</a>
+        <article class="lp-card p-5 sm:p-6">
+            <div><p class="lp-eyebrow">Customers</p><h2 class="lp-section-title mt-1">Your strongest relationships</h2></div>
+            <div class="mt-5 border-y border-emerald-200 bg-[#f2f7f4] px-1 py-4">
+                <p class="text-sm text-emerald-800">Average successful payment</p>
+                <p class="mt-1 text-2xl font-semibold tracking-tight text-emerald-950">{{ \App\Support\Money::format($averagePayment, $currency) }}</p>
             </div>
-            <div class="mt-4 space-y-3">
+            <div class="mt-4 space-y-1">
+                @forelse($topCustomers as $customer)
+                    <div class="flex items-center justify-between gap-4 rounded-md px-2 py-3 hover:bg-[#f4f6f4]">
+                        <div class="min-w-0"><p class="truncate text-sm font-medium text-slate-800">{{ $customer['email'] }}</p><p class="text-xs text-slate-400">{{ $customer['count'] }} payment{{ $customer['count'] === 1 ? '' : 's' }}</p></div>
+                        <span class="text-sm font-semibold text-slate-700">{{ \App\Support\Money::format($customer['total'], $currency) }}</span>
+                    </div>
+                @empty
+                    <p class="py-6 text-center text-sm text-slate-400">Customer insights will appear after your first sale.</p>
+                @endforelse
+            </div>
+            <a href="{{ route('customers.index') }}" class="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-600">View customers →</a>
+        </article>
+    </section>
+
+    <section class="mt-5 grid gap-5 lg:grid-cols-2">
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-center justify-between gap-4">
+                <div><p class="lp-eyebrow">Get paid</p><h2 class="lp-section-title mt-1">Invoices ready to share</h2></div>
+                <a href="{{ route('invoices.index') }}" class="text-sm font-semibold text-emerald-700">View all</a>
+            </div>
+            <div class="mt-5 divide-y divide-[#e8ebe6]">
                 @forelse($recentInvoices as $invoice)
                     @php
                         $invoiceLink = route('public.invoice', $invoice->token);
                         $invoiceMessage = "Hi, here is your invoice for {$invoice->title}. Pay here: {$invoiceLink}";
                     @endphp
-                    <div class="flex flex-col gap-3 rounded-xl border border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-900">{{ $invoice->title }}</p>
-                            <p class="text-xs text-slate-500">Status: {{ $invoice->status }}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <a href="{{ route('invoices.show', $invoice) }}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-500">Open</a>
-                            <button type="button" data-copy="{{ $invoiceMessage }}" class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-                                Copy WhatsApp
-                            </button>
-                        </div>
+                    <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                        <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-900">{{ $invoice->title }}</p><p class="mt-1 text-xs capitalize text-slate-400">{{ $invoice->status }}</p></div>
+                        <a href="{{ route('invoices.show', $invoice) }}" class="text-sm font-semibold text-slate-600">Open</a>
+                        <button type="button" data-copy="{{ $invoiceMessage }}" class="lp-button-secondary min-h-9 px-3 py-1.5 text-xs">Copy link</button>
                     </div>
                 @empty
-                    <p class="text-sm text-slate-500">No invoices yet.</p>
+                    <div class="py-7 text-center"><p class="text-sm text-slate-500">No invoices yet.</p><a href="{{ route('invoices.create') }}" class="mt-2 inline-flex text-sm font-semibold text-emerald-700">Create an invoice</a></div>
                 @endforelse
             </div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Products to share</h2>
-                <a href="{{ route('products.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">View all</a>
+        </article>
+
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-center justify-between gap-4">
+                <div><p class="lp-eyebrow">Your catalog</p><h2 class="lp-section-title mt-1">Products ready to share</h2></div>
+                <a href="{{ route('products.index') }}" class="text-sm font-semibold text-emerald-700">View all</a>
             </div>
-            <div class="mt-4 space-y-3">
+            <div class="mt-5 divide-y divide-[#e8ebe6]">
                 @forelse($recentProducts as $product)
                     @php
-                        $productMessage = $listingUrl
-                            ? "Hi, you can pay for {$product->name} here: {$listingUrl}"
-                            : "Hi, you can pay for {$product->name} on our 8Kommerce page.";
+                        $productMessage = $listingUrl ? "Hi, you can pay for {$product->name} here: {$listingUrl}" : "Hi, you can pay for {$product->name} on our store page.";
                     @endphp
-                    <div class="flex flex-col gap-3 rounded-xl border border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-900">{{ $product->name }}</p>
-                            <p class="text-xs text-slate-500">{{ \App\Support\Money::format($product->price, $currency) }}</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <a href="{{ route('products.edit', $product) }}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-500">Edit</a>
-                            <button type="button" data-copy="{{ $productMessage }}" class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-                                Copy WhatsApp
-                            </button>
-                        </div>
+                    <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                        <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-900">{{ $product->name }}</p><p class="mt-1 text-xs text-slate-400">{{ \App\Support\Money::format($product->price, $currency) }}</p></div>
+                        <a href="{{ route('products.edit', $product) }}" class="text-sm font-semibold text-slate-600">Edit</a>
+                        <button type="button" data-copy="{{ $productMessage }}" class="lp-button-secondary min-h-9 px-3 py-1.5 text-xs">Copy link</button>
                     </div>
                 @empty
-                    <p class="text-sm text-slate-500">No products yet.</p>
+                    <div class="py-7 text-center"><p class="text-sm text-slate-500">No products yet.</p><a href="{{ route('products.create') }}" class="mt-2 inline-flex text-sm font-semibold text-emerald-700">Add your first product</a></div>
                 @endforelse
             </div>
-        </div>
-    </div>
+        </article>
+    </section>
 
     <script>
         document.querySelectorAll('[data-copy]').forEach((button) => {

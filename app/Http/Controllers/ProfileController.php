@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\SellerProfile;
 use App\Services\PaystackService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -23,25 +23,29 @@ class ProfileController extends Controller
         if (! $profile) {
             $profile = $request->user()->sellerProfile()->create([
                 'business_name' => $request->user()->name,
-                'public_slug' => \App\Models\SellerProfile::generateUniqueSlug($request->user()->name),
+                'public_slug' => SellerProfile::generateUniqueSlug($request->user()->name),
             ]);
         }
 
         $banks = [];
+        $momoBanks = [];
         try {
-            $banks = $paystack->listBanks(config('services.paystack.currency', 'GHS'));
+            $momoBanks = $paystack->listBanks(config('services.paystack.currency', 'GHS'), 'mobile_money');
+        } catch (\Throwable $exception) {
+            $momoBanks = [];
+        }
+        try {
+            $banks = $paystack->listBanks(config('services.paystack.currency', 'GHS'), 'ghipss');
         } catch (\Throwable $exception) {
             $banks = [];
         }
 
-        $momoBanks = collect($banks)
-            ->filter(function (array $bank) {
-                $name = Str::lower((string) ($bank['name'] ?? ''));
-
-                return Str::contains($name, ['mtn', 'airtel', 'tigo', 'telecel', 'vodafone', 'momo', 'mobile money']);
-            })
-            ->values()
-            ->all();
+        // Keep the official Ghana MoMo choices usable if the live provider list is briefly unavailable.
+        $momoBanks = $momoBanks ?: [
+            ['name' => 'AirtelTigo Money', 'code' => 'ATL', 'type' => 'mobile_money'],
+            ['name' => 'MTN Mobile Money', 'code' => 'MTN', 'type' => 'mobile_money'],
+            ['name' => 'Telecel Cash', 'code' => 'VOD', 'type' => 'mobile_money'],
+        ];
 
         return view('profile.edit', [
             'user' => $request->user(),

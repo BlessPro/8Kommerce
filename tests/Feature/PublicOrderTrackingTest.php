@@ -16,6 +16,8 @@ class PublicOrderTrackingTest extends TestCase
 
     public function test_buyer_can_track_order_with_reference_and_phone(): void
     {
+        config()->set('orders.legacy_reference_tracking_enabled', true);
+
         $seller = User::factory()->create();
         $phone = Phone::normalize('0541900229', '+233');
 
@@ -67,6 +69,8 @@ class PublicOrderTrackingTest extends TestCase
 
     public function test_tracking_fails_for_mismatched_phone(): void
     {
+        config()->set('orders.legacy_reference_tracking_enabled', true);
+
         $seller = User::factory()->create();
 
         Order::create([
@@ -94,5 +98,15 @@ class PublicOrderTrackingTest extends TestCase
         $response->assertOk();
         $response->assertSeeText('Order not found');
         $response->assertDontSeeText('Order details');
+    }
+
+    public function test_legacy_reference_tracking_redirects_to_otp_hub_by_default(): void
+    {
+        config()->set('orders.legacy_reference_tracking_enabled', false);
+
+        $this->get(route('public.orders.track', [
+            'reference' => 'ORDER-OLD',
+            'phone_number' => '0541900229',
+        ]))->assertRedirect(route('customer.orders.login'));
     }
 }

@@ -12,7 +12,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Space Grotesk"', ...defaultTheme.fontFamily.sans],
+                sans: ['"Public Sans"', ...defaultTheme.fontFamily.sans],
+                display: ['Manrope', '"Public Sans"', ...defaultTheme.fontFamily.sans],
             },
         },
     },

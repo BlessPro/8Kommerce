@@ -5,8 +5,9 @@
 
 @section('content')
     <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold text-slate-900">Edit product</h2>
+        <div class="lp-card p-5 sm:p-6">
+            <h1 class="lp-page-heading">Edit product</h1>
+            <p class="lp-page-description">Update the product details customers see and the stock rules your team uses.</p>
             <form class="mt-6 space-y-5" method="POST" action="{{ route('products.update', $product) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
@@ -19,6 +20,12 @@
                 <label class="text-sm font-medium text-slate-700">Description</label>
                 <textarea name="description" rows="4" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">{{ old('description', $product->description) }}</textarea>
                 @error('description') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="text-sm font-medium text-slate-700">Category</label>
+                <input name="category" value="{{ old('category', $product->category) }}" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                <p class="mt-1 text-xs text-slate-500">This becomes a compact category filter on Marketplace storefronts.</p>
+                @error('category') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Price</label>
@@ -66,7 +73,7 @@
                 <label for="is_active" class="cursor-pointer text-sm text-slate-600">Active</label>
             </div>
                 <div class="hidden items-center gap-4 sm:flex">
-                    <button type="submit" class="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-500">
+                    <button type="submit" class="lp-button-brand">
                         Update product
                     </button>
                     <a href="{{ route('products.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancel</a>
@@ -83,7 +90,7 @@
                 </div>
             </form>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside class="lp-card p-5 sm:p-6">
             <h3 class="text-lg font-semibold text-slate-900">Product insights (30 days)</h3>
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <div class="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
@@ -108,6 +115,6 @@
                 </div>
             </div>
             <p class="mt-4 text-sm text-slate-600">Total paid: {{ \App\Support\Money::format($stats['paymentTotal'], $currency) }}</p>
-        </div>
+        </aside>
     </div>
 @endsection

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SellerProfile;
 use App\Models\User;
 use App\Support\Phone;
+use App\Support\Privacy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,11 +19,12 @@ class PhonePinLoginController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
-        $pinLength = max(4, min(8, (int) config('auth_phone.pin.length', 4)));
         $data = $request->validate([
             'phone_number' => ['required', 'string', 'max:20'],
             'phone_country' => ['nullable', 'string'],
-            'pin' => ['required', 'digits:'.$pinLength],
+            // Accept legacy four-digit PINs while all newly created/reset PINs use
+            // the stronger configured length.
+            'pin' => ['required', 'digits_between:4,8'],
         ]);
 
         $country = $data['phone_country'] ?? '+233';
@@ -43,21 +45,21 @@ class PhonePinLoginController extends Controller
         if (! $user) {
             $this->recordFailedAttempt($normalized, 'user_not_found', $request);
             throw ValidationException::withMessages([
-                'phone_number' => 'Account not found. Use OTP or email sign in.',
+                'pin' => 'Phone number or PIN is incorrect.',
             ]);
         }
 
         if (! $user->pin_hash) {
             $this->recordFailedAttempt($normalized, 'pin_not_set', $request);
             throw ValidationException::withMessages([
-                'pin' => 'PIN not set for this account. Use Forgot PIN to set one.',
+                'pin' => 'Phone number or PIN is incorrect.',
             ]);
         }
 
         if (! Hash::check((string) $data['pin'], (string) $user->pin_hash)) {
             $this->recordFailedAttempt($normalized, 'invalid_pin', $request);
             throw ValidationException::withMessages([
-                'pin' => 'Invalid PIN.',
+                'pin' => 'Phone number or PIN is incorrect.',
             ]);
         }
 
@@ -190,11 +192,11 @@ class PhonePinLoginController extends Controller
     {
         $attemptsKey = $this->attemptsKey($phone);
         $lockoutKey = $this->lockoutKey($phone);
-        $attempts = (int) Cache::get($attemptsKey, 0) + 1;
-        Cache::put($attemptsKey, $attempts, now()->addSeconds($this->lockoutSeconds()));
+        Cache::add($attemptsKey, 0, now()->addSeconds($this->lockoutSeconds()));
+        $attempts = (int) Cache::increment($attemptsKey);
 
         Log::warning('Phone PIN login failed', [
-            'phone' => $phone,
+            'phone_hash' => Privacy::contactHash($phone),
             'reason' => $reason,
             'attempts' => $attempts,
             'ip' => $request->ip(),
@@ -210,7 +212,7 @@ class PhonePinLoginController extends Controller
         Cache::forget($attemptsKey);
 
         Log::warning('Phone PIN login lockout applied', [
-            'phone' => $phone,
+            'phone_hash' => Privacy::contactHash($phone),
             'ip' => $request->ip(),
             'lockout_seconds' => $this->lockoutSeconds(),
         ]);
