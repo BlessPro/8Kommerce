@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\HubtelSmsService;
+use App\Services\SmsDeliveryService;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -27,7 +27,7 @@ class SendCustomerTrackingOtp implements ShouldBeEncrypted, ShouldQueue
         $this->onQueue('otp');
     }
 
-    public function handle(HubtelSmsService $sms): void
+    public function handle(SmsDeliveryService $sms): void
     {
         if ($this->expiresAt <= 0 || now()->timestamp >= $this->expiresAt) {
             return;

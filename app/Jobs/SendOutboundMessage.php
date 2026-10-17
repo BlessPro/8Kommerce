@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\HubtelSmsService;
+use App\Services\SmsDeliveryService;
 use App\Services\TwilioMessagingService;
 use App\Support\Privacy;
 use DateTimeImmutable;
@@ -34,7 +34,7 @@ class SendOutboundMessage implements ShouldBeEncrypted, ShouldQueue
         $this->onQueue($queue);
     }
 
-    public function handle(HubtelSmsService $sms, TwilioMessagingService $messaging): void
+    public function handle(SmsDeliveryService $sms, TwilioMessagingService $messaging): void
     {
         if ($this->expiresAt !== null && now()->timestamp >= $this->expiresAt) {
             Log::notice('Expired outbound message discarded', $this->logContext());

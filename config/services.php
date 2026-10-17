@@ -60,6 +60,11 @@ return [
         'default_country' => env('TWILIO_DEFAULT_COUNTRY', '+233'),
     ],
 
+    'sms' => [
+        // auto selects Hubtel when configured, otherwise Twilio Messaging.
+        'provider' => env('SMS_PROVIDER', 'auto'),
+    ],
+
     'hubtel' => [
         'client_id' => env('HUBTEL_CLIENT_ID'),
         'client_secret' => env('HUBTEL_CLIENT_SECRET'),

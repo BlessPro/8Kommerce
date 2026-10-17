@@ -44,6 +44,20 @@
 4. Configure the Paystack webhook URL as `https://YOUR_DOMAIN/webhooks/paystack`.
 5. Run the queue worker and Laravel scheduler as separate Render services. The scheduler expires failed subscriptions and grants monthly package placements.
 
+### SMS on Render
+
+OTP SMS jobs use the `otp` queue. Run a Render background worker with:
+
+```bash
+php artisan queue:work --queue=otp,payments,notifications,default --sleep=2 --tries=4 --backoff=5 --timeout=30
+```
+
+Set `SMS_PROVIDER=hubtel` with all three `HUBTEL_*` credentials, or set
+`SMS_PROVIDER=twilio` with `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either
+`TWILIO_MESSAGING_SERVICE_SID` (`MG...`) or `TWILIO_SMS_FROM`. `SMS_PROVIDER=auto`
+selects a fully configured provider. After changing environment variables, redeploy
+all web and worker services, then run `php artisan ops:sms-health` in a Render shell.
+
 Paystack recurring subscriptions require a supported card authorization. Billing email is collected separately and does not change phone-and-PIN login.
 
 ## Future projections

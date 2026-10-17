@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WebhookEvent;
 use App\Services\PaymentReconciliationService;
 use App\Services\SellerNotifier;
+use App\Services\SmsDeliveryService;
 use App\Services\SubscriptionService;
 use Database\Seeders\DemoDataSeeder;
 use Illuminate\Foundation\Inspiring;
@@ -28,6 +29,35 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Artisan::command('ops:sms-health', function (SmsDeliveryService $sms) {
+    try {
+        $diagnostics = $sms->diagnostics();
+    } catch (Throwable $exception) {
+        $this->error($exception->getMessage());
+
+        return 1;
+    }
+
+    $this->table(['Check', 'Value'], collect($diagnostics)
+        ->map(fn ($value, $key) => [$key, is_bool($value) ? ($value ? 'yes' : 'no') : ($value ?: 'none')])
+        ->values()
+        ->all());
+
+    $connection = (string) config('queue.default');
+    $this->line('Queue connection: '.$connection);
+    $this->line('OTP queue depth: '.Queue::connection($connection)->size('otp'));
+
+    if (! $diagnostics['selected_provider']) {
+        $this->error('No usable SMS provider is configured.');
+
+        return 1;
+    }
+
+    $this->info('SMS configuration is usable. This command does not send a message.');
+
+    return 0;
+})->purpose('Check SMS provider and OTP queue configuration without exposing credentials');
 
 Artisan::command('demo:seed {--reset} {--force}', function () {
     if (app()->environment('production') && ! $this->option('force')) {
