@@ -84,14 +84,16 @@ jobs:
           cp .env.example .env
           mkdir -p storage/framework/{cache,sessions,views} storage/logs
 
+      - name: Build frontend assets
+        run: |
+          npm run build
+          test -f public/build/manifest.json
+
       - name: Run PostgreSQL migrations
         run: php artisan migrate:fresh --force --no-interaction
 
       - name: Run application tests
         run: php artisan test
-
-      - name: Build frontend assets
-        run: npm run build
 
       - name: Validate Laravel production caches
         run: |
