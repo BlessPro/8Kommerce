@@ -22,6 +22,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaystackWebhookController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\PublicListingController;
@@ -145,6 +146,10 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         Route::middleware('promotion_access')->group(function () {
             Route::get('/products/orders', [ProductController::class, 'orders'])->name('products.orders');
             Route::resource('products', ProductController::class)->except(['show']);
+            Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+            Route::post('/product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+            Route::patch('/product-categories/{category}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+            Route::delete('/product-categories/{category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
             Route::get('/products/export', [ProductController::class, 'export'])->name('products.export');
             Route::post('/products/export-pdf', [ProductController::class, 'exportPdf'])->name('products.exportPdf');
             Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');

@@ -5,12 +5,17 @@
 
 @section('content')
     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Business Performance</p>
-        <h2 class="mt-2 text-xl font-semibold text-slate-900">Linkpay Goals & Targets</h2>
+        <h2 class="mt-2 text-xl font-semibold text-slate-900">Goals &amp; performance</h2>
         <p class="mt-2 text-sm text-slate-500">
             Period: {{ $monthStart->format('M d, Y') }} - {{ $monthEnd->format('M d, Y') }}.
             Targets are auto-derived from your actual performance history.
         </p>
+        </div>
+        <a href="{{ route('insights.index') }}" class="lp-button-secondary">Advanced insights <span aria-hidden="true">→</span></a>
+        </div>
     </div>
 
     <div class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">

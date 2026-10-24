@@ -8,7 +8,7 @@
         <div class="lp-card p-5 sm:p-6">
             <h1 class="lp-page-heading">Edit product</h1>
             <p class="lp-page-description">Update the product details customers see and the stock rules your team uses.</p>
-            <form class="mt-6 space-y-5" method="POST" action="{{ route('products.update', $product) }}" enctype="multipart/form-data">
+            <form class="mt-6 space-y-5" method="POST" action="{{ route('products.update', $product) }}" enctype="multipart/form-data" data-form-draft="product-edit-{{ $product->id }}-{{ auth()->id() }}">
             @csrf
             @method('PUT')
             <div>
@@ -23,13 +23,13 @@
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Category</label>
-                <input name="category" value="{{ old('category', $product->category) }}" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                <x-category-picker name="category" :value="old('category', $product->category)" :categories="$categories" />
                 <p class="mt-1 text-xs text-slate-500">This becomes a compact category filter on Marketplace storefronts.</p>
                 @error('category') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Price</label>
-                <input name="price" value="{{ old('price', $product->price) }}" required type="number" step="0.01" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">GH₵</span><input name="price" value="{{ old('price', $product->price) }}" required type="number" min="0.01" step="0.01" class="min-w-0 flex-1 border-0 focus:ring-0" /></div>
                 @error('price') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
@@ -46,9 +46,11 @@
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Image (optional)</label>
-                <input name="image" type="file" accept="image/*" class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
+                <input name="image" type="file" accept="image/*" data-image-input class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
                 @if($product->image_path)
-                    <p class="mt-2 text-xs text-slate-500">Current image set.</p>
+                    <img data-image-preview src="{{ asset('storage/'.$product->image_path) }}" class="mt-3 h-32 w-32 rounded-lg border border-slate-200 object-cover" alt="Current product image">
+                @else
+                    <img data-image-preview class="mt-3 hidden h-32 w-32 rounded-lg border border-slate-200 object-cover" alt="Selected product image preview">
                 @endif
                 @error('image') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
@@ -118,3 +120,7 @@
         </aside>
     </div>
 @endsection
+
+@push('scripts')
+<script>document.querySelector('[data-image-input]')?.addEventListener('change', function(){const preview=document.querySelector('[data-image-preview]');const file=this.files?.[0];if(!preview||!file)return;preview.src=URL.createObjectURL(file);preview.classList.remove('hidden');});</script>
+@endpush

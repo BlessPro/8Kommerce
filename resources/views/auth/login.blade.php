@@ -52,7 +52,7 @@
                             <span class="auth-field-icon" aria-hidden="true">
                                 <svg viewBox="0 0 20 20" fill="none"><rect x="4.5" y="8" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                             </span>
-                            <input id="pin-phone" name="pin" type="password" placeholder="Enter your 4-digit PIN" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" required />
+                            <input id="pin-phone" name="pin" type="password" placeholder="••••" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" required />
                             <button type="button" id="toggle-pin-visibility" class="auth-password-toggle" aria-label="Show PIN" aria-pressed="false">
                                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.5-4 7.5-4 7.5 4 7.5 4-2.5 4-7.5 4-7.5-4-7.5-4Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
                             </button>
