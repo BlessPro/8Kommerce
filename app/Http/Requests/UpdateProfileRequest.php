@@ -28,6 +28,8 @@ class UpdateProfileRequest extends FormRequest
             'settlement_bank_code' => ['nullable', 'string', 'max:20', 'required_with:account_number,account_name'],
             'account_number' => ['nullable', 'string', 'max:20', 'required_with:settlement_bank_code,account_name'],
             'account_name' => ['nullable', 'string', 'max:160', 'required_with:settlement_bank_code,account_number'],
+            // New PINs are four digits, but legacy six-digit PINs must still
+            // be accepted here so existing sellers can confirm payout edits.
             'current_pin' => ['nullable', 'digits_between:4,6'],
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
             'password' => ['nullable', Password::defaults(), 'confirmed'],

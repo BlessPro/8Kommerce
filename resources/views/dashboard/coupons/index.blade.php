@@ -13,11 +13,19 @@
         </div>
     @endif
 
+    @if($coupons->count())
+        @php($latestCoupon = $coupons->first())
+        <section class="mb-6 rounded-lg border border-indigo-200 bg-indigo-50/70 p-5">
+            <p class="lp-eyebrow text-indigo-700">Latest coupon</p>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-4"><div><p class="font-mono text-xl font-bold tracking-wide text-slate-900">{{ $latestCoupon->code }}</p><p class="mt-1 text-sm text-slate-600">{{ $latestCoupon->discount_type === \App\Models\Coupon::TYPE_PERCENT ? rtrim(rtrim(number_format((float) $latestCoupon->discount_value, 2), '0'), '.').'%' : \App\Support\Money::format((string) $latestCoupon->discount_value, config('services.paystack.currency', 'GHS')) }} off · {{ $latestCoupon->is_active ? 'Active' : 'Inactive' }}</p></div><span class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-indigo-700">Used {{ $latestCoupon->used_count }}{{ $latestCoupon->usage_limit ? '/'.$latestCoupon->usage_limit : '' }}</span></div>
+        </section>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900">Create coupon</h2>
             <p class="mt-1 text-sm text-slate-500">Use codes to drive conversions on cart checkout.</p>
-            <form method="POST" action="{{ route('coupons.store') }}" class="mt-5 grid gap-3 sm:grid-cols-2">
+            <form method="POST" action="{{ route('coupons.store') }}" class="mt-5 grid gap-3 sm:grid-cols-2" data-form-draft="coupon-create-{{ auth()->id() }}" data-form-clear-on-load="{{ session('status') === 'coupon-created' ? '1' : '0' }}">
                 @csrf
                 <div>
                     <label class="text-sm font-medium text-slate-700">Code</label>
@@ -33,16 +41,16 @@
                 </div>
                 <div>
                     <label class="text-sm font-medium text-slate-700">Discount value</label>
-                    <input name="discount_value" type="number" step="0.01" min="0.01" value="{{ old('discount_value') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" placeholder="10" />
+                    <div class="mt-1 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span data-discount-unit class="flex items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">%</span><input name="discount_value" type="number" step="0.01" min="0.01" value="{{ old('discount_value') }}" class="min-w-0 flex-1 border-0 text-sm focus:ring-0" placeholder="10" /></div>
                     @error('discount_value') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="text-sm font-medium text-slate-700">Max discount (optional)</label>
-                    <input name="max_discount" type="number" step="0.01" min="0" value="{{ old('max_discount') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
+                    <div class="mt-1 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-600">GH₵</span><input name="max_discount" type="number" step="0.01" min="0" value="{{ old('max_discount') }}" class="min-w-0 flex-1 border-0 text-sm focus:ring-0" /></div>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-slate-700">Min order amount (optional)</label>
-                    <input name="min_order_amount" type="number" step="0.01" min="0" value="{{ old('min_order_amount') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
+                    <div class="mt-1 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-600">GH₵</span><input name="min_order_amount" type="number" step="0.01" min="0" value="{{ old('min_order_amount') }}" class="min-w-0 flex-1 border-0 text-sm focus:ring-0" /></div>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-slate-700">Usage limit (optional)</label>
@@ -103,3 +111,6 @@
         </section>
     </div>
 @endsection
+@push('scripts')
+<script>(()=>{const type=document.querySelector('select[name="discount_type"]'),unit=document.querySelector('[data-discount-unit]');const sync=()=>{if(unit)unit.textContent=type?.value==='FIXED'?'GH₵':'%';};type?.addEventListener('change',sync);sync();})();</script>
+@endpush

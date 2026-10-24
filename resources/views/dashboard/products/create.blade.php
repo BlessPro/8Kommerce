@@ -33,7 +33,7 @@
                 in a new tab, then upload again.
             </p>
         </div>
-        <form id="bulk-product-form" class="mt-6 space-y-5" method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
+        <form id="bulk-product-form" class="mt-6 space-y-5" method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data" data-form-draft="products-create-{{ auth()->id() }}" data-draft-repeat-add="#add-product" data-draft-repeat-selector=".product-item">
             @csrf
             <div id="product-items" class="space-y-4">
                 @foreach($oldProducts as $index => $item)
@@ -56,13 +56,13 @@
                         </div>
                         <div class="mt-4">
                             <label class="text-sm font-medium text-slate-700">Category</label>
-                            <input name="products[{{ $index }}][category]" value="{{ $item['category'] ?? '' }}" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
-                            <p class="mt-1 text-xs text-slate-500">Products with the same category become one storefront filter.</p>
+                            <x-category-picker name="products[{{ $index }}][category]" :value="$item['category'] ?? ''" :categories="$categories" />
+                            <p class="mt-1 text-xs text-slate-500">Choose a saved category or use Manage to add, rename, or delete categories.</p>
                             @error("products.$index.category") <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                         </div>
                         <div class="mt-4">
                             <label class="text-sm font-medium text-slate-700">Price</label>
-                            <input name="products[{{ $index }}][price]" value="{{ $item['price'] ?? '' }}" required type="number" step="0.01" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                            <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">GH₵</span><input name="products[{{ $index }}][price]" value="{{ $item['price'] ?? '' }}" required type="number" min="0.01" step="0.01" class="min-w-0 flex-1 border-0 focus:ring-0" /></div>
                             @error("products.$index.price") <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                         </div>
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
@@ -79,7 +79,8 @@
                         </div>
                         <div class="mt-4">
                             <label class="text-sm font-medium text-slate-700">Image (optional)</label>
-                            <input name="products[{{ $index }}][image]" type="file" accept="image/*" data-product-image="true" class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
+                            <input name="products[{{ $index }}][image]" type="file" accept="image/*" data-product-image="true" class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
+                            <img data-image-preview class="mt-3 hidden h-28 w-28 rounded-lg border border-slate-200 object-cover" alt="Selected product image preview">
                             @error("products.$index.image") <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             <p class="mt-1 text-xs text-slate-500 upload-hint">Image will be auto-compressed before upload.</p>
                         </div>
@@ -142,12 +143,12 @@
             </div>
             <div class="mt-4">
                 <label class="text-sm font-medium text-slate-700">Category</label>
-                <input name="products[__INDEX__][category]" maxlength="80" placeholder="e.g. Electronics, Home & living" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
-                <p class="mt-1 text-xs text-slate-500">Products with the same category become one storefront filter.</p>
+                <div class="mt-2 flex items-start gap-2"><select name="products[__INDEX__][category]" class="min-w-0 flex-1 rounded-lg border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500"><option value="">Uncategorised</option>@foreach($categories as $category)<option value="{{ $category }}">{{ $category }}</option>@endforeach</select><a href="{{ route('product-categories.index') }}" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700">Manage</a></div>
+                <p class="mt-1 text-xs text-slate-500">Choose a saved category or manage the category library.</p>
             </div>
             <div class="mt-4">
                 <label class="text-sm font-medium text-slate-700">Price</label>
-                <input name="products[__INDEX__][price]" required type="number" step="0.01" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
+                <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">GH₵</span><input name="products[__INDEX__][price]" required type="number" min="0.01" step="0.01" class="min-w-0 flex-1 border-0 focus:ring-0" /></div>
             </div>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -161,7 +162,8 @@
             </div>
             <div class="mt-4">
                 <label class="text-sm font-medium text-slate-700">Image (optional)</label>
-                <input name="products[__INDEX__][image]" type="file" accept="image/*" data-product-image="true" class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
+                <input name="products[__INDEX__][image]" type="file" accept="image/*" data-product-image="true" class="mt-2 w-full rounded-xl border-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-emerald-700" />
+                <img data-image-preview class="mt-3 hidden h-28 w-28 rounded-lg border border-slate-200 object-cover" alt="Selected product image preview">
                 <p class="mt-1 text-xs text-slate-500 upload-hint">Image will be auto-compressed before upload.</p>
             </div>
             <div class="mt-4">
@@ -294,10 +296,20 @@
 
             const handleImageChange = async (input) => {
                 const file = input.files?.[0];
+                const preview = input.closest('div')?.querySelector('[data-image-preview]');
                 if (!file) {
+                    if (preview) {
+                        preview.removeAttribute('src');
+                        preview.classList.add('hidden');
+                    }
                     setHint(input, 'Image will be auto-compressed before upload.');
                     updateSummary();
                     return;
+                }
+
+                if (preview) {
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('hidden');
                 }
 
                 setHint(input, `Selected ${formatBytes(file.size)}. Compressing...`);

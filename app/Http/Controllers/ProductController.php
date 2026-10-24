@@ -401,7 +401,9 @@ class ProductController extends Controller
 
     public function create()
     {
-        return view('dashboard.products.create');
+        return view('dashboard.products.create', [
+            'categories' => request()->user()->productCategories()->orderBy('name')->pluck('name'),
+        ]);
     }
 
     public function store(CreateProductRequest $request)
@@ -445,6 +447,7 @@ class ProductController extends Controller
                 }
 
                 $product = Product::create($productData);
+                \App\Models\ProductCategory::remember($user->id, $productData['category']);
                 app(InventoryService::class)->syncStatusAndAlert($product, $user, false);
                 $createdProducts->push($product);
 
@@ -490,6 +493,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
+        \App\Models\ProductCategory::remember($user->id, $data['category']);
         app(InventoryService::class)->syncStatusAndAlert($product, $user, false);
 
         // Pre-render a large OG image for WhatsApp previews.
@@ -516,6 +520,7 @@ class ProductController extends Controller
             'product' => $product,
             'stats' => $stats,
             'currency' => config('services.paystack.currency', 'GHS'),
+            'categories' => request()->user()->productCategories()->orderBy('name')->pluck('name'),
         ]);
     }
 
@@ -546,6 +551,7 @@ class ProductController extends Controller
         }
 
         $product->update($data);
+        \App\Models\ProductCategory::remember($request->user()->id, $data['category']);
         app(InventoryService::class)->syncStatusAndAlert($product->fresh(), $request->user(), true);
 
         // Regenerate OG image after edits.

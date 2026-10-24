@@ -73,6 +73,10 @@
             html.theme-dark .bg-fuchsia-50\/70 {
                 background-color: rgba(217, 70, 239, 0.16) !important;
             }
+            html.theme-dark .bg-rose-50,
+            html.theme-dark .bg-rose-50\/70 { background-color: rgba(244, 63, 94, 0.16) !important; }
+            html.theme-dark .bg-cyan-50,
+            html.theme-dark .bg-cyan-50\/70 { background-color: rgba(6, 182, 212, 0.15) !important; }
             html.theme-dark .border-slate-200,
             html.theme-dark .border-slate-100,
             html.theme-dark .border-slate-300\/70,
@@ -139,7 +143,7 @@
                 border-radius: 10px;
             }
 
-            /* Forms: keep readable text and placeholders in all modes */
+            /* Forms retain the same hierarchy in both themes. */
             input,
             textarea,
             select {
@@ -154,9 +158,16 @@
             html.theme-dark input,
             html.theme-dark textarea,
             html.theme-dark select {
-                background-color: #ffffff !important;
-                color: #111827 !important;
-                border-color: #cbd5e1 !important;
+                background-color: #082d39 !important;
+                color: #f8fafc !important;
+                border-color: #47616b !important;
+            }
+            html.theme-dark input::placeholder,
+            html.theme-dark textarea::placeholder { color: #94a3b8 !important; }
+            @media (min-width: 1024px) {
+                html.lp-sidebar-collapsed .js-desktop-sidebar { transform: translateX(-100%); }
+                html.lp-sidebar-collapsed .js-dashboard-shell { padding-left: 0 !important; }
+                html.lp-sidebar-collapsed .js-dashboard-header { left: 0 !important; }
             }
         </style>
 
@@ -178,7 +189,7 @@
         @endphp
 
         <div class="min-h-screen lg:flex">
-            <aside class="hidden lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
+            <aside class="js-desktop-sidebar hidden transition-transform lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
                 <div class="flex items-center gap-3 px-5 pb-4 pt-5">
                     <x-brand-mark class="h-10 w-auto" />
                     <div class="min-w-0">
@@ -190,7 +201,7 @@
                 <div class="px-4 pb-4">
                     <button type="button" class="lp-button-brand js-quick-actions-open js-tour-quick-action w-full">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                        Create
+                        Quick menu
                     </button>
                 </div>
 
@@ -221,7 +232,6 @@
 
                     <div class="space-y-1">
                         <p class="lp-eyebrow px-3 pb-1">Grow</p>
-                        <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
                         <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
                         <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
                     </div>
@@ -252,18 +262,23 @@
                 </div>
             </aside>
 
-            <div class="flex-1 overflow-x-hidden lg:pl-64">
-                <header class="fixed left-0 right-0 top-0 z-40 border-b border-[#D5E1E4] bg-white/95 lg:left-64">
+            <div class="js-dashboard-shell flex-1 overflow-x-hidden transition-[padding] lg:pl-64">
+                <header class="js-dashboard-header fixed left-0 right-0 top-0 z-40 border-b border-[#D5E1E4] bg-white/95 transition-[left] lg:left-64">
                     <div class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-7">
-                        <div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" class="js-desktop-sidebar-toggle hidden h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 lg:inline-flex" aria-label="Minimise sidebar" title="Minimise sidebar">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            </button>
+                            <div>
                             <p class="lp-eyebrow sm:hidden">8Kommerce</p>
                             <p class="hidden text-xs font-medium text-slate-500 sm:block">Seller workspace</p>
                             <h1 class="font-display text-xl font-semibold tracking-tight text-slate-950">{{ $title ?? 'Overview' }}</h1>
+                            </div>
                         </div>
                         <div class="hidden items-center gap-3 sm:flex">
                             <button type="button" class="lp-button-brand js-quick-actions-open">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                                Create
+                                Quick menu
                             </button>
                             <div class="flex items-center gap-2 rounded-lg border border-[#D5E1E4] bg-white p-1">
                                 <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
@@ -276,7 +291,7 @@
                                 </div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Logout</button>
+                                    <button type="submit" class="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700">Logout</button>
                                 </form>
                             </div>
                         </div>
@@ -312,7 +327,7 @@
                         $trialActive = $user->isOnTrial() && $user->trial_ends_at;
                         $daysLeft = $trialActive ? max(0, now()->diffInDays($user->trial_ends_at, false)) : null;
                     @endphp
-                    @if($publicUrl || $trialActive)
+                    @if(($publicUrl || $trialActive) && !request()->routeIs('public.preview'))
                         <div class="lp-card mb-6 px-5 py-4">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="min-w-0">
@@ -384,7 +399,7 @@
                     <button type="button" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 js-mobile-menu-close">Close</button>
                 </div>
             </div>
-            <button type="button" class="lp-button-brand js-quick-actions-open mb-5 w-full">Create new</button>
+            <button type="button" class="lp-button-brand js-quick-actions-open mb-5 w-full">Quick menu</button>
             <nav class="space-y-5 text-sm">
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Overview</p>
@@ -408,7 +423,6 @@
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Grow</p>
-                    <a href="{{ route('insights.index') }}" class="{{ $navClass('insights.*') }}">Insights</a>
                     <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
                     <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
                 </div>
@@ -422,7 +436,7 @@
             </nav>
             <form method="POST" action="{{ route('logout') }}" class="mt-3 border-t border-slate-100 pt-3">
                 @csrf
-                <button type="submit" class="w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white">Logout</button>
+                <button type="submit" class="w-full rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700">Logout</button>
             </form>
         </aside>
         <div class="pointer-events-none fixed inset-0 z-50 bg-slate-900/40 opacity-0 transition-opacity duration-300 js-quick-actions-backdrop"></div>
@@ -450,7 +464,7 @@
                         <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Onboarding</p>
                         <h3 class="mt-1 text-sm font-semibold text-slate-900">{{ $onboarding['completed_count'] }}/{{ $onboarding['total_count'] }} complete</h3>
                     </div>
-                    <button type="button" class="js-onboarding-close rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-slate-300">Close</button>
+                    <button type="button" class="js-onboarding-close rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-slate-300">Minimise</button>
                 </div>
                 <div class="mt-3 h-2 rounded-full bg-slate-100">
                     <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $onboarding['percent'] }}%"></div>
@@ -502,6 +516,9 @@
                     </div>
                 @endif
             </aside>
+            <button type="button" class="js-onboarding-restore fixed bottom-5 right-5 z-40 hidden items-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-xs font-semibold text-emerald-700 shadow-lg lg:inline-flex">
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>Resume setup
+            </button>
             <a href="{{ route('onboarding.index') }}" class="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg lg:hidden">
                 Resume onboarding
             </a>
@@ -563,6 +580,7 @@
                 }
                 const onboardingPopup = document.querySelector('.js-onboarding-popup');
                 const onboardingClose = document.querySelector('.js-onboarding-close');
+                const onboardingRestore = document.querySelector('.js-onboarding-restore');
                 const onboardingCopy = document.querySelector('.js-onboarding-copy');
                 const onboardingState = @json($onboarding['state'] ?? []);
                 const startDesktopTourButtons = document.querySelectorAll('.js-start-desktop-tour');
@@ -583,14 +601,24 @@
                     const dismissed = onboardingPopup.dataset.dismissed === '1';
                     if (!dismissed) {
                         onboardingPopup.classList.remove('hidden');
+                        onboardingRestore?.classList.add('hidden');
+                    } else {
+                        onboardingRestore?.classList.remove('hidden');
                     }
 
                     if (onboardingClose) {
                         onboardingClose.addEventListener('click', () => {
                             onboardingPopup.classList.add('hidden');
+                            onboardingRestore?.classList.remove('hidden');
                             postOnboardingState({ desktop_popup_dismissed: true });
                         });
                     }
+
+                    onboardingRestore?.addEventListener('click', () => {
+                        onboardingPopup.classList.remove('hidden');
+                        onboardingRestore.classList.add('hidden');
+                        postOnboardingState({ desktop_popup_dismissed: false });
+                    });
 
                     if (onboardingCopy) {
                         onboardingCopy.addEventListener('click', async () => {
@@ -823,11 +851,21 @@
                 const mobileMenuBackdrop = document.querySelector('.js-mobile-menu-backdrop');
                 const mobileMenuOpenButtons = document.querySelectorAll('.js-mobile-menu-open');
                 const mobileMenuCloseButtons = document.querySelectorAll('.js-mobile-menu-close');
+                const desktopSidebarToggle = document.querySelector('.js-desktop-sidebar-toggle');
                 const root = document.documentElement;
                 let quickActionsOpen = false;
                 let quickDragStartY = 0;
                 let quickDragCurrentY = 0;
                 let quickDragging = false;
+                try {
+                    root.classList.toggle('lp-sidebar-collapsed', localStorage.getItem('lp_sidebar_collapsed') === '1');
+                } catch (_) {}
+                desktopSidebarToggle?.addEventListener('click', () => {
+                    const collapsed = root.classList.toggle('lp-sidebar-collapsed');
+                    desktopSidebarToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Minimise sidebar');
+                    desktopSidebarToggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Minimise sidebar');
+                    try { localStorage.setItem('lp_sidebar_collapsed', collapsed ? '1' : '0'); } catch (_) {}
+                });
                 const applyTheme = (mode) => {
                     const dark = mode === 'dark';
                     root.classList.toggle('theme-dark', dark);
@@ -980,6 +1018,7 @@
                 }
             });
         </script>
+        @stack('scripts')
         @include('components.page-loader')
     </body>
 </html>

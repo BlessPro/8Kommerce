@@ -48,13 +48,25 @@
                     <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">Store settings saved.</div>
                 @endif
 
-                <form id="store-settings-form" method="POST" action="{{ route('profile.seller.update') }}" class="mt-6 space-y-5" data-resolve-account-url="{{ route('profile.seller.resolve-account') }}">
+                <form id="store-settings-form" method="POST" action="{{ route('profile.seller.update') }}" class="mt-6 space-y-5" data-resolve-account-url="{{ route('profile.seller.resolve-account') }}" data-form-draft="store-settings-{{ auth()->id() }}" data-form-clear-on-load="{{ session('status') === 'profile-updated' ? '1' : '0' }}" data-draft-repeat-add="[data-add-fulfillment-option]" data-draft-repeat-selector="[data-fulfillment-option]">
                     @csrf
                     @method('PUT')
                     <div>
                         <label class="text-sm font-medium text-slate-700">Business name</label>
                         <input name="business_name" value="{{ old('business_name', $profile->business_name) }}" required class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" />
                         @error('business_name') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="text-sm font-medium text-slate-700">Seller name</label>
+                            <input name="name" value="{{ old('name', $user->name) }}" required autocomplete="name" class="mt-2 w-full rounded-lg border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">
+                            @error('name')<p class="mt-2 text-xs text-rose-500">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-slate-700">Email</label>
+                            <input name="email" type="email" value="{{ old('email', $user->email) }}" required autocomplete="email" class="mt-2 w-full rounded-lg border-slate-200 focus:border-emerald-500 focus:ring-emerald-500">
+                            @error('email')<p class="mt-2 text-xs text-rose-500">{{ $message }}</p>@enderror
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-slate-700">Phone</label>
@@ -137,7 +149,7 @@
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="text-sm font-medium text-slate-700">Current login PIN</label>
-                                <input name="current_pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="Enter your 4-digit PIN" />
+                                <input name="current_pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="current-password" class="mt-2 w-full rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500" placeholder="••••" />
                                 <p class="mt-2 text-xs leading-5 text-slate-500">Your PIN confirms it is really you before we change where payouts are sent. It is checked securely by 8Kommerce and is never sent to Paystack.</p>
                                 @error('current_pin') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                             </div>
@@ -171,7 +183,7 @@
                                 <div class="grid gap-4 sm:grid-cols-[0.75fr_1.4fr_0.65fr_auto] sm:items-end">
                                     <div><label class="text-xs font-semibold text-slate-600">Option type</label><select form="store-settings-form" name="fulfillment_options[{{ $index }}][type]" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"><option value="pickup" @selected(($option['type'] ?? '') === 'pickup')>Pickup station</option><option value="delivery" @selected(($option['type'] ?? '') === 'delivery')>Delivery area</option></select></div>
                                     <div><label class="text-xs font-semibold text-slate-600">Station or delivery area</label><input form="store-settings-form" name="fulfillment_options[{{ $index }}][label]" value="{{ $option['label'] ?? '' }}" maxlength="160" required placeholder="e.g. East Legon pickup or Greater Accra" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
-                                    <div><label class="text-xs font-semibold text-slate-600">Fee ({{ $currency }})</label><input form="store-settings-form" name="fulfillment_options[{{ $index }}][fee]" value="{{ $option['fee'] ?? '0.00' }}" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                                    <div><label class="text-xs font-semibold text-slate-600">Fee</label><div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-600">GH₵</span><input form="store-settings-form" name="fulfillment_options[{{ $index }}][fee]" value="{{ $option['fee'] ?? '0.00' }}" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="min-w-0 flex-1 border-0 text-sm focus:ring-0"></div></div>
                                     <button type="button" class="min-h-10 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50" data-remove-fulfillment-option>Remove</button>
                                 </div>
                                 <div class="mt-4"><label class="text-xs font-semibold text-slate-600">Details for customers <span class="font-normal text-slate-400">(optional)</span></label><textarea form="store-settings-form" name="fulfillment_options[{{ $index }}][details]" rows="2" maxlength="180" placeholder="Opening hours, landmarks, delivery time or special instructions" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">{{ $option['details'] ?? '' }}</textarea></div>
@@ -188,7 +200,7 @@
                         <div class="grid gap-4 sm:grid-cols-[0.75fr_1.4fr_0.65fr_auto] sm:items-end">
                             <div><label class="text-xs font-semibold text-slate-600">Option type</label><select form="store-settings-form" name="fulfillment_options[__INDEX__][type]" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"><option value="pickup">Pickup station</option><option value="delivery">Delivery area</option></select></div>
                             <div><label class="text-xs font-semibold text-slate-600">Station or delivery area</label><input form="store-settings-form" name="fulfillment_options[__INDEX__][label]" maxlength="160" required placeholder="e.g. East Legon pickup or Greater Accra" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
-                            <div><label class="text-xs font-semibold text-slate-600">Fee ({{ $currency }})</label><input form="store-settings-form" name="fulfillment_options[__INDEX__][fee]" value="0.00" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></div>
+                            <div><label class="text-xs font-semibold text-slate-600">Fee</label><div class="mt-2 flex overflow-hidden rounded-lg border border-slate-200 bg-white"><span class="flex items-center border-r border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-600">GH₵</span><input form="store-settings-form" name="fulfillment_options[__INDEX__][fee]" value="0.00" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required class="min-w-0 flex-1 border-0 text-sm focus:ring-0"></div></div>
                             <button type="button" class="min-h-10 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50" data-remove-fulfillment-option>Remove</button>
                         </div>
                         <div class="mt-4"><label class="text-xs font-semibold text-slate-600">Details for customers <span class="font-normal text-slate-400">(optional)</span></label><textarea form="store-settings-form" name="fulfillment_options[__INDEX__][details]" rows="2" maxlength="180" placeholder="Opening hours, landmarks, delivery time or special instructions" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></textarea></div>
@@ -196,32 +208,28 @@
                 </template>
             </div>
 
-            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">Account details</h2>
-                <div class="mt-4">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
-            </div>
         </div>
 
         <div class="space-y-6">
-            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">Security</h2>
-                <div class="mt-4">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
-            <div class="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-rose-600">Danger zone</h2>
-                <div class="mt-4">
-                    @include('profile.partials.data-deletion-request-form')
-                </div>
-                <div class="mt-6">
-                    @include('profile.partials.delete-user-form')
-                </div>
+            <div class="lp-card p-6">
+                <p class="lp-eyebrow">Account protection</p>
+                <h2 class="mt-1 text-lg font-semibold text-slate-900">Security and account access</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Password changes and account deletion are kept behind a separate confirmation panel.</p>
+                <button type="button" x-data="" x-on:click="$dispatch('open-modal', 'security-settings')" class="lp-button-secondary mt-5">Open security settings</button>
             </div>
         </div>
     </div>
+
+    <x-modal name="security-settings" :show="$errors->hasAny(['current_password', 'password', 'password_confirmation', 'note'])" focusable>
+        <div class="max-h-[85vh] overflow-y-auto p-6">
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow">Protected settings</p><h2 class="mt-1 text-xl font-semibold text-slate-900">Security and account</h2></div><button type="button" x-on:click="$dispatch('close')" class="lp-button-secondary">Close</button></div>
+            <div class="mt-6">@include('profile.partials.update-password-form')</div>
+            <div class="my-6 border-t border-slate-200"></div>
+            <div>@include('profile.partials.data-deletion-request-form')</div>
+            <div class="my-6 border-t border-rose-200"></div>
+            <div>@include('profile.partials.delete-user-form')</div>
+        </div>
+    </x-modal>
 
     <div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8">
         <button form="store-settings-form" type="submit" class="inline-flex min-h-12 items-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2">

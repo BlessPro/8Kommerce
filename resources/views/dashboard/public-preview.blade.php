@@ -96,7 +96,7 @@
                 </div>
             </details>
 
-            <form id="storefront-settings-form" method="POST" action="{{ route('public.preview.update') }}" enctype="multipart/form-data" class="mt-3 space-y-3" data-storefront-editor-form data-has-logo="{{ $storefrontSettings['logo_path'] ? '1' : '0' }}" data-has-cover="{{ $storefrontSettings['hero_image_path'] ? '1' : '0' }}">
+            <form id="storefront-settings-form" method="POST" action="{{ route('public.preview.update') }}" enctype="multipart/form-data" class="mt-3 space-y-3" data-storefront-editor-form data-form-draft="storefront-design-{{ auth()->id() }}" data-form-clear-on-load="{{ session('status') === 'storefront-updated' ? '1' : '0' }}" data-has-logo="{{ $storefrontSettings['logo_path'] ? '1' : '0' }}" data-has-cover="{{ $storefrontSettings['hero_image_path'] ? '1' : '0' }}">
                 @csrf
                 @method('PATCH')
                 <input type="hidden" name="storefront_theme" value="{{ $storefrontTheme }}">
@@ -711,6 +711,14 @@
 
             document.querySelectorAll('.storefront-asset-drop').forEach((drop) => {
                 const input = drop.querySelector('input[type="file"]');
+                input?.addEventListener('change', () => {
+                    const filename = input.files?.[0]?.name;
+                    const helper = drop.querySelector('small');
+                    if (filename && helper) {
+                        helper.textContent = filename;
+                        helper.title = filename;
+                    }
+                });
                 ['dragenter', 'dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('is-dragging'); }));
                 ['dragleave', 'drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('is-dragging'); }));
                 drop.addEventListener('drop', (event) => {

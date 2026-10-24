@@ -72,6 +72,84 @@ const setupPageLoader = () => {
 
 setupPageLoader();
 
+const setupFormDrafts = () => {
+    const storagePrefix = 'lp_form_draft:';
+    const pendingPrefix = 'lp_form_submit:';
+    const isSensitive = (field) => {
+        const name = (field.name || '').toLowerCase();
+        return field.type === 'password' || field.type === 'file' || /password|pin|token|secret|account_number/.test(name);
+    };
+
+    document.querySelectorAll('form[data-form-draft]').forEach((form) => {
+        const draftId = form.dataset.formDraft;
+        if (!draftId) return;
+        const key = storagePrefix + draftId;
+        const pendingKey = pendingPrefix + draftId;
+        const pendingPath = sessionStorage.getItem(pendingKey);
+
+        if (form.dataset.formClearOnLoad === '1') {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(pendingKey);
+        }
+
+        // A redirect away from the submitted form means the server accepted it.
+        if (pendingPath && pendingPath !== window.location.pathname) {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(pendingKey);
+        }
+
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) {}
+        if (saved?.fields) {
+            if (form.dataset.draftRepeatAdd && form.dataset.draftRepeatSelector) {
+                const indexes = Object.keys(saved.fields).flatMap((name) =>
+                    Array.from(name.matchAll(/\[(\d+)\]/g), (match) => Number(match[1]))
+                );
+                const wanted = indexes.length ? Math.max(...indexes) + 1 : 1;
+                const addButton = document.querySelector(form.dataset.draftRepeatAdd);
+                while (addButton && document.querySelectorAll(form.dataset.draftRepeatSelector).length < wanted) addButton.click();
+            }
+            Object.entries(saved.fields).forEach(([name, values]) => {
+                const fields = Array.from(form.elements).filter((field) => field.name === name && !isSensitive(field));
+                fields.forEach((field, index) => {
+                    const value = values[Math.min(index, values.length - 1)];
+                    if (field.type === 'checkbox' || field.type === 'radio') field.checked = value === field.value;
+                    else field.value = value ?? '';
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            });
+        }
+
+        let timer = null;
+        const save = () => {
+            const fields = {};
+            Array.from(form.elements).forEach((field) => {
+                if (!field.name || field.disabled || isSensitive(field) || ['submit', 'button'].includes(field.type)) return;
+                fields[field.name] ??= [];
+                if (field.type === 'checkbox' && !field.checked) {
+                    fields[field.name].push('__unchecked__');
+                    return;
+                }
+                if (field.type === 'radio' && !field.checked) return;
+                fields[field.name].push(field.value);
+            });
+            try { localStorage.setItem(key, JSON.stringify({ fields, savedAt: Date.now() })); } catch (_) {}
+        };
+        const scheduleSave = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(save, 250);
+        };
+        form.addEventListener('input', scheduleSave);
+        form.addEventListener('change', scheduleSave);
+        form.addEventListener('submit', () => {
+            save();
+            sessionStorage.setItem(pendingKey, window.location.pathname);
+        });
+    });
+};
+
+setupFormDrafts();
+
 const stripLeadingZero = (input) => {
     if (!input || input.dataset.stripLeadingZero !== 'true') {
         return;
