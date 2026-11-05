@@ -4,9 +4,12 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="max-w-3xl lp-card p-5 sm:p-6">
-        <h1 class="lp-page-heading">Create invoice</h1>
-        <p class="lp-page-description">Set the amount, payment terms, and customer details.</p>
+    <x-ui.page-header title="Create invoice" description="Create a secure payment link for a customer, custom order or service.">
+        <x-slot:actions><x-ui.button variant="ghost" icon="arrow-left" :href="route('invoices.index')">Invoices</x-ui.button></x-slot:actions>
+    </x-ui.page-header>
+    <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+    <section class="lp-card p-5 sm:p-6">
+        <div class="flex items-start gap-3"><span class="lp-icon-box"><x-ui.icon name="file-invoice" /></span><div><h2 class="text-base font-semibold text-slate-900">Invoice details</h2><p class="mt-1 text-sm text-slate-500">The customer will see this information before paying.</p></div></div>
         <form class="mt-6 space-y-5" method="POST" action="{{ route('invoices.store') }}" enctype="multipart/form-data" data-form-draft="invoice-create-{{ auth()->id() }}">
             @csrf
             <div>
@@ -51,12 +54,12 @@
                 @error('image') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
             </div>
             <div class="flex items-center gap-4">
-                <button type="submit" class="lp-button-brand">
-                    Create invoice
-                </button>
-                <a href="{{ route('invoices.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-700">Cancel</a>
+                <x-ui.button type="submit" icon="plus">Create invoice</x-ui.button>
+                <x-ui.button variant="ghost" :href="route('invoices.index')">Cancel</x-ui.button>
             </div>
         </form>
+    </section>
+    <aside class="lp-card p-5 lg:sticky lg:top-24"><p class="lp-eyebrow">How it works</p><h2 class="mt-1 text-base font-semibold text-slate-900">Share and get paid</h2><ol class="mt-4 space-y-4 text-sm text-slate-600"><li class="flex gap-3"><span class="font-semibold text-emerald-700">1.</span><span>Create the invoice with a clear title and amount.</span></li><li class="flex gap-3"><span class="font-semibold text-emerald-700">2.</span><span>Copy its secure link and send it to your customer.</span></li><li class="flex gap-3"><span class="font-semibold text-emerald-700">3.</span><span>Payments and outstanding balances update automatically.</span></li></ol><div class="mt-5 border-t border-slate-200 pt-4"><p class="text-xs font-semibold text-slate-700">Draft protection is on</p><p class="mt-1 text-xs leading-5 text-slate-500">Your entries are restored after an accidental refresh on this device.</p></div></aside>
     </div>
 @endsection
 @push('scripts')

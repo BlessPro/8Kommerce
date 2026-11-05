@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Services\InventoryService;
 use App\Services\OgImageService;
 use App\Support\Csv;
@@ -27,10 +28,42 @@ class ProductController extends Controller
     public function orders(Request $request)
     {
         $user = $request->user();
+        $filter = (string) $request->query('filter', 'all');
+        $filterStatuses = [
+            'action' => [Order::STATUS_PAID],
+            'active' => [Order::STATUS_ACCEPTED, Order::STATUS_PROCESSING, Order::STATUS_READY, Order::STATUS_SHIPPED, Order::STATUS_DELIVERY_RESCHEDULED],
+            'completed' => [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED],
+            'issues' => [Order::STATUS_DELIVERY_ATTEMPTED, Order::STATUS_RETURNED, Order::STATUS_CANNOT_FULFILL, Order::STATUS_DISPUTED_PENDING_ADMIN, Order::STATUS_REFUNDED],
+        ];
+
+        if ($filter !== 'all' && ! array_key_exists($filter, $filterStatuses)) {
+            $filter = 'all';
+        }
+
+        $orderCounts = Order::query()
+            ->where('user_id', $user->id)
+            ->where('status', '!=', Order::STATUS_TRASHED)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $countFor = fn (array $statuses): int => (int) collect($statuses)
+            ->sum(fn (string $status) => (int) ($orderCounts[$status] ?? 0));
 
         return view('dashboard.products.orders', [
-            'ordersByCustomer' => $this->buildOrdersByCustomer($user->id),
+            'ordersByCustomer' => $this->buildOrdersByCustomer(
+                $user->id,
+                $filter === 'all' ? null : $filterStatuses[$filter]
+            ),
             'currency' => config('services.paystack.currency', 'GHS'),
+            'filter' => $filter,
+            'orderSummary' => [
+                'all' => (int) $orderCounts->sum(),
+                'action' => $countFor($filterStatuses['action']),
+                'active' => $countFor($filterStatuses['active']),
+                'completed' => $countFor($filterStatuses['completed']),
+                'issues' => $countFor($filterStatuses['issues']),
+            ],
         ]);
     }
 
@@ -169,11 +202,12 @@ class ProductController extends Controller
         ]);
     }
 
-    private function buildOrdersByCustomer(int $userId)
+    private function buildOrdersByCustomer(int $userId, ?array $statuses = null)
     {
         $orders = Order::query()
             ->where('user_id', $userId)
             ->where('status', '!=', Order::STATUS_TRASHED)
+            ->when($statuses !== null, fn ($query) => $query->whereIn('status', $statuses))
             ->with(['items.product'])
             ->latest()
             ->take(80)
@@ -447,7 +481,7 @@ class ProductController extends Controller
                 }
 
                 $product = Product::create($productData);
-                \App\Models\ProductCategory::remember($user->id, $productData['category']);
+                ProductCategory::remember($user->id, $productData['category']);
                 app(InventoryService::class)->syncStatusAndAlert($product, $user, false);
                 $createdProducts->push($product);
 
@@ -493,7 +527,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
-        \App\Models\ProductCategory::remember($user->id, $data['category']);
+        ProductCategory::remember($user->id, $data['category']);
         app(InventoryService::class)->syncStatusAndAlert($product, $user, false);
 
         // Pre-render a large OG image for WhatsApp previews.
@@ -551,7 +585,7 @@ class ProductController extends Controller
         }
 
         $product->update($data);
-        \App\Models\ProductCategory::remember($request->user()->id, $data['category']);
+        ProductCategory::remember($request->user()->id, $data['category']);
         app(InventoryService::class)->syncStatusAndAlert($product->fresh(), $request->user(), true);
 
         // Regenerate OG image after edits.

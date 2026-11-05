@@ -10,6 +10,7 @@ use App\Http\Controllers\CouponController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerOrderHubController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscoverController;
 use App\Http\Controllers\GoalsTargetController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InsightsController;
@@ -21,9 +22,11 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaystackWebhookController;
 use App\Http\Controllers\PricingController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\PromotionRedirectController;
 use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\PublicListingController;
 use App\Http\Controllers\PublicOrderFeedbackController;
@@ -33,14 +36,12 @@ use App\Http\Controllers\SellerProfileController;
 use App\Http\Controllers\SellerPublicPreviewController;
 use App\Http\Controllers\TelemetryController;
 use App\Http\Controllers\TwilioWebhookController;
-use App\Http\Controllers\PromotionController;
-use App\Http\Controllers\DiscoverController;
-use App\Http\Controllers\PromotionRedirectController;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index']);
 Route::get('/up', HealthController::class)->name('health.status');
+Route::get('/status', HealthController::class)->name('public.status');
 Route::get('/version.json', function () {
     $manifestPath = public_path('build/manifest.json');
     $manifestHash = File::exists($manifestPath)
@@ -177,11 +178,14 @@ Route::middleware(['auth', 'active_access'])->group(function () {
 
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/orders/{order}/accept', [NotificationController::class, 'acceptOrder'])->name('notifications.orders.accept');
+        Route::post('/notifications/orders/bulk-accept', [NotificationController::class, 'bulkAcceptOrders'])->name('notifications.orders.bulk-accept');
         Route::post('/notifications/orders/{order}/reject', [NotificationController::class, 'rejectOrder'])->name('notifications.orders.reject');
         Route::post('/notifications/orders/{order}/processing', [NotificationController::class, 'startProcessing'])->name('notifications.orders.processing');
         Route::post('/notifications/orders/{order}/ready', [NotificationController::class, 'markReady'])->name('notifications.orders.ready');
         Route::post('/notifications/orders/{order}/shipped', [NotificationController::class, 'markShipped'])->name('notifications.orders.shipped');
         Route::post('/notifications/orders/{order}/delivered', [NotificationController::class, 'markDelivered'])->name('notifications.orders.delivered');
+        Route::post('/notifications/orders/{order}/delivery-attempt', [NotificationController::class, 'reportDeliveryAttempt'])->name('notifications.orders.delivery-attempt');
+        Route::post('/notifications/orders/{order}/returned', [NotificationController::class, 'returnOrder'])->name('notifications.orders.returned');
         Route::get('/goals-target', [GoalsTargetController::class, 'index'])->name('goals.index');
         Route::get('/insights', [InsightsController::class, 'index'])->name('insights.index');
         Route::get('/promote', [PromotionController::class, 'index'])->name('promotions.index');
@@ -251,6 +255,12 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     Route::post('/order-feedback/{feedback}/ignore', [AdminOrderFeedbackController::class, 'ignore'])
         ->middleware('throttle:20,1')
         ->name('order-feedback.ignore');
+    Route::post('/order-refunds/{order}/approve', [AdminOrderFeedbackController::class, 'approveRequestedRefund'])
+        ->middleware('throttle:20,1')
+        ->name('order-refunds.approve');
+    Route::post('/order-refunds/{order}/decline', [AdminOrderFeedbackController::class, 'declineRequestedRefund'])
+        ->middleware('throttle:20,1')
+        ->name('order-refunds.decline');
     Route::get('/promotions', [AdminPromotionController::class, 'index'])->name('promotions.index');
     Route::patch('/promotions/submissions/{submission}', [AdminPromotionController::class, 'updateSubmission'])->name('promotions.submissions.update');
     Route::post('/promotions/placements', [AdminPromotionController::class, 'storePlacement'])->name('promotions.placements.store');

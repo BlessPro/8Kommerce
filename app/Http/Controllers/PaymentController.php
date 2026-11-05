@@ -129,6 +129,14 @@ class PaymentController extends Controller
         $payment->raw_payload = $raw;
         $payment->save();
 
+        if ($payment->order) {
+            $payment->order->update([
+                'refund_status' => Order::REFUND_REQUESTED,
+                'refund_requested_amount' => (string) $payment->amount,
+                'refund_reason' => 'seller_manual_request',
+            ]);
+        }
+
         Log::notice('Seller refund request submitted', [
             'seller_id' => $request->user()->id,
             'payment_id' => $payment->id,

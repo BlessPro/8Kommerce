@@ -1,54 +1,59 @@
 @php
     $title = 'Invoices';
+    $latestInvoice = $invoices->first();
+    $invoiceTone = fn (string $status) => match(strtolower($status)) {
+        'paid', 'completed' => 'success',
+        'pending', 'partial' => 'warning',
+        'cancelled', 'failed' => 'danger',
+        default => 'neutral',
+    };
 @endphp
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h2 class="lp-page-heading">Invoices</h2>
-            <p class="lp-page-description">Create and monitor one-time payment links.</p>
-        </div>
-        <a href="{{ route('invoices.create') }}" class="lp-button-brand">
-            New invoice
-        </a>
-    </div>
+    <x-ui.page-header title="Invoices" description="Create shareable payment links and follow each invoice from sent to paid.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="credit-card" :href="route('payments.index')">Payments</x-ui.button>
+            <x-ui.button icon="plus" :href="route('invoices.create')">New invoice</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    @if($invoices->count())
-        @php($latestInvoice = $invoices->first())
-        <section class="mt-5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p class="lp-eyebrow text-emerald-700">Latest invoice</p><h3 class="mt-1 text-lg font-semibold text-slate-900">{{ $latestInvoice->title }}</h3><p class="mt-1 text-sm text-slate-600">{{ \App\Support\Money::format($latestInvoice->paid_total, $currency) }} paid of {{ \App\Support\Money::format($latestInvoice->total_amount, $currency) }} · {{ ucfirst($latestInvoice->status) }}</p></div>
-                <a href="{{ route('invoices.show', $latestInvoice) }}" class="lp-button-brand">Open invoice</a>
+    @if($latestInvoice)
+        @php
+            $latestTotal = max(0.01, (float) $latestInvoice->total_amount);
+            $latestProgress = min(100, ((float) $latestInvoice->paid_total / $latestTotal) * 100);
+        @endphp
+        <section class="lp-card mt-6 border-emerald-200 p-5 sm:p-6" aria-labelledby="latest-invoice-heading">
+            <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2"><p class="lp-eyebrow text-emerald-700">Latest invoice</p><x-ui.badge :tone="$invoiceTone($latestInvoice->status)">{{ str($latestInvoice->status)->title() }}</x-ui.badge></div>
+                    <h2 id="latest-invoice-heading" class="mt-2 text-xl font-semibold text-slate-950">{{ $latestInvoice->title }}</h2>
+                    <div class="mt-4 h-2 max-w-xl overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-600" style="width: {{ $latestProgress }}%"></div></div>
+                    <p class="mt-2 text-sm text-slate-600">{{ \App\Support\Money::format($latestInvoice->paid_total, $currency) }} paid of {{ \App\Support\Money::format($latestInvoice->total_amount, $currency) }}</p>
+                </div>
+                <x-ui.button icon="arrow-right" :href="route('invoices.show', $latestInvoice)">Open invoice</x-ui.button>
             </div>
         </section>
     @endif
 
-    <div class="lp-card mt-5 overflow-hidden">
-        @if($invoices->count())<div class="border-b border-slate-200 px-6 py-4"><h3 class="font-semibold text-slate-900">All invoices</h3></div>@endif
+    <section class="lp-card mt-6 overflow-hidden" aria-labelledby="invoice-list-heading">
+        <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><p class="lp-eyebrow">Payment links</p><h2 id="invoice-list-heading" class="lp-section-title mt-1">All invoices</h2></div><x-ui.badge>{{ $invoices->total() }} total</x-ui.badge></header>
         <div class="divide-y divide-slate-100">
             @forelse($invoices as $invoice)
-                <div class="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-900">{{ $invoice->title }}</p>
-                        <p class="text-xs text-slate-500">Status: {{ $invoice->status }}</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <p class="text-sm text-slate-600">
-                            {{ \App\Support\Money::format($invoice->paid_total, $currency) }} / {{ \App\Support\Money::format($invoice->total_amount, $currency) }}
-                        </p>
-                        <a href="{{ route('invoices.show', $invoice) }}" class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-                            View
-                        </a>
-                    </div>
-                </div>
+                @php
+                    $remaining = max(0, (float) $invoice->total_amount - (float) $invoice->paid_total);
+                @endphp
+                <article class="grid gap-3 px-5 py-4 transition hover:bg-slate-50/70 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                    <div class="flex min-w-0 items-center gap-3"><span class="lp-icon-box"><x-ui.icon name="file-invoice" size="sm" /></span><div class="min-w-0"><a href="{{ route('invoices.show', $invoice) }}" class="truncate text-sm font-semibold text-slate-900 hover:text-emerald-700">{{ $invoice->title }}</a><p class="mt-0.5 text-xs text-slate-500">Created {{ $invoice->created_at->format('M j, Y') }}</p></div></div>
+                    <div class="sm:text-right"><p class="text-sm font-semibold tabular-nums text-slate-900">{{ \App\Support\Money::format($invoice->paid_total, $currency) }} / {{ \App\Support\Money::format($invoice->total_amount, $currency) }}</p><p class="text-xs text-slate-500">{{ \App\Support\Money::format((string) $remaining, $currency) }} remaining</p></div>
+                    <div class="flex items-center gap-3 sm:justify-end"><x-ui.badge :tone="$invoiceTone($invoice->status)">{{ str($invoice->status)->title() }}</x-ui.badge><a href="{{ route('invoices.show', $invoice) }}" aria-label="Open {{ $invoice->title }}" class="text-emerald-700"><x-ui.icon name="arrow-right" size="sm" /></a></div>
+                </article>
             @empty
-                <div class="px-6 py-12 text-center"><p class="text-sm font-semibold text-slate-800">No invoices yet</p><p class="mt-1 text-sm text-slate-500">Create a payment link for a customer or service.</p><a href="{{ route('invoices.create') }}" class="lp-button-brand mt-4">Create invoice</a></div>
+                <x-ui.empty-state title="No invoices yet" description="Create a payment link for a customer, custom order or service." icon="file-invoice" class="border-0">
+                    <x-slot:action><x-ui.button icon="plus" :href="route('invoices.create')">Create invoice</x-ui.button></x-slot:action>
+                </x-ui.empty-state>
             @endforelse
         </div>
-    </div>
-
-    <div class="mt-6">
-        {{ $invoices->links() }}
-    </div>
+        @if($invoices->hasPages())<div class="border-t border-slate-200 px-5 py-4">{{ $invoices->links() }}</div>@endif
+    </section>
 @endsection

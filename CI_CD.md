@@ -20,14 +20,14 @@ Do not make `Release container` a merge requirement. It runs after code has reac
 Successful `main` builds publish:
 
 ```text
-ghcr.io/blesspro/linkpay:main
-ghcr.io/blesspro/linkpay:sha-<short-commit>
+ghcr.io/blesspro/8kommerce:main
+ghcr.io/blesspro/8kommerce:sha-<short-commit>
 ```
 
 A version tag such as `v1.0.0` additionally publishes:
 
 ```text
-ghcr.io/blesspro/linkpay:v1.0.0
+ghcr.io/blesspro/8kommerce:v1.0.0
 ```
 
 Use a commit tag or image digest for production. The `main` tag is convenient but mutable.

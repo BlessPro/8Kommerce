@@ -19,23 +19,27 @@
 @extends('layouts.dashboard')
 
 @section('content')
+    <x-ui.page-header
+        title="Storefront studio"
+        description="Build the customer-facing shop, check every change in the phone preview, then publish when it feels right."
+        eyebrow="Store experience"
+        class="mb-6"
+    >
+        <x-slot:actions>
+            <x-ui.button :href="route('public.listing', $profile->public_slug)" variant="secondary" icon="external-link" target="_blank" rel="noopener">View live store</x-ui.button>
+            <x-ui.button type="submit" form="storefront-settings-form" icon="upload">Save and publish</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
     <div class="storefront-editor-workspace">
         <section class="storefront-editor-panel lp-card p-5 sm:p-6">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div class="max-w-2xl">
-                    <div class="flex items-center gap-2">
-                        <p class="lp-eyebrow">Design studio</p>
-                        <span class="storefront-editor-live"><i></i>Live canvas</span>
-                        <span class="storefront-editor-progress" data-design-progress>Checking setup…</span>
-                    </div>
-                    <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Shape your customer experience</h2>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Work through one focused section at a time. Every change appears instantly in the fixed preview.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('public.listing', $profile->public_slug) }}" target="_blank" rel="noopener" class="lp-button-secondary">View live store</a>
-                    <button type="submit" form="storefront-settings-form" class="lp-button-brand">Save and publish</button>
-                </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <p class="lp-eyebrow">Design controls</p>
+                <span class="storefront-editor-live"><i></i>Live canvas</span>
+                <span class="storefront-editor-progress" data-design-progress>Checking setup…</span>
             </div>
+            <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-950">Shape your customer experience</h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Work through one focused section at a time. Every change appears instantly in the fixed preview.</p>
 
             <aside class="storefront-editor-guide" data-storefront-guide>
                 <div class="storefront-editor-guide-head">
@@ -52,18 +56,17 @@
 
             <div class="storefront-editor-scroll">
             @if(session('status') === 'storefront-updated')
-                <div class="mt-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">Your storefront settings are now live.</div>
+                <x-ui.alert tone="success" title="Storefront published" class="mt-5">Your latest design settings are now live.</x-ui.alert>
             @elseif(session('status') === 'storefront-reset')
-                <div class="mt-5 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700" role="status">Storefront customisations were reset.</div>
+                <x-ui.alert title="Design reset" class="mt-5">Storefront customisations were reset.</x-ui.alert>
             @endif
 
             @if($errors->any())
-                <div class="mt-5 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
-                    <p class="font-semibold">Please correct these settings:</p>
+                <x-ui.alert tone="danger" title="Please correct these settings" class="mt-5">
                     <ul class="mt-2 list-disc space-y-1 pl-5">
                         @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
                     </ul>
-                </div>
+                </x-ui.alert>
             @endif
 
             <details class="storefront-editor-section mt-5" data-editor-section open>
@@ -386,14 +389,14 @@
 
                 <div class="storefront-editor-actions">
                     <span class="text-xs font-medium text-amber-700" data-unsaved-indicator hidden>Unsaved changes</span>
-                    <button type="submit" class="lp-button-brand">Save and publish</button>
+                    <x-ui.button type="submit" icon="upload">Save and publish</x-ui.button>
                 </div>
             </form>
 
             <form method="POST" action="{{ route('public.preview.reset') }}" class="mt-4 border-t border-slate-200 pt-4" onsubmit="return confirm('Reset all storefront customisations? Your products and orders will not be affected.')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="text-sm font-semibold text-rose-700 hover:text-rose-800">Reset customisations</button>
+                <x-ui.button type="submit" variant="danger" size="sm" icon="trash">Reset customisations</x-ui.button>
             </form>
             </div>
         </section>
@@ -401,7 +404,7 @@
         <aside class="storefront-phone-column" aria-label="Phone storefront preview">
             <div class="storefront-phone-heading">
                 <div><p class="lp-eyebrow">Customer view</p><h2 class="mt-1 text-base font-semibold text-slate-950">Phone preview</h2></div>
-                <div class="text-right"><span class="block rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">iPhone 14 · 390 × 844</span><a href="{{ $storefrontUrl }}?preview=1" target="_blank" rel="noopener" class="mt-2 inline-flex text-xs font-semibold text-emerald-800 hover:underline">Open full preview ↗</a></div>
+                <div class="text-right"><span class="block rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">iPhone 14 · 390 × 844</span><a href="{{ $storefrontUrl }}?preview=1" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 hover:underline">Open full preview <x-ui.icon name="external-link" size="xs" /></a></div>
             </div>
             <div class="storefront-phone-device">
                 <span class="storefront-phone-side storefront-phone-side-silent" aria-hidden="true"></span>

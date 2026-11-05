@@ -4,8 +4,11 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-900">Insights</h2>
+    <x-ui.page-header title="Advanced insights" description="Explore storefront traffic, product interest, conversion and payment activity over time.">
+        <x-slot:actions><x-ui.button variant="ghost" icon="arrow-left" :href="route('goals.index')">Goals</x-ui.button></x-slot:actions>
+    </x-ui.page-header>
+    <div class="lp-card mt-6 p-5 sm:p-6">
+        <p class="lp-eyebrow">Reporting period</p>
         <form class="mt-4 flex flex-wrap items-end gap-4" method="GET" action="{{ route('insights.index') }}">
             <div>
                 <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Range</label>
@@ -27,9 +30,7 @@
                 <input type="date" name="end_date" value="{{ $end->format('Y-m-d') }}" class="mt-2 rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
             </div>
             </div>
-            <button type="submit" class="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
-                Apply filter
-            </button>
+            <x-ui.button type="submit" variant="secondary" icon="filter">Apply range</x-ui.button>
         </form>
     </div>
 

@@ -2,6 +2,8 @@
     $title = 'Order details';
     $seller = $order->user?->sellerProfile;
     $sellerPhone = $seller?->phone;
+    $fulfillmentLabel = $order->fulfillment_label ?: data_get($successfulPayment?->raw_payload, 'order.fulfillment_label');
+    $fulfillmentFee = (float) $order->fulfillment_fee;
 @endphp
 @extends('layouts.public')
 
@@ -44,7 +46,7 @@
             </section>
 
             <section class="grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
-                <div><h2 class="text-sm font-semibold text-slate-950">Fulfillment</h2><p class="mt-2 text-sm text-slate-600">{{ ucfirst($order->fulfillment_type ?: ($order->delivery_required ? 'delivery' : 'pickup')) }}</p>@if($order->customer_location)<p class="mt-1 text-sm text-slate-500">{{ $order->customer_location }}</p>@endif @if($order->delivery_note)<p class="mt-1 text-xs text-slate-400">{{ $order->delivery_note }}</p>@endif</div>
+                <div><h2 class="text-sm font-semibold text-slate-950">Delivery or pickup</h2><p class="mt-2 text-sm font-semibold text-slate-700">{{ $fulfillmentLabel ?: ucfirst($order->fulfillment_type ?: ($order->delivery_required ? 'delivery' : 'pickup')) }}</p>@if($order->customer_location)<p class="mt-1 text-sm text-slate-500">{{ $order->customer_location }}</p>@endif<p class="mt-2 text-xs text-slate-500">{{ $order->delivery_required ? 'Delivery fee' : 'Pickup fee' }}: <strong class="text-slate-700">{{ $fulfillmentFee > 0 ? \App\Support\Money::format(number_format($fulfillmentFee, 2, '.', ''), $currency) : 'Free' }}</strong></p>@if($order->delivery_note)<p class="mt-1 text-xs text-slate-400">{{ $order->delivery_note }}</p>@endif</div>
                 <div><h2 class="text-sm font-semibold text-slate-950">Payment receipt</h2>@if($successfulPayment)<p class="mt-2 text-sm font-semibold text-emerald-700">Payment verified</p><p class="mt-1 break-all text-xs text-slate-500">{{ $successfulPayment->reference }}</p><p class="mt-1 text-xs text-slate-400">{{ $successfulPayment->paid_at?->format('M d, Y · h:i A') }}</p>@else<p class="mt-2 text-sm text-amber-700">Payment pending</p>@endif</div>
             </section>
 

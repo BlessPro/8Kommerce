@@ -75,7 +75,10 @@ class PublicOrderTrackingController extends Controller
             Order::STATUS_PROCESSING,
             Order::STATUS_READY,
             Order::STATUS_SHIPPED,
+            Order::STATUS_DELIVERY_ATTEMPTED,
+            Order::STATUS_DELIVERY_RESCHEDULED,
             Order::STATUS_DELIVERED,
+            Order::STATUS_RETURNED,
             Order::STATUS_CANNOT_FULFILL,
             Order::STATUS_COMPLETED,
             Order::STATUS_DISPUTED_PENDING_ADMIN,
@@ -125,6 +128,20 @@ class PublicOrderTrackingController extends Controller
                 'time' => $order->shipped_at ?? $order->updated_at,
                 'state' => 'done',
             ]);
+        } elseif ($order->status === Order::STATUS_DELIVERY_ATTEMPTED) {
+            $timeline->push([
+                'title' => 'Delivery attempted',
+                'body' => $order->delivery_failure_reason ?: 'The delivery could not be completed. The seller will contact you.',
+                'time' => $order->delivery_attempted_at ?? $order->updated_at,
+                'state' => 'failed',
+            ]);
+        } elseif ($order->status === Order::STATUS_DELIVERY_RESCHEDULED) {
+            $timeline->push([
+                'title' => 'Delivery rescheduled',
+                'body' => 'New delivery: '.($order->rescheduled_for?->format('M j, Y g:i A') ?: 'contact the seller for timing').'.',
+                'time' => $order->delivery_attempted_at ?? $order->updated_at,
+                'state' => 'pending',
+            ]);
         } elseif ($order->status === Order::STATUS_DELIVERED) {
             $timeline->push([
                 'title' => 'Delivery confirmation requested',
@@ -152,6 +169,13 @@ class PublicOrderTrackingController extends Controller
                 'body' => 'Admin approved complaint and initiated refund.',
                 'time' => $order->updated_at,
                 'state' => 'done',
+            ]);
+        } elseif ($order->status === Order::STATUS_RETURNED) {
+            $timeline->push([
+                'title' => 'Returned to seller',
+                'body' => 'The order was returned. The refund request is awaiting review.',
+                'time' => $order->returned_at ?? $order->updated_at,
+                'state' => 'failed',
             ]);
         } elseif ($order->status === Order::STATUS_COMPLAINT_REJECTED) {
             $timeline->push([

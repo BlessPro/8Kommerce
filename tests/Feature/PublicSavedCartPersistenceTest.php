@@ -28,6 +28,7 @@ class PublicSavedCartPersistenceTest extends TestCase
             'business_name' => 'Persistent Cart Seller',
             'public_slug' => 'persistent-cart-seller',
             'paystack_subaccount_code' => 'ACCT_test_sub',
+            'storefront_settings' => ['fulfillment_options' => [['type' => 'pickup', 'label' => 'Main counter', 'fee' => '0.00']]],
         ]);
 
         $product = Product::create([
@@ -73,6 +74,7 @@ class PublicSavedCartPersistenceTest extends TestCase
             'business_name' => 'Clear Cart Seller',
             'public_slug' => 'clear-cart-seller',
             'paystack_subaccount_code' => 'ACCT_test_sub',
+            'storefront_settings' => ['fulfillment_options' => [['type' => 'pickup', 'label' => 'Main counter', 'fee' => '0.00']]],
         ]);
 
         $product = Product::create([
@@ -111,6 +113,7 @@ class PublicSavedCartPersistenceTest extends TestCase
             ->post(route('public.cart.checkout', $profile->public_slug), [
                 'phone_number' => '0541900229',
                 'phone_country' => '+233',
+                'fulfillment_method' => 'option_0',
                 'idempotency_key' => (string) Str::uuid(),
             ])
             ->assertRedirect('https://paystack.test/checkout');

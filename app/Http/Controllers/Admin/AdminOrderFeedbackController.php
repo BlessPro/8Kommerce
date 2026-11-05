@@ -31,11 +31,100 @@ class AdminOrderFeedbackController extends Controller
             ->latest()
             ->paginate(20);
 
+        $refundRequests = Order::query()
+            ->with(['user.sellerProfile', 'payments'])
+            ->where('refund_status', Order::REFUND_REQUESTED)
+            ->latest()
+            ->take(50)
+            ->get();
+
         return view('admin.order-feedback.index', [
             'feedbacks' => $feedbacks,
+            'refundRequests' => $refundRequests,
             'refundPercent' => (float) config('orders.dispute_refund_percent', 0.90),
             'currency' => config('services.paystack.currency', 'GHS'),
         ]);
+    }
+
+    public function approveRequestedRefund(Request $request, Order $order, PaystackService $paystack): RedirectResponse
+    {
+        $validated = $request->validate(['admin_note' => ['nullable', 'string', 'max:1000']]);
+        $lock = Cache::lock('order-refund:'.$order->id, 120);
+        if (! $lock->get()) {
+            return back()->withErrors(['feedback' => 'This refund is already being processed.']);
+        }
+
+        try {
+            $order->refresh();
+            if ($order->refund_status !== Order::REFUND_REQUESTED) {
+                return back()->withErrors(['feedback' => 'This refund request is no longer pending.']);
+            }
+            $payment = $order->payments()->where('status', Payment::STATUS_SUCCESS)->latest()->first();
+            if (! $payment) {
+                return back()->withErrors(['feedback' => 'No successful payment found for this order.']);
+            }
+
+            $requested = (float) ($order->refund_requested_amount ?: $order->total);
+            $refundAmount = min(max(0, $requested), (float) $payment->amount);
+            if ($refundAmount <= 0) {
+                return back()->withErrors(['feedback' => 'The requested refund amount is invalid.']);
+            }
+
+            $order->refund_status = Order::REFUND_PROCESSING;
+            $order->save();
+            try {
+                $refundData = $paystack->createRefund($payment->reference, number_format($refundAmount, 2, '.', ''));
+            } catch (\Throwable $exception) {
+                $order->refund_status = Order::REFUND_FAILED;
+                $order->save();
+
+                return back()->withErrors(['feedback' => 'The refund result is uncertain. Reconcile it with Paystack before retrying.']);
+            }
+
+            $order->status = Order::STATUS_REFUNDED;
+            $order->refund_status = Order::REFUND_COMPLETED;
+            $order->save();
+
+            $payload = is_array($payment->raw_payload) ? $payment->raw_payload : [];
+            $payload['refund'] = [
+                'approved' => true,
+                'amount' => number_format($refundAmount, 2, '.', ''),
+                'reason' => $order->refund_reason,
+                'response' => $refundData,
+                'admin_id' => $request->user()->id,
+                'admin_note' => $validated['admin_note'] ?? null,
+                'at' => now()->toIso8601String(),
+            ];
+            $payment->raw_payload = $payload;
+            $payment->save();
+
+            $this->sms($order->customer_phone, 'Refund of '.$order->currency.' '.number_format($refundAmount, 2).' for order '.$order->reference.' has been initiated.');
+
+            return back()->with('status', 'order-refund-approved');
+        } finally {
+            $lock->release();
+        }
+    }
+
+    public function declineRequestedRefund(Request $request, Order $order): RedirectResponse
+    {
+        $validated = $request->validate(['admin_note' => ['required', 'string', 'max:1000']]);
+        if ($order->refund_status !== Order::REFUND_REQUESTED) {
+            return back()->withErrors(['feedback' => 'This refund request is no longer pending.']);
+        }
+
+        $order->refund_status = Order::REFUND_FAILED;
+        $order->save();
+        $payment = $order->payments()->where('status', Payment::STATUS_SUCCESS)->latest()->first();
+        if ($payment) {
+            $payload = is_array($payment->raw_payload) ? $payment->raw_payload : [];
+            $payload['refund_review'] = ['approved' => false, 'admin_id' => $request->user()->id, 'admin_note' => $validated['admin_note'], 'at' => now()->toIso8601String()];
+            $payment->raw_payload = $payload;
+            $payment->save();
+        }
+        $this->sms($order->customer_phone, 'The refund request for order '.$order->reference.' was reviewed. Contact support if you need the decision reconsidered.');
+
+        return back()->with('status', 'order-refund-declined');
     }
 
     public function approveRefund(Request $request, OrderFeedback $feedback, PaystackService $paystack): RedirectResponse

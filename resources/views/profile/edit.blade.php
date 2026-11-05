@@ -14,38 +14,44 @@
 @extends('layouts.dashboard')
 
 @section('content')
+    <x-ui.page-header
+        title="Store settings"
+        description="Keep your business identity, payout destination, and fulfilment options accurate in one place."
+        eyebrow="Business account"
+        class="mb-6"
+    >
+        <x-slot:actions>
+            <x-ui.button :href="route('public.listing', $profile->public_slug)" variant="secondary" icon="external-link" target="_blank" rel="noopener">View storefront</x-ui.button>
+            <x-ui.button type="submit" form="store-settings-form" icon="check">Save changes</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
     @if(request()->query('onboarding') === 'profile' || session('onboarding_required'))
-        <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-            <p class="font-semibold">Complete onboarding first</p>
-            <p class="mt-1">Add your business name, phone, and email before continuing to products, payments, and insights.</p>
-        </div>
+        <x-ui.alert tone="warning" title="Complete the essentials" class="mb-6">Add your business name, phone, and email before continuing to products, payments, and insights.</x-ui.alert>
     @endif
     <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div class="space-y-6">
-            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">Seller profile</h2>
-                <p class="mt-1 text-sm text-slate-600">Business details and payout setup.</p>
-                <div class="mt-4">
+            <section class="lp-card p-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div><p class="lp-eyebrow">Public identity</p><h2 class="mt-1 text-lg font-semibold text-slate-950">Seller profile and payout</h2><p class="mt-1 text-sm text-slate-600">Details customers see and the verified account that receives your money.</p></div>
+                    <div>
                     @if($profile->paystack_subaccount_code)
-                        <span class="rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">Paystack Connected</span>
+                        <x-ui.badge tone="success">Payout connected</x-ui.badge>
                     @else
-                        <span class="rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700">Paystack Not Connected</span>
+                        <x-ui.badge tone="warning">Payout not connected</x-ui.badge>
                     @endif
+                    </div>
                 </div>
 
                 @if($errors->has('paystack'))
-                    <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                        {{ $errors->first('paystack') }}
-                    </div>
+                    <x-ui.alert tone="danger" title="Payout could not be updated" class="mt-4">{{ $errors->first('paystack') }}</x-ui.alert>
                 @endif
                 @if(session('paystack_status'))
-                    <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                        {{ session('paystack_status') }}
-                    </div>
+                    <x-ui.alert tone="success" class="mt-4">{{ session('paystack_status') }}</x-ui.alert>
                 @endif
 
                 @if(session('status') === 'profile-updated')
-                    <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">Store settings saved.</div>
+                    <x-ui.alert tone="success" title="Settings saved" class="mt-4">Your store details and fulfilment choices are up to date.</x-ui.alert>
                 @endif
 
                 <form id="store-settings-form" method="POST" action="{{ route('profile.seller.update') }}" class="mt-6 space-y-5" data-resolve-account-url="{{ route('profile.seller.resolve-account') }}" data-form-draft="store-settings-{{ auth()->id() }}" data-form-clear-on-load="{{ session('status') === 'profile-updated' ? '1' : '0' }}" data-draft-repeat-add="[data-add-fulfillment-option]" data-draft-repeat-selector="[data-fulfillment-option]">
@@ -80,15 +86,14 @@
                         @error('phone_number') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                         @error('phone_country') <p class="mt-2 text-xs text-rose-500">{{ $message }}</p> @enderror
                     </div>
-                    <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Paystack payout</p>
-                        <p class="mt-2 text-xs text-slate-500">Fill in to connect your Paystack subaccount.</p>
-                        <div class="mt-4 inline-flex overflow-hidden rounded-full border border-slate-200 bg-white text-xs font-semibold">
-                            <label class="cursor-pointer px-4 py-2 {{ $payoutMethod === 'MOMO' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600' }}">
+                    <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="lp-eyebrow">Payout destination</p><h3 class="mt-1 text-base font-semibold text-slate-900">Where should we send your money?</h3><p class="mt-1 text-xs leading-5 text-slate-500">We verify the account holder before connecting your Paystack subaccount.</p></div><x-ui.icon name="credit-card" class="text-slate-400" /></div>
+                        <div class="mt-4 inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold">
+                            <label class="cursor-pointer px-4 py-2.5 {{ $payoutMethod === 'MOMO' ? 'bg-emerald-700 text-white' : 'text-slate-600' }}">
                                 <input type="radio" name="payout_method" value="MOMO" class="hidden" {{ $payoutMethod === 'MOMO' ? 'checked' : '' }}>
                                 Mobile Money
                             </label>
-                            <label class="cursor-pointer px-4 py-2 {{ $payoutMethod === 'BANK' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600' }}">
+                            <label class="cursor-pointer border-l border-slate-200 px-4 py-2.5 {{ $payoutMethod === 'BANK' ? 'bg-emerald-700 text-white' : 'text-slate-600' }}">
                                 <input type="radio" name="payout_method" value="BANK" class="hidden" {{ $payoutMethod === 'BANK' ? 'checked' : '' }}>
                                 Bank
                             </label>
@@ -158,19 +163,17 @@
                 </form>
                 <form method="POST" action="{{ route('profile.seller.test') }}" class="mt-4">
                     @csrf
-                    <button type="submit" class="rounded-full border border-emerald-200 px-5 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">
-                        Test Paystack connection
-                    </button>
+                    <x-ui.button type="submit" variant="secondary" size="sm" icon="activity">Test payout connection</x-ui.button>
                 </form>
-                <div class="mt-6 rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
-                    <p class="text-xs uppercase tracking-[0.3em] text-emerald-500">Public listing</p>
-                    <a href="{{ route('public.listing', $profile->public_slug) }}" class="mt-2 block break-all text-sm font-semibold text-emerald-700 hover:text-emerald-600">
+                <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                    <p class="lp-eyebrow text-emerald-700">Public storefront address</p>
+                    <a href="{{ route('public.listing', $profile->public_slug) }}" class="mt-2 block break-all text-sm font-semibold text-emerald-800 hover:text-emerald-700">
                         {{ route('public.listing', $profile->public_slug) }}
                     </a>
                 </div>
-            </div>
+            </section>
 
-            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section class="lp-card p-5 sm:p-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div><p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Order fulfilment</p><h2 class="mt-1 text-lg font-semibold text-slate-900">Delivery and pickup</h2><p class="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Add the pickup stations and delivery areas customers can choose at checkout. Each option has its own fee and instructions.</p></div>
                     <button type="button" class="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50" data-add-fulfillment-option>Add option</button>
@@ -206,16 +209,25 @@
                         <div class="mt-4"><label class="text-xs font-semibold text-slate-600">Details for customers <span class="font-normal text-slate-400">(optional)</span></label><textarea form="store-settings-form" name="fulfillment_options[__INDEX__][details]" rows="2" maxlength="180" placeholder="Opening hours, landmarks, delivery time or special instructions" class="mt-2 w-full rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500"></textarea></div>
                     </section>
                 </template>
-            </div>
+            </section>
 
         </div>
 
         <div class="space-y-6">
             <div class="lp-card p-6">
+                <p class="lp-eyebrow">Settings checklist</p>
+                <h2 class="mt-1 text-lg font-semibold text-slate-900">Ready to receive orders</h2>
+                <div class="mt-5 space-y-4 text-sm">
+                    <div class="flex items-start gap-3"><x-ui.icon name="{{ $profile->business_name ? 'circle-check' : 'warning' }}" class="mt-0.5 {{ $profile->business_name ? 'text-emerald-700' : 'text-amber-600' }}" /><div><p class="font-semibold text-slate-800">Business identity</p><p class="text-xs leading-5 text-slate-500">Name, email and phone customers can trust.</p></div></div>
+                    <div class="flex items-start gap-3"><x-ui.icon name="{{ $profile->paystack_subaccount_code ? 'circle-check' : 'warning' }}" class="mt-0.5 {{ $profile->paystack_subaccount_code ? 'text-emerald-700' : 'text-amber-600' }}" /><div><p class="font-semibold text-slate-800">Payout account</p><p class="text-xs leading-5 text-slate-500">A verified destination for completed sales.</p></div></div>
+                    <div class="flex items-start gap-3"><x-ui.icon name="{{ count($fulfillmentOptions) ? 'circle-check' : 'warning' }}" class="mt-0.5 {{ count($fulfillmentOptions) ? 'text-emerald-700' : 'text-amber-600' }}" /><div><p class="font-semibold text-slate-800">Delivery or pickup</p><p class="text-xs leading-5 text-slate-500">At least one way for customers to receive an order.</p></div></div>
+                </div>
+            </div>
+            <div class="lp-card p-6">
                 <p class="lp-eyebrow">Account protection</p>
                 <h2 class="mt-1 text-lg font-semibold text-slate-900">Security and account access</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-600">Password changes and account deletion are kept behind a separate confirmation panel.</p>
-                <button type="button" x-data="" x-on:click="$dispatch('open-modal', 'security-settings')" class="lp-button-secondary mt-5">Open security settings</button>
+                <x-ui.button type="button" x-data="" x-on:click="$dispatch('open-modal', 'security-settings')" variant="secondary" icon="shield-lock" class="mt-5">Open security settings</x-ui.button>
             </div>
         </div>
     </div>
@@ -232,10 +244,7 @@
     </x-modal>
 
     <div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8">
-        <button form="store-settings-form" type="submit" class="inline-flex min-h-12 items-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2">
-            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h12l2 2v14H5z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></svg>
-            Save store settings
-        </button>
+        <x-ui.button form="store-settings-form" type="submit" icon="check" size="lg" class="shadow-lg shadow-slate-900/15">Save store settings</x-ui.button>
     </div>
 
     <script>

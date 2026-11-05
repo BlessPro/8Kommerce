@@ -165,9 +165,17 @@
             html.theme-dark input::placeholder,
             html.theme-dark textarea::placeholder { color: #94a3b8 !important; }
             @media (min-width: 1024px) {
-                html.lp-sidebar-collapsed .js-desktop-sidebar { transform: translateX(-100%); }
-                html.lp-sidebar-collapsed .js-dashboard-shell { padding-left: 0 !important; }
-                html.lp-sidebar-collapsed .js-dashboard-header { left: 0 !important; }
+                html.lp-sidebar-collapsed .js-desktop-sidebar { width: 4.5rem !important; }
+                html.lp-sidebar-collapsed .js-dashboard-shell { padding-left: 4.5rem !important; }
+                html.lp-sidebar-collapsed .js-dashboard-header { left: 4.5rem !important; }
+                html.lp-sidebar-collapsed .js-sidebar-copy,
+                html.lp-sidebar-collapsed .js-sidebar-label,
+                html.lp-sidebar-collapsed .js-sidebar-group-label,
+                html.lp-sidebar-collapsed .js-sidebar-status { display: none !important; }
+                html.lp-sidebar-collapsed .js-desktop-sidebar .lp-nav-item { justify-content: center; padding-left: .75rem; padding-right: .75rem; }
+                html.lp-sidebar-collapsed .js-desktop-sidebar .lp-nav-item-active { box-shadow: inset 0 -3px 0 var(--lp-brand); }
+                html.lp-sidebar-collapsed .js-sidebar-brand { justify-content: center; padding-left: .75rem; padding-right: .75rem; }
+                html.lp-sidebar-collapsed .js-sidebar-quick { width: 2.75rem; padding-left: 0; padding-right: 0; }
             }
         </style>
 
@@ -181,93 +189,97 @@
             $canUsePayments = $user->canUsePaymentsFeature();
             $publicUrl = $profile?->public_slug ? route('public.listing', $profile->public_slug) : null;
             $onboarding = app(\App\Services\OnboardingService::class)->forUser($user);
-            $navClass = function (string $route) {
-                return request()->routeIs($route)
+            $accountLabel = $profile?->business_name ?: $user->name ?: 'Seller';
+            $accountPhone = $user->phone ?: 'Phone not set';
+            $accountInitials = collect(preg_split('/\s+/', trim($accountLabel)))->filter()->take(2)->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->implode('');
+            $navClass = function (string|array $routes) {
+                return request()->routeIs(...(array) $routes)
                     ? 'lp-nav-item lp-nav-item-active'
                     : 'lp-nav-item';
             };
         @endphp
 
         <div class="min-h-screen lg:flex">
-            <aside class="js-desktop-sidebar hidden transition-transform lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
-                <div class="flex items-center gap-3 px-5 pb-4 pt-5">
+            <aside class="js-desktop-sidebar hidden transition-[width] lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-[232px] lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
+                <div class="js-sidebar-brand flex items-center gap-3 px-5 pb-4 pt-5">
                     <x-brand-mark class="h-10 w-auto" />
-                    <div class="min-w-0">
+                    <div class="js-sidebar-copy min-w-0">
                         <p class="text-sm font-semibold tracking-tight text-slate-950">8Kommerce</p>
                         <p class="truncate text-xs text-slate-500">{{ $profile?->business_name ?? 'Seller workspace' }}</p>
                     </div>
                 </div>
 
-                <div class="px-4 pb-4">
-                    <button type="button" class="lp-button-brand js-quick-actions-open js-tour-quick-action w-full">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                        Quick menu
+                <div class="flex justify-center px-3 pb-4">
+                    <button type="button" class="lp-button lp-button-brand js-sidebar-quick js-quick-actions-open js-tour-quick-action w-full" aria-label="Open quick menu" title="Quick menu">
+                        <x-ui.icon name="circle-plus" />
+                        <span class="js-sidebar-label">Quick menu</span>
                     </button>
                 </div>
 
                 <nav class="space-y-4 px-3 pb-5">
                     <div class="space-y-1">
-                        <p class="lp-eyebrow px-3 pb-1">Overview</p>
-                        <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }} js-tour-dashboard-nav">Dashboard</a>
-                        <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}">Activity</a>
+                        <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Overview</p>
+                        <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }} js-tour-dashboard-nav" title="Home"><x-ui.icon name="dashboard" /><span class="js-sidebar-label">Home</span></a>
+                        <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}" title="Activity"><x-ui.icon name="activity" /><span class="js-sidebar-label">Activity</span></a>
                     </div>
 
                     <div class="space-y-1">
-                        <p class="lp-eyebrow px-3 pb-1">Sell</p>
-                        <a href="{{ route('products.index') }}" class="{{ $navClass('products.*') }} js-tour-products-nav">Products & orders</a>
-                        <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}">Customers</a>
-                        <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}">Coupons</a>
+                        <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Sell</p>
+                        <a href="{{ route('products.index') }}" class="{{ $navClass(['products.index', 'products.create', 'products.edit']) }} js-tour-products-nav" title="Products"><x-ui.icon name="package" /><span class="js-sidebar-label">Products</span></a>
+                        <a href="{{ route('products.orders') }}" class="{{ $navClass('products.orders') }}" title="Orders"><x-ui.icon name="shopping-bag" /><span class="js-sidebar-label">Orders</span></a>
+                        <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}" title="Customers"><x-ui.icon name="users" /><span class="js-sidebar-label">Customers</span></a>
+                        <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}" title="Coupons"><x-ui.icon name="ticket" /><span class="js-sidebar-label">Coupons</span></a>
                     </div>
 
                     <div class="space-y-1">
-                        <p class="lp-eyebrow px-3 pb-1">Money</p>
+                        <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Money</p>
                         @if($canUsePayments)
-                            <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }} js-tour-payments-nav">Payments</a>
-                            <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}">Invoices</a>
+                            <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }} js-tour-payments-nav" title="Payments"><x-ui.icon name="credit-card" /><span class="js-sidebar-label">Payments</span></a>
+                            <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}" title="Invoices"><x-ui.icon name="file-invoice" /><span class="js-sidebar-label">Invoices</span></a>
                         @else
-                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item justify-between"><span>Payments</span><span class="lp-status bg-amber-50 text-amber-700">Upgrade</span></a>
-                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item justify-between"><span>Invoices</span><span class="lp-status bg-amber-50 text-amber-700">Upgrade</span></a>
+                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item" title="Payments"><x-ui.icon name="credit-card" /><span class="js-sidebar-label">Payments</span><span class="js-sidebar-label ml-auto text-[10px] font-semibold text-amber-700">Upgrade</span></a>
+                            <a href="{{ route('billing.upgrade') }}" class="lp-nav-item" title="Invoices"><x-ui.icon name="file-invoice" /><span class="js-sidebar-label">Invoices</span><span class="js-sidebar-label ml-auto text-[10px] font-semibold text-amber-700">Upgrade</span></a>
                         @endif
                     </div>
 
                     <div class="space-y-1">
-                        <p class="lp-eyebrow px-3 pb-1">Grow</p>
-                        <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
-                        <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
+                        <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Grow</p>
+                        <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}" title="Goals"><x-ui.icon name="target" /><span class="js-sidebar-label">Goals</span></a>
+                        <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}" title="Promote"><x-ui.icon name="speakerphone" /><span class="js-sidebar-label">Promote</span></a>
                     </div>
 
                     <div class="space-y-1">
-                        <p class="lp-eyebrow px-3 pb-1">Store & account</p>
+                        <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Store & account</p>
                         @if($profile)
-                            <a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}">Storefront</a>
+                            <a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}" title="Storefront"><x-ui.icon name="building-store" /><span class="js-sidebar-label">Storefront</span></a>
                         @endif
-                        <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}">Store settings</a>
-                        <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}">Plan & billing</a>
+                        <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}" title="Store settings"><x-ui.icon name="settings" /><span class="js-sidebar-label">Store settings</span></a>
+                        <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}" title="Plan and billing"><x-ui.icon name="receipt" /><span class="js-sidebar-label">Plan & billing</span></a>
                         @if(! $onboarding['is_complete'])
-                            <a href="{{ route('onboarding.index') }}" class="{{ $navClass('onboarding.*') }}">Setup guide</a>
+                            <a href="{{ route('onboarding.index') }}" class="{{ $navClass('onboarding.*') }}" title="Setup guide"><x-ui.icon name="circle-check" /><span class="js-sidebar-label">Setup guide</span></a>
                         @endif
                         @if(auth()->user()->is_admin)
-                            <a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}">Admin</a>
+                            <a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}" title="Admin"><x-ui.icon name="shield-lock" /><span class="js-sidebar-label">Admin</span></a>
                         @endif
                     </div>
                 </nav>
 
-                <div class="mt-auto border-t border-[#e2e6df] px-6 py-5">
+                <div class="js-sidebar-status mt-auto border-t border-[#e2e6df] px-5 py-4">
                     <p class="lp-eyebrow">Payout status</p>
                     @if($profile?->paystack_subaccount_code)
-                        <p class="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Paystack connected</p>
+                        <p class="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Connected</p>
                     @else
                         <p class="mt-2 flex items-center gap-2 text-sm font-medium text-amber-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Needs attention</p>
                     @endif
                 </div>
             </aside>
 
-            <div class="js-dashboard-shell flex-1 overflow-x-hidden transition-[padding] lg:pl-64">
-                <header class="js-dashboard-header fixed left-0 right-0 top-0 z-40 border-b border-[#D5E1E4] bg-white/95 transition-[left] lg:left-64">
+            <div class="js-dashboard-shell flex-1 overflow-x-hidden transition-[padding] lg:pl-[232px]">
+                <header class="js-dashboard-header fixed left-0 right-0 top-0 z-40 border-b border-[#D5E1E4] bg-white/95 transition-[left] lg:left-[232px]">
                     <div class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-7">
                         <div class="flex items-center gap-3">
                             <button type="button" class="js-desktop-sidebar-toggle hidden h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 lg:inline-flex" aria-label="Minimise sidebar" title="Minimise sidebar">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                                <x-ui.icon name="menu" />
                             </button>
                             <div>
                             <p class="lp-eyebrow sm:hidden">8Kommerce</p>
@@ -276,24 +288,28 @@
                             </div>
                         </div>
                         <div class="hidden items-center gap-3 sm:flex">
-                            <button type="button" class="lp-button-brand js-quick-actions-open">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                            <button type="button" class="lp-button lp-button-brand js-quick-actions-open">
+                                <x-ui.icon name="circle-plus" size="sm" />
                                 Quick menu
                             </button>
-                            <div class="flex items-center gap-2 rounded-lg border border-[#D5E1E4] bg-white p-1">
-                                <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
-                                    <svg class="h-4 w-4 js-theme-icon-moon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3c0 .3-.01.6-.01.91A8.99 8.99 0 0 0 21 12.79Z"/></svg>
-                                    <svg class="hidden h-4 w-4 js-theme-icon-sun" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.114 6.364-1.591-1.591M7.477 7.477 5.886 5.886m12.228 0-1.591 1.591M7.477 16.523l-1.591 1.591M12 16.5A4.5 4.5 0 1 0 12 7.5a4.5 4.5 0 0 0 0 9Z"/></svg>
-                                </button>
-                                <div class="hidden max-w-44 px-1 text-right lg:block">
-                                    <p class="truncate text-sm font-medium text-slate-700">{{ auth()->user()->email }}</p>
-                                    <p class="text-[11px] text-slate-400">{{ $user->planDisplayName() }}</p>
+                            <a href="{{ route('notifications.index') }}" class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" aria-label="Open activity" title="Activity"><x-ui.icon name="bell" /></a>
+                            <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+                                <x-ui.icon name="moon" class="js-theme-icon-moon" size="sm" />
+                                <x-ui.icon name="sun" class="js-theme-icon-sun hidden" size="sm" />
+                            </button>
+                            <details class="relative">
+                                <summary class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left hover:bg-slate-50">
+                                    <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#EAF1F3] text-xs font-bold text-[#073B4C]">{{ $accountInitials ?: '8K' }}</span>
+                                    <span class="hidden max-w-40 lg:block"><span class="block truncate text-xs font-semibold text-slate-800">{{ $accountLabel }}</span><span class="block truncate text-[10px] text-slate-500">{{ $accountPhone }} · {{ $user->planDisplayName() }}</span></span>
+                                    <x-ui.icon name="chevron-down" size="xs" />
+                                </summary>
+                                <div class="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
+                                    <div class="border-b border-slate-100 px-3 py-2"><p class="truncate text-sm font-semibold text-slate-900">{{ $accountLabel }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $accountPhone }}</p></div>
+                                    <a href="{{ route('profile.edit') }}" class="lp-nav-item mt-1"><x-ui.icon name="settings" size="sm" />Store settings</a>
+                                    <a href="{{ route('billing.show') }}" class="lp-nav-item"><x-ui.icon name="receipt" size="sm" />Plan & billing</a>
+                                    <form method="POST" action="{{ route('logout') }}" class="mt-1 border-t border-slate-100 pt-1">@csrf<button type="submit" class="lp-nav-item w-full text-red-700 hover:bg-red-50"><x-ui.icon name="logout" size="sm" />Logout</button></form>
                                 </div>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700">Logout</button>
-                                </form>
-                            </div>
+                            </details>
                         </div>
                         <div class="flex items-center gap-2 sm:hidden">
                             <button
@@ -301,22 +317,22 @@
                                 aria-label="Toggle dark mode"
                                 class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 js-theme-toggle"
                             >
-                                <svg class="h-5 w-5 js-theme-icon-moon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3c0 .3-.01.6-.01.91A8.99 8.99 0 0 0 21 12.79Z"/></svg>
-                                <svg class="hidden h-5 w-5 js-theme-icon-sun" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.114 6.364-1.591-1.591M7.477 7.477 5.886 5.886m12.228 0-1.591 1.591M7.477 16.523l-1.591 1.591M12 16.5A4.5 4.5 0 1 0 12 7.5a4.5 4.5 0 0 0 0 9Z"/></svg>
+                                <x-ui.icon name="moon" class="js-theme-icon-moon" />
+                                <x-ui.icon name="sun" class="js-theme-icon-sun hidden" />
                             </button>
                             <a
                                 href="{{ route('notifications.index') }}"
                                 aria-label="Notifications"
                                 class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700"
                             >
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 17.25h5.25l-1.431-1.431A2.25 2.25 0 0 1 17.25 14.25V10.5a5.25 5.25 0 1 0-10.5 0v3.75a2.25 2.25 0 0 1-.819 1.569L4.5 17.25h5.25m4.5 0a2.25 2.25 0 1 1-4.5 0m4.5 0h-4.5"/></svg>
+                                <x-ui.icon name="bell" />
                             </a>
                             <button
                                 type="button"
                                 aria-label="Open menu"
                                 class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 js-mobile-menu-open"
                             >
-                                Menu
+                                <x-ui.icon name="menu" size="sm" /><span class="ml-1">Menu</span>
                             </button>
                         </div>
                     </div>
@@ -361,110 +377,112 @@
                 </main>
             </div>
         </div>
-        <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
+        <nav class="js-mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white lg:hidden">
             <div class="grid grid-cols-5 items-center px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1">
                 <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('dashboard') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 11.25 8.25-7.5 8.25 7.5v8.25a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75V15a2.25 2.25 0 1 0-4.5 0v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-8.25Z"/></svg>
+                    <x-ui.icon name="home" />
                     <span class="font-medium">Home</span>
                 </a>
                 <a href="{{ $canPromotion ? route('products.orders') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('products.orders') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5m-15 3h13.5m-12 3h10.5m-9 3h7.5"/></svg>
+                    <x-ui.icon name="shopping-bag" />
                     <span class="font-medium">Orders</span>
                 </a>
                 <button type="button" class="group flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] text-emerald-700 js-quick-actions-open">
                     <span class="flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-white transition group-active:scale-95">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v13.5m6.75-6.75H5.25"/></svg>
+                        <x-ui.icon name="plus" size="sm" />
                     </span>
-                    <span class="font-semibold">Quick</span>
+                    <span class="font-semibold">Create</span>
                 </button>
-                <a href="{{ $canPromotion ? route('products.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('products.*') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 6.75h9a2.25 2.25 0 0 1 2.25 2.25v7.5A2.25 2.25 0 0 1 16.5 18.75h-9a2.25 2.25 0 0 1-2.25-2.25V9A2.25 2.25 0 0 1 7.5 6.75Zm3-3h3m-1.5 0v3"/></svg>
+                <a href="{{ $canPromotion ? route('products.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('products.index', 'products.create', 'products.edit') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
+                    <x-ui.icon name="package" />
                     <span class="font-medium">Products</span>
                 </a>
-                <a href="{{ $canUsePayments ? route('payments.index') : route('billing.upgrade') }}" class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] {{ request()->routeIs('payments.*') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12a2.25 2.25 0 0 1 2.25 2.25v9A2.25 2.25 0 0 1 18 18.75H6a2.25 2.25 0 0 1-2.25-2.25v-9ZM3.75 9.75h16.5"/></svg>
-                    <span class="font-medium">Payments</span>
-                </a>
+                <button type="button" class="js-mobile-menu-open flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] text-slate-500" aria-label="Open more navigation">
+                    <x-ui.icon name="menu" />
+                    <span class="font-medium">More</span>
+                </button>
             </div>
         </nav>
         <div class="pointer-events-none fixed inset-0 z-40 bg-slate-900/40 opacity-0 transition-opacity duration-300 js-mobile-menu-backdrop"></div>
         <aside class="fixed right-0 top-0 z-50 h-full w-[88%] max-w-sm translate-x-full overflow-y-auto border-l border-[#e2e6df] bg-[#fbfcf9] p-5 shadow-2xl transition-transform duration-300 ease-out js-mobile-menu-panel lg:hidden">
             <div class="mb-3 flex items-center justify-between">
-                <p class="text-sm font-semibold text-slate-900">Menu</p>
+                <div><p class="text-sm font-semibold text-slate-900">{{ $accountLabel }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $accountPhone }} · {{ $user->planDisplayName() }}</p></div>
                 <div class="flex items-center gap-2">
-                    <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 js-theme-toggle" aria-label="Toggle dark mode">
-                        <svg class="h-4 w-4 js-theme-icon-moon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3c0 .3-.01.6-.01.91A8.99 8.99 0 0 0 21 12.79Z"/></svg>
-                        <svg class="hidden h-4 w-4 js-theme-icon-sun" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.114 6.364-1.591-1.591M7.477 7.477 5.886 5.886m12.228 0-1.591 1.591M7.477 16.523l-1.591 1.591M12 16.5A4.5 4.5 0 1 0 12 7.5a4.5 4.5 0 0 0 0 9Z"/></svg>
+                    <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 js-theme-toggle" aria-label="Toggle dark mode">
+                        <x-ui.icon name="moon" class="js-theme-icon-moon" size="sm" />
+                        <x-ui.icon name="sun" class="js-theme-icon-sun hidden" size="sm" />
                     </button>
-                    <button type="button" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 js-mobile-menu-close">Close</button>
+                    <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 js-mobile-menu-close" aria-label="Close menu"><x-ui.icon name="x" size="sm" /></button>
                 </div>
             </div>
-            <button type="button" class="lp-button-brand js-quick-actions-open mb-5 w-full">Quick menu</button>
+            <button type="button" class="lp-button lp-button-brand js-quick-actions-open mb-5 w-full"><x-ui.icon name="circle-plus" size="sm" />Quick menu</button>
             <nav class="space-y-5 text-sm">
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Overview</p>
-                    <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }}">Dashboard</a>
-                    <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}">Activity</a>
+                    <a href="{{ route('dashboard') }}" class="{{ $navClass('dashboard') }}"><x-ui.icon name="dashboard" />Home</a>
+                    <a href="{{ route('notifications.index') }}" class="{{ $navClass('notifications.*') }}"><x-ui.icon name="activity" />Activity</a>
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Sell</p>
-                    <a href="{{ route('products.index') }}" class="{{ $navClass('products.*') }}">Products & orders</a>
-                    <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}">Customers</a>
-                    <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}">Coupons</a>
+                    <a href="{{ route('products.index') }}" class="{{ $navClass(['products.index', 'products.create', 'products.edit']) }}"><x-ui.icon name="package" />Products</a>
+                    <a href="{{ route('products.orders') }}" class="{{ $navClass('products.orders') }}"><x-ui.icon name="shopping-bag" />Orders</a>
+                    <a href="{{ route('customers.index') }}" class="{{ $navClass('customers.*') }}"><x-ui.icon name="users" />Customers</a>
+                    <a href="{{ route('coupons.index') }}" class="{{ $navClass('coupons.*') }}"><x-ui.icon name="ticket" />Coupons</a>
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Money</p>
                     @if($canUsePayments)
-                        <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }}">Payments</a>
-                        <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}">Invoices</a>
+                        <a href="{{ route('payments.index') }}" class="{{ $navClass('payments.*') }}"><x-ui.icon name="credit-card" />Payments</a>
+                        <a href="{{ route('invoices.index') }}" class="{{ $navClass('invoices.*') }}"><x-ui.icon name="file-invoice" />Invoices</a>
                     @else
                         <a href="{{ route('billing.upgrade') }}" class="lp-nav-item">Payments & invoices <span class="ml-auto text-xs text-amber-700">Upgrade</span></a>
                     @endif
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Grow</p>
-                    <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}">Goals</a>
-                    <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}">Promote</a>
+                    <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}"><x-ui.icon name="target" />Goals</a>
+                    <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}"><x-ui.icon name="speakerphone" />Promote</a>
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Store & account</p>
-                    @if($profile)<a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}">Storefront</a>@endif
-                    <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}">Store settings</a>
-                    <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}">Plan & billing</a>
-                    @if(auth()->user()->is_admin)<a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}">Admin</a>@endif
+                    @if($profile)<a href="{{ route('public.preview') }}" class="{{ $navClass('public.preview') }}"><x-ui.icon name="building-store" />Storefront</a>@endif
+                    <a href="{{ route('profile.edit') }}" class="{{ $navClass('profile.*') }}"><x-ui.icon name="settings" />Store settings</a>
+                    <a href="{{ route('billing.show') }}" class="{{ $navClass('billing.*') }}"><x-ui.icon name="receipt" />Plan & billing</a>
+                    @if(! $onboarding['is_complete'])<a href="{{ route('onboarding.index') }}" class="{{ $navClass('onboarding.*') }}"><x-ui.icon name="circle-check" />Setup guide</a>@endif
+                    @if(auth()->user()->is_admin)<a href="{{ route('admin.dashboard') }}" class="{{ $navClass('admin.*') }}"><x-ui.icon name="shield-lock" />Admin</a>@endif
                 </div>
             </nav>
             <form method="POST" action="{{ route('logout') }}" class="mt-3 border-t border-slate-100 pt-3">
                 @csrf
-                <button type="submit" class="w-full rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700">Logout</button>
+                <button type="submit" class="lp-button lp-button-danger w-full"><x-ui.icon name="logout" size="sm" />Logout</button>
             </form>
         </aside>
         <div class="pointer-events-none fixed inset-0 z-50 bg-slate-900/40 opacity-0 transition-opacity duration-300 js-quick-actions-backdrop"></div>
-        <section class="fixed inset-x-0 bottom-0 z-50 translate-y-full rounded-t-3xl border-t border-slate-200 bg-white p-5 shadow-2xl transition-transform duration-300 ease-out js-quick-actions-panel">
+        <section class="fixed inset-x-0 bottom-0 z-50 translate-y-full rounded-t-lg border-t border-slate-200 bg-white p-5 shadow-2xl transition-transform duration-300 ease-out js-quick-actions-panel" aria-label="Quick menu">
             <div class="mx-auto mb-4 h-1.5 w-14 rounded-full bg-slate-200"></div>
             <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-base font-semibold text-slate-900">Quick Actions</h2>
-                <button type="button" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 js-quick-actions-close">Close</button>
+                <div><p class="lp-eyebrow">Create and manage</p><h2 class="mt-1 text-lg font-semibold text-slate-900">Quick menu</h2></div>
+                <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 js-quick-actions-close" aria-label="Close quick menu"><x-ui.icon name="x" size="sm" /></button>
             </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <a href="{{ $canPromotion ? route('products.create') : route('billing.upgrade') }}" class="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm font-medium text-slate-800">Add product</a>
-                <a href="{{ $canPromotion ? route('products.orders') : route('billing.upgrade') }}" class="rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-sm font-medium text-slate-800">Review orders</a>
-                <a href="{{ $canUsePayments ? route('payments.index') : route('billing.upgrade') }}" class="rounded-xl border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-sm font-medium text-slate-800">Check payments</a>
-                <a href="{{ $canUsePayments ? route('invoices.create') : route('billing.upgrade') }}" class="rounded-xl border border-fuchsia-200 bg-fuchsia-50/70 px-4 py-3 text-sm font-medium text-slate-800">Create invoice</a>
-                <a href="{{ $canPromotion ? route('coupons.index') : route('billing.upgrade') }}" class="rounded-xl border border-cyan-200 bg-cyan-50/70 px-4 py-3 text-sm font-medium text-slate-800">Coupons</a>
-                <a href="{{ $canPromotion ? route('products.index', ['stock' => \App\Models\Product::STATUS_LOW_STOCK]) : route('billing.upgrade') }}" class="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm font-medium text-slate-800">Review low stock</a>
-                <a href="{{ route('notifications.index') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800">Open notifications</a>
-                <button type="button" class="hidden rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-800 lg:block js-start-desktop-tour">Start tutorial</button>
+            <div class="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <a href="{{ $canPromotion ? route('products.create') : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="package" /></span><span><strong class="block text-sm text-slate-900">Add product</strong><small class="mt-1 block text-xs text-slate-500">Publish something new</small></span></a>
+                <a href="{{ $canPromotion ? route('products.orders') : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="shopping-bag" /></span><span><strong class="block text-sm text-slate-900">Review orders</strong><small class="mt-1 block text-xs text-slate-500">Process customer orders</small></span></a>
+                <a href="{{ $canUsePayments ? route('invoices.create') : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="file-invoice" /></span><span><strong class="block text-sm text-slate-900">Create invoice</strong><small class="mt-1 block text-xs text-slate-500">Send a payment link</small></span></a>
+                <a href="{{ $canPromotion ? route('coupons.index') : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="ticket" /></span><span><strong class="block text-sm text-slate-900">Create coupon</strong><small class="mt-1 block text-xs text-slate-500">Offer a promotion</small></span></a>
+                <a href="{{ $canUsePayments ? route('payments.index') : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="credit-card" /></span><span><strong class="block text-sm text-slate-900">Check payments</strong><small class="mt-1 block text-xs text-slate-500">Review transactions</small></span></a>
+                <a href="{{ $canPromotion ? route('products.index', ['stock' => \App\Models\Product::STATUS_LOW_STOCK]) : route('billing.upgrade') }}" class="group flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 hover:bg-amber-50"><span class="lp-icon-box bg-amber-100 text-amber-800"><x-ui.icon name="warning" /></span><span><strong class="block text-sm text-slate-900">Low stock</strong><small class="mt-1 block text-xs text-slate-500">Restock products</small></span></a>
+                <a href="{{ route('notifications.index') }}" class="group flex items-start gap-3 rounded-lg border border-slate-200 p-4 hover:border-[#B7CBD0] hover:bg-[#F9FBFB]"><span class="lp-icon-box"><x-ui.icon name="bell" /></span><span><strong class="block text-sm text-slate-900">Activity</strong><small class="mt-1 block text-xs text-slate-500">Orders and updates</small></span></a>
+                <button type="button" class="hidden items-start gap-3 rounded-lg border border-slate-200 p-4 text-left hover:border-[#B7CBD0] hover:bg-[#F9FBFB] lg:flex js-start-desktop-tour"><span class="lp-icon-box"><x-ui.icon name="help" /></span><span><strong class="block text-sm text-slate-900">Start tutorial</strong><small class="mt-1 block text-xs text-slate-500">Tour the workspace</small></span></button>
             </div>
         </section>
         @if(! $onboarding['is_complete'] && !request()->routeIs('onboarding.*'))
-            <aside class="js-onboarding-popup hidden lg:block fixed bottom-5 right-5 z-40 w-[360px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl" data-dismissed="{{ data_get($onboarding, 'state.desktop_popup_dismissed') ? '1' : '0' }}">
+            <aside class="js-onboarding-popup lp-card fixed bottom-5 right-5 z-40 hidden w-[360px] p-4 shadow-2xl lg:block" data-dismissed="{{ data_get($onboarding, 'state.desktop_popup_dismissed') ? '1' : '0' }}">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Onboarding</p>
                         <h3 class="mt-1 text-sm font-semibold text-slate-900">{{ $onboarding['completed_count'] }}/{{ $onboarding['total_count'] }} complete</h3>
                     </div>
-                    <button type="button" class="js-onboarding-close rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-slate-300">Minimise</button>
+                    <button type="button" class="js-onboarding-close lp-button lp-button-ghost lp-button-sm">Minimise</button>
                 </div>
                 <div class="mt-3 h-2 rounded-full bg-slate-100">
                     <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $onboarding['percent'] }}%"></div>
@@ -858,7 +876,10 @@
                 let quickDragCurrentY = 0;
                 let quickDragging = false;
                 try {
-                    root.classList.toggle('lp-sidebar-collapsed', localStorage.getItem('lp_sidebar_collapsed') === '1');
+                    const initiallyCollapsed = localStorage.getItem('lp_sidebar_collapsed') === '1';
+                    root.classList.toggle('lp-sidebar-collapsed', initiallyCollapsed);
+                    desktopSidebarToggle?.setAttribute('aria-label', initiallyCollapsed ? 'Expand sidebar' : 'Minimise sidebar');
+                    desktopSidebarToggle?.setAttribute('title', initiallyCollapsed ? 'Expand sidebar' : 'Minimise sidebar');
                 } catch (_) {}
                 desktopSidebarToggle?.addEventListener('click', () => {
                     const collapsed = root.classList.toggle('lp-sidebar-collapsed');

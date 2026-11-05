@@ -6,6 +6,7 @@ use App\Models\AnalyticsEvent;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Services\PaymentService;
 use App\Services\PaystackService;
 use App\Support\Money;
@@ -170,11 +171,22 @@ class DashboardController extends Controller
 
         $activity = $this->buildActivityFeed($user);
         $inventoryAlerts = $user->products()
-            ->whereIn('status', [\App\Models\Product::STATUS_LOW_STOCK, \App\Models\Product::STATUS_SOLD_OUT])
-            ->orderByRaw("CASE WHEN status = ? THEN 0 ELSE 1 END", [\App\Models\Product::STATUS_SOLD_OUT])
+            ->whereIn('status', [Product::STATUS_LOW_STOCK, Product::STATUS_SOLD_OUT])
+            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [Product::STATUS_SOLD_OUT])
             ->orderBy('stock_quantity')
             ->take(6)
             ->get(['id', 'name', 'status', 'stock_quantity', 'low_stock_threshold']);
+
+        $ordersAwaitingDecision = $user->orders()
+            ->with('items')
+            ->where('status', Order::STATUS_PAID)
+            ->latest()
+            ->take(3)
+            ->get();
+
+        $pendingPaymentCount = $user->payments()
+            ->where('status', Payment::STATUS_PENDING)
+            ->count();
 
         return view('dashboard.index', [
             'ordersCount' => $ordersCount,
@@ -200,6 +212,8 @@ class DashboardController extends Controller
             'recentProducts' => $recentProducts,
             'activity' => $activity,
             'inventoryAlerts' => $inventoryAlerts,
+            'ordersAwaitingDecision' => $ordersAwaitingDecision,
+            'pendingPaymentCount' => $pendingPaymentCount,
             'profile' => $user->sellerProfile,
             'currency' => $currency,
         ]);

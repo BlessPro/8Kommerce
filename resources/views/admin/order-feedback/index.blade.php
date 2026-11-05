@@ -15,11 +15,35 @@
                 Complaint marked as invalid.
             </div>
         @endif
+        @if(session('status') === 'order-refund-approved')
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Order refund submitted successfully.</div>
+        @elseif(session('status') === 'order-refund-declined')
+            <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Order refund request declined.</div>
+        @endif
         @if($errors->has('feedback'))
             <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {{ $errors->first('feedback') }}
             </div>
         @endif
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-lg font-semibold text-slate-900">Pending order refunds</h2>
+            <p class="mt-1 text-sm text-slate-500">Seller cancellations refund the full payment. Customer availability, refusal, and address failures exclude the delivery attempt fee; seller or damage faults include it.</p>
+            <div class="mt-4 space-y-4">
+                @forelse($refundRequests as $order)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                        <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-sm font-semibold text-slate-900">{{ $order->reference }}</p><p class="text-xs text-slate-500">{{ $order->user?->sellerProfile?->business_name ?? $order->user?->name ?? 'Seller' }} · {{ $order->customer_phone }}</p></div><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ $order->currency }} {{ number_format((float) ($order->refund_requested_amount ?: $order->total), 2) }}</span></div>
+                        <div class="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3"><p><strong class="text-slate-800">Reason:</strong> {{ str($order->refund_reason ?: 'not supplied')->replace('_', ' ')->title() }}</p><p><strong class="text-slate-800">Products:</strong> {{ $order->currency }} {{ number_format(max(0, (float) $order->total - (float) $order->fulfillment_fee), 2) }}</p><p><strong class="text-slate-800">Delivery fee:</strong> {{ $order->currency }} {{ number_format((float) $order->fulfillment_fee, 2) }}</p></div>
+                        <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                            <form method="POST" action="{{ route('admin.order-refunds.approve', $order) }}" class="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">@csrf<label class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Approval note</label><textarea name="admin_note" rows="2" class="w-full rounded-lg border-slate-200 text-sm" placeholder="Optional reconciliation note"></textarea><button type="submit" class="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">Approve {{ $order->currency }} {{ number_format((float) ($order->refund_requested_amount ?: $order->total), 2) }}</button></form>
+                            <form method="POST" action="{{ route('admin.order-refunds.decline', $order) }}" class="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">@csrf<label class="text-xs font-semibold uppercase tracking-wide text-rose-700">Decline reason</label><textarea name="admin_note" rows="2" required class="w-full rounded-lg border-slate-200 text-sm" placeholder="Required reason for declining"></textarea><button type="submit" class="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-500">Decline request</button></form>
+                        </div>
+                    </div>
+                @empty
+                    <p class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No pending order refunds.</p>
+                @endforelse
+            </div>
+        </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900">Reported delivery issues</h2>

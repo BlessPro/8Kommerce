@@ -29,6 +29,7 @@ class CouponRedemptionGuardTest extends TestCase
             'business_name' => 'Guard Seller',
             'public_slug' => 'guard-coupon-seller',
             'paystack_subaccount_code' => 'ACCT_guard',
+            'storefront_settings' => ['fulfillment_options' => [['type' => 'pickup', 'label' => 'Main counter', 'fee' => '0.00']]],
         ]);
         $product = Product::create([
             'user_id' => $seller->id,
@@ -76,6 +77,7 @@ class CouponRedemptionGuardTest extends TestCase
                 'phone_number' => '0541900229',
                 'phone_country' => '+233',
                 'coupon_code' => 'GUARD10',
+                'fulfillment_method' => 'option_0',
                 'idempotency_key' => (string) Str::uuid(),
             ]);
 

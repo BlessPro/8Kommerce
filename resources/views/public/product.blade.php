@@ -1,5 +1,6 @@
 @php
     $title = $product->name;
+    $hasFulfillmentOptions = count($profile->resolvedFulfillmentOptions()) > 0;
 @endphp
 @extends('layouts.public')
 
@@ -77,14 +78,18 @@
                     />
                     @error('phone_number') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     @include('public.partials.fulfillment-options', ['baseTotal' => (string) $product->price])
-                    <input
-                        name="location"
-                        value="{{ old('location') }}"
-                        placeholder="Location (optional)"
-                        class="sm:col-span-3 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
-                        data-fulfillment-address
-                    />
-                    @error('location') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <div class="sm:col-span-3" data-fulfillment-address-wrapper>
+                        <label class="mb-1.5 block text-xs font-semibold text-slate-700">Delivery address</label>
+                        <input
+                            name="location"
+                            value="{{ old('location') }}"
+                            placeholder="House number, street and nearest landmark"
+                            class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
+                            data-fulfillment-address
+                        />
+                        <p class="mt-1 text-xs text-slate-500">This is shared with the seller for fulfilment only.</p>
+                        @error('location') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
                     <textarea
                         name="note"
                         rows="2"
@@ -99,13 +104,13 @@
                             type="submit"
                             data-fulfillment-pay-button
                             data-pay-label="Pay now"
-                            class="rounded-full px-5 py-3 text-sm font-semibold text-white {{ ($canPay && ($paymentsEnabled ?? true)) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-300 cursor-not-allowed' }}"
-                            {{ ($profile->paystack_subaccount_code && $canPay && ($paymentsEnabled ?? true)) ? '' : 'disabled' }}
+                            class="rounded-full px-5 py-3 text-sm font-semibold text-white {{ ($canPay && ($paymentsEnabled ?? true) && $hasFulfillmentOptions) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-300 cursor-not-allowed' }}"
+                            {{ ($profile->paystack_subaccount_code && $canPay && ($paymentsEnabled ?? true) && $hasFulfillmentOptions) ? '' : 'disabled' }}
                         >
                             @if(! ($paymentsEnabled ?? true))
                                 Payments disabled
                             @else
-                                {{ $canPay ? 'Pay now' : 'Unavailable' }}
+                                {{ ! $hasFulfillmentOptions ? 'Delivery setup pending' : ($canPay ? 'Pay now' : 'Unavailable') }}
                             @endif
                         </button>
                         @if($chatUrl)
