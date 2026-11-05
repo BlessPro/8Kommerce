@@ -1,0 +1,21 @@
+{
+    email {$ACME_EMAIL}
+    admin off
+}
+
+(app_proxy) {
+    encode zstd gzip
+    reverse_proxy app:80
+}
+
+{$APP_DOMAIN} {
+    @root path /
+    redir @root /login 302
+    import app_proxy
+}
+
+{$STATUS_DOMAIN} {
+    @root path /
+    rewrite @root /status
+    import app_proxy
+}

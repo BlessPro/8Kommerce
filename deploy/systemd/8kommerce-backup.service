@@ -1,0 +1,17 @@
+[Unit]
+Description=Back up 8Kommerce database and uploaded files
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+SupplementaryGroups=docker
+WorkingDirectory=/opt/8kommerce
+ExecStart=/opt/8kommerce/scripts/backup.sh scheduled
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true
