@@ -1,0 +1,146 @@
+name: 8kommerce
+
+x-app: &app
+  image: ${APP_IMAGE:?Set APP_IMAGE to a verified GHCR image digest}
+  pull_policy: always
+  env_file:
+    - .env
+  environment:
+    APP_ENV: production
+    APP_DEBUG: "false"
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: "5432"
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    QUEUE_CONNECTION: redis
+    CACHE_STORE: redis
+    SESSION_DRIVER: redis
+    TRUSTED_PROXIES: "*"
+  volumes:
+    - app_storage:/var/www/html/storage
+  restart: unless-stopped
+  init: true
+  networks:
+    - backend
+    - outbound
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+      PRIMARY_DOMAIN: ${PRIMARY_DOMAIN:?Set PRIMARY_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN}
+      STATUS_DOMAIN: ${STATUS_DOMAIN:?Set STATUS_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ${CADDYFILE:-./Caddyfile.prelaunch}:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - proxy
+
+  app:
+    <<: *app
+    expose:
+      - "80"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$body = @file_get_contents('http://127.0.0.1/live'); exit($$body === false ? 1 : 0);"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    networks:
+      - proxy
+      - backend
+      - outbound
+
+  worker-otp:
+    <<: *app
+    user: "33:33"
+    command: ["php", "artisan", "queue:work", "redis", "--queue=otp", "--sleep=1", "--tries=4", "--backoff=5", "--timeout=30", "--max-time=3600"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    user: "33:33"
+    command: ["php", "artisan", "queue:work", "redis", "--queue=payments,notifications,default", "--sleep=1", "--tries=4", "--backoff=5", "--timeout=60", "--max-time=3600"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app
+    user: "33:33"
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME:?Set DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    shm_size: 256mb
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  app_storage:
+  db_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy:
+  backend:
+    internal: true
+  outbound:

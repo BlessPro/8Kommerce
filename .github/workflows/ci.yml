@@ -135,6 +135,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Validate VPS deployment bundle
+        env:
+          APP_IMAGE: ghcr.io/blesspro/8kommerce@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ACME_EMAIL: test@example.com
+          PRIMARY_DOMAIN: 8kommerce.com
+          APP_DOMAIN: app.8kommerce.com
+          STATUS_DOMAIN: status.8kommerce.com
+          DB_DATABASE: 8kommerce
+          DB_USERNAME: 8kommerce
+          DB_PASSWORD: test-db-password
+          REDIS_PASSWORD: test-redis-password
+        run: |
+          cp deploy/.env.production.example deploy/.env
+          bash -n deploy/scripts/*.sh
+          docker compose --env-file deploy/.env -f deploy/compose.production.yml config --quiet
+          docker run --rm \
+            -e ACME_EMAIL -e PRIMARY_DOMAIN -e APP_DOMAIN -e STATUS_DOMAIN \
+            -v "$PWD/deploy/Caddyfile.prelaunch:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+          docker run --rm \
+            -e ACME_EMAIL -e PRIMARY_DOMAIN -e APP_DOMAIN -e STATUS_DOMAIN \
+            -v "$PWD/deploy/Caddyfile.production:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+          rm -f deploy/.env
+
       - name: Build production image
         uses: docker/build-push-action@v6
         with:
