@@ -299,14 +299,18 @@
                         />
                         @error('phone_number') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         @include('public.partials.fulfillment-options', ['baseTotal' => (string) $product->price])
-                        <input
-                            name="location"
-                            value="{{ old('location') }}"
-                            placeholder="Location (optional)"
-                            class="sm:col-span-3 w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
-                            data-fulfillment-address
-                        />
-                        @error('location') <p class="sm:col-span-3 -mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <div class="sm:col-span-3" data-fulfillment-address-wrapper>
+                            <label class="mb-1.5 block text-xs font-semibold text-slate-700">Delivery address</label>
+                            <input
+                                name="location"
+                                value="{{ old('location') }}"
+                                placeholder="House number, street and nearest landmark"
+                                class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
+                                data-fulfillment-address
+                            />
+                            <p class="mt-1 text-xs text-slate-500">This is shared with the seller for fulfilment only.</p>
+                            @error('location') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
                         <textarea
                             name="note"
                             rows="2"
@@ -336,11 +340,11 @@
                             >
                                 {{ $canPay ? ($isAddedToCart ? 'Added' : 'Add to cart') : 'Unavailable' }}
                             </button>
-                            <button type="submit" class="rounded-full px-4 py-3 text-sm font-semibold text-white {{ ($canPay && ($paymentsEnabled ?? true)) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-300 cursor-not-allowed' }}" data-fulfillment-pay-button data-pay-label="Pay now" {{ ($profile->paystack_subaccount_code && $canPay && ($paymentsEnabled ?? true)) ? '' : 'disabled' }}>
+                            <button type="submit" class="rounded-full px-4 py-3 text-sm font-semibold text-white {{ ($canPay && ($paymentsEnabled ?? true) && $hasFulfillmentOptions) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-300 cursor-not-allowed' }}" data-fulfillment-pay-button data-pay-label="Pay now" {{ ($profile->paystack_subaccount_code && $canPay && ($paymentsEnabled ?? true) && $hasFulfillmentOptions) ? '' : 'disabled' }}>
                                 @if(! ($paymentsEnabled ?? true))
                                     Payments disabled
                                 @else
-                                    {{ $canPay ? 'Pay now' : 'Unavailable' }}
+                                    {{ ! $hasFulfillmentOptions ? 'Delivery setup pending' : ($canPay ? 'Pay now' : 'Unavailable') }}
                                 @endif
                             </button>
                             @if($chatUrl)
@@ -769,14 +773,16 @@
                     @error('phone_number') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 @include('public.partials.fulfillment-options', ['baseTotal' => (string) ($cart['total'] ?? '0.00')])
-                <div class="sm:col-span-2">
+                <div class="sm:col-span-2" data-fulfillment-address-wrapper>
+                    <label class="mb-1.5 block text-xs font-semibold text-slate-700">Delivery address</label>
                     <input
                         name="location"
                         value="{{ old('location') }}"
-                        placeholder="Location (optional)"
+                        placeholder="House number, street and nearest landmark"
                         class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500 @error('location') border-rose-300 focus:border-rose-500 focus:ring-rose-500 @enderror"
                         data-fulfillment-address
                     />
+                    <p class="mt-1 text-xs text-slate-500">This is shared with the seller for fulfilment only.</p>
                     @error('location') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="sm:col-span-2">
@@ -790,8 +796,8 @@
                 </div>
                 <input type="hidden" name="phone_country" value="+233" />
                 <input type="hidden" name="idempotency_key" value="{{ old('idempotency_key', (string) \Illuminate\Support\Str::uuid()) }}" />
-                <button type="submit" class="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 sm:col-span-2" data-cart-checkout-button data-cart-checkout-prefix="{{ in_array($activeStorefrontTheme, ['perfume', 'market', 'fashion'], true) ? ($activeStorefrontTheme === 'market' ? 'Checkout · ' : 'Secure checkout · ') : '' }}">
-                    {{ in_array($activeStorefrontTheme, ['perfume', 'market', 'fashion'], true) ? ($activeStorefrontTheme === 'market' ? 'Checkout · ' : 'Secure checkout · ').\App\Support\Money::format($cart['total'] ?? '0.00', $currency) : 'Pay total' }}
+                <button type="submit" class="rounded-full px-4 py-3 text-sm font-semibold text-white sm:col-span-2 {{ $hasFulfillmentOptions ? 'bg-emerald-600 hover:bg-emerald-500' : 'cursor-not-allowed bg-slate-300' }}" data-cart-checkout-button data-cart-checkout-prefix="{{ in_array($activeStorefrontTheme, ['perfume', 'market', 'fashion'], true) ? ($activeStorefrontTheme === 'market' ? 'Checkout · ' : 'Secure checkout · ') : '' }}" @disabled(! $hasFulfillmentOptions)>
+                    {{ ! $hasFulfillmentOptions ? 'Delivery setup pending' : (in_array($activeStorefrontTheme, ['perfume', 'market', 'fashion'], true) ? ($activeStorefrontTheme === 'market' ? 'Checkout · ' : 'Secure checkout · ').\App\Support\Money::format($cart['total'] ?? '0.00', $currency) : 'Pay total') }}
                 </button>
             </form>
         @else

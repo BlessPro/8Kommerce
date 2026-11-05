@@ -1,257 +1,71 @@
 @php
-    $title = 'Goals and Target';
+    $title = 'Goals';
+    $revenueDirection = $revenueGrowth >= 0 ? 'up' : 'down';
+    $ordersDirection = $ordersGrowth >= 0 ? 'up' : 'down';
 @endphp
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Business Performance</p>
-        <h2 class="mt-2 text-xl font-semibold text-slate-900">Goals &amp; performance</h2>
-        <p class="mt-2 text-sm text-slate-500">
-            Period: {{ $monthStart->format('M d, Y') }} - {{ $monthEnd->format('M d, Y') }}.
-            Targets are auto-derived from your actual performance history.
-        </p>
-        </div>
-        <a href="{{ route('insights.index') }}" class="lp-button-secondary">Advanced insights <span aria-hidden="true">→</span></a>
-        </div>
-    </div>
+    <x-ui.page-header title="Goals and performance" description="A practical monthly view of what is growing, what needs attention, and where to focus next.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="chart-bar" :href="route('insights.index')">Advanced insights</x-ui.button>
+            <x-ui.button icon="speakerphone" :href="route('promotions.index')">Promote a product</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    <div class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm">
-        <h3 class="text-lg font-semibold text-emerald-900">Business Growth Summary</h3>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Revenue Growth</p>
-                <p class="mt-2 text-xl font-semibold text-emerald-900">{{ $businessSummary['revenueGrowth'] >= 0 ? '+' : '' }}{{ number_format($businessSummary['revenueGrowth'], 1) }}%</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Orders Growth</p>
-                <p class="mt-2 text-xl font-semibold text-emerald-900">{{ $businessSummary['ordersGrowth'] >= 0 ? '+' : '' }}{{ number_format($businessSummary['ordersGrowth'], 1) }}%</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Top Product</p>
-                <p class="mt-2 text-base font-semibold text-emerald-900">{{ $businessSummary['topProduct'] }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Top Day</p>
-                <p class="mt-2 text-base font-semibold text-emerald-900">{{ $businessSummary['topDay'] }}</p>
-            </div>
-        </div>
+    <div class="mt-3 flex items-center gap-2 text-xs text-slate-500"><x-ui.icon name="calendar" size="xs" /><span>{{ $monthStart->format('M j') }} – {{ $monthEnd->format('M j, Y') }}</span><span>·</span><span>Targets adapt to your sales history</span></div>
 
-        <div class="mt-4 grid gap-2 text-sm text-emerald-900">
-            @if(($businessSummary['topProductShare'] ?? 0) > 30)
-                <p>Top performer highlight: {{ $businessSummary['topProduct'] }} contributes more than 30% of total revenue.</p>
-            @endif
-            @if($businessSummary['revenueGrowth'] > 20)
-                <p>Strong growth indicator: Revenue growth is above 20% month-over-month.</p>
-            @endif
-            @if(($businessSummary['topProductShare'] ?? 0) <= 0 && $businessSummary['revenueGrowth'] <= 20)
-                <p>Keep pushing traffic and conversion improvements to unlock stronger growth signals.</p>
-            @endif
-        </div>
-    </div>
+    <section class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Business growth summary">
+        <x-ui.stat-card label="Revenue growth" :value="($businessSummary['revenueGrowth'] >= 0 ? '+' : '').number_format($businessSummary['revenueGrowth'], 1).'%'" meta="Compared with last month" icon="activity" />
+        <x-ui.stat-card label="Orders growth" :value="($businessSummary['ordersGrowth'] >= 0 ? '+' : '').number_format($businessSummary['ordersGrowth'], 1).'%'" meta="Compared with last month" icon="shopping-bag" />
+        <x-ui.stat-card label="Top product" :value="$businessSummary['topProduct']" :meta="number_format($businessSummary['topProductShare'] ?? 0, 1).'% of revenue'" icon="package" />
+        <x-ui.stat-card label="Best sales day" :value="$businessSummary['topDay']" meta="Your strongest day this month" icon="calendar" />
+    </section>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Monthly Revenue Performance</h3>
-            <div class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-slate-500">This Month</span><span class="font-semibold text-slate-900">{{ \App\Support\Money::format((string) $thisMonthRevenue, $currency) }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Last Month</span><span class="font-semibold text-slate-900">{{ \App\Support\Money::format((string) $lastMonthRevenue, $currency) }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Growth</span><span class="font-semibold {{ $revenueGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $revenueGrowth >= 0 ? '+' : '' }}{{ number_format($revenueGrowth, 1) }}%</span></div>
+    <section class="mt-6 grid gap-6 lg:grid-cols-2" aria-label="Monthly targets">
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow">Revenue target</p><h2 class="mt-2 text-2xl font-semibold tabular-nums text-slate-950">{{ \App\Support\Money::format((string) $thisMonthRevenue, $currency) }}</h2></div><x-ui.badge :tone="$revenueDirection === 'up' ? 'success' : 'danger'">{{ $revenueGrowth >= 0 ? '+' : '' }}{{ number_format($revenueGrowth, 1) }}%</x-ui.badge></div>
+            <div class="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-600" style="width: {{ max(0, min(100, $revenueProgress)) }}%"></div></div>
+            <div class="mt-2 flex justify-between gap-3 text-xs text-slate-500"><span>{{ number_format($revenueProgress, 1) }}% complete</span><span>Target {{ \App\Support\Money::format((string) $revenueTarget, $currency) }}</span></div>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">Last month: {{ \App\Support\Money::format((string) $lastMonthRevenue, $currency) }}</p>
+        </article>
+        <article class="lp-card p-5 sm:p-6">
+            @php
+                $orderProgress = $ordersTarget > 0 ? min(100, ($ordersThisMonth / $ordersTarget) * 100) : 0;
+            @endphp
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow">Order target</p><h2 class="mt-2 text-2xl font-semibold tabular-nums text-slate-950">{{ $ordersThisMonth }} orders</h2></div><x-ui.badge :tone="$ordersDirection === 'up' ? 'success' : 'danger'">{{ $ordersGrowth >= 0 ? '+' : '' }}{{ number_format($ordersGrowth, 1) }}%</x-ui.badge></div>
+            <div class="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-sky-600" style="width: {{ $orderProgress }}%"></div></div>
+            <div class="mt-2 flex justify-between gap-3 text-xs text-slate-500"><span>{{ number_format($orderProgress, 1) }}% complete</span><span>Target {{ $ordersTarget }}</span></div>
+            <p class="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">Last month: {{ $ordersLastMonth }} orders</p>
+        </article>
+    </section>
+
+    <section class="mt-6 grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
+        <article class="lp-card overflow-hidden">
+            <header class="border-b border-slate-200 px-5 py-4"><p class="lp-eyebrow">What is working</p><h2 class="lp-section-title mt-1">Best-performing products</h2></header>
+            <div class="divide-y divide-slate-100">
+                @forelse($topProducts as $row)
+                    <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-5 py-4"><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-800">{{ $row['name'] }}</p><p class="mt-1 text-xs text-slate-500">{{ $row['units'] }} units · {{ number_format($row['share'], 1) }}% share</p></div><span class="text-sm font-semibold tabular-nums text-slate-950">{{ \App\Support\Money::format((string) $row['revenue'], $currency) }}</span></div>
+                @empty
+                    <x-ui.empty-state title="No product sales yet" description="Your strongest products will appear after successful orders." icon="package" class="border-0" />
+                @endforelse
             </div>
-            <div class="mt-4">
-                <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div class="h-full rounded-full bg-emerald-500" style="width: {{ max(0, min(100, $revenueProgress)) }}%"></div>
-                </div>
-                <p class="mt-2 text-xs text-slate-500">{{ number_format($revenueProgress, 1) }}% progress to target {{ \App\Support\Money::format((string) $revenueTarget, $currency) }}</p>
+        </article>
+        <article class="lp-card overflow-hidden">
+            <header class="border-b border-slate-200 px-5 py-4"><p class="lp-eyebrow">Needs attention</p><h2 class="lp-section-title mt-1">Low-converting products</h2></header>
+            <div class="divide-y divide-slate-100">
+                @forelse($weakProducts as $row)
+                    <div class="flex items-center justify-between gap-4 px-5 py-4"><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-800">{{ $row['name'] }}</p><p class="mt-1 text-xs text-slate-500">{{ $row['views'] }} views · {{ $row['purchases'] }} purchases</p></div><x-ui.badge tone="danger">{{ number_format($row['conversion'], 1) }}%</x-ui.badge></div>
+                @empty
+                    <x-ui.empty-state title="No weak products detected" description="No product is currently below the low-conversion threshold." icon="circle-check" class="border-0" />
+                @endforelse
             </div>
-        </div>
+        </article>
+    </section>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Orders Performance</h3>
-            <div class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-slate-500">Orders This Month</span><span class="font-semibold text-slate-900">{{ $ordersThisMonth }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Orders Last Month</span><span class="font-semibold text-slate-900">{{ $ordersLastMonth }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Growth</span><span class="font-semibold {{ $ordersGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">{{ $ordersGrowth >= 0 ? '+' : '' }}{{ number_format($ordersGrowth, 1) }}%</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Target Orders</span><span class="font-semibold text-slate-900">{{ $ordersTarget }}</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Best Performing Products</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Product</th>
-                            <th class="px-3 py-2">Units</th>
-                            <th class="px-3 py-2">Revenue</th>
-                            <th class="px-3 py-2">Share</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($topProducts as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['name'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['units'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ \App\Support\Money::format((string) $row['revenue'], $currency) }}</td>
-                                <td class="px-3 py-2 font-semibold text-slate-900">{{ number_format($row['share'], 1) }}%</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">No product sales yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if(isset($topProducts[0]))
-                <p class="mt-3 text-sm text-emerald-700">
-                    {{ $topProducts[0]['name'] }} generated {{ number_format($topProducts[0]['share'], 1) }}% of your revenue this month.
-                </p>
-            @endif
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Weak Product Detection</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Product</th>
-                            <th class="px-3 py-2">Views</th>
-                            <th class="px-3 py-2">Purchases</th>
-                            <th class="px-3 py-2">Conversion</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($weakProducts as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['name'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['views'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['purchases'] }}</td>
-                                <td class="px-3 py-2 font-semibold text-rose-700">{{ number_format($row['conversion'], 1) }}%</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">No weak products detected under 3% conversion.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Customer Insights</h3>
-            <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                <div class="rounded-xl bg-slate-50 p-4">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">New</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">{{ $customerInsights['new'] }}</p>
-                </div>
-                <div class="rounded-xl bg-slate-50 p-4">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Returning</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">{{ $customerInsights['returning'] }}</p>
-                </div>
-                <div class="rounded-xl bg-slate-50 p-4">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Returning Rate</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">{{ number_format($customerInsights['returningRate'], 1) }}%</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Best Selling Day</h3>
-            <div class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-slate-500">Best Sales Day</span><span class="font-semibold text-emerald-700">{{ $bestSalesDay['day'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Orders</span><span class="font-semibold text-slate-900">{{ $bestSalesDay['count'] }}</span></div>
-                <div class="border-t border-slate-100 pt-2"></div>
-                <div class="flex justify-between"><span class="text-slate-500">Worst Sales Day</span><span class="font-semibold text-rose-700">{{ $worstSalesDay['day'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Orders</span><span class="font-semibold text-slate-900">{{ $worstSalesDay['count'] }}</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-900">Sales Trend (Weekly)</h3>
-        <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                    <tr>
-                        <th class="px-3 py-2">Week</th>
-                        <th class="px-3 py-2">Revenue</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach($weeklySales as $row)
-                        <tr>
-                            <td class="px-3 py-2 text-slate-700">{{ $row['week'] }}</td>
-                            <td class="px-3 py-2 text-slate-600">{{ \App\Support\Money::format((string) $row['revenue'], $currency) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Link Performance</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Product Link</th>
-                            <th class="px-3 py-2">Clicks</th>
-                            <th class="px-3 py-2">Purchases</th>
-                            <th class="px-3 py-2">Conversion</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($linkPerformance as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['link'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['clicks'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['purchases'] }}</td>
-                                <td class="px-3 py-2 font-semibold text-slate-900">{{ number_format($row['conversion'], 1) }}%</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">No product link clicks yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if($businessSummary['bestLink'])
-                <p class="mt-3 text-sm text-emerald-700">
-                    {{ $businessSummary['bestLinkName'] }} has the highest link conversion at {{ number_format($businessSummary['bestLinkConversion'], 1) }}%.
-                </p>
-            @endif
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Top Traffic Products</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Product</th>
-                            <th class="px-3 py-2">Views</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($topTrafficProducts as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['name'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['views'] }}</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="2" class="px-3 py-4 text-center text-slate-500">No product traffic yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
+    <section class="mt-6 grid gap-6 lg:grid-cols-3">
+        <article class="lp-card p-5"><p class="lp-eyebrow">Customer mix</p><h2 class="lp-section-title mt-1">Relationships</h2><dl class="mt-4 space-y-3 text-sm"><div class="flex justify-between"><dt class="text-slate-500">New customers</dt><dd class="font-semibold text-slate-900">{{ $customerInsights['new'] }}</dd></div><div class="flex justify-between"><dt class="text-slate-500">Returning</dt><dd class="font-semibold text-slate-900">{{ $customerInsights['returning'] }}</dd></div><div class="flex justify-between"><dt class="text-slate-500">Return rate</dt><dd class="font-semibold text-emerald-700">{{ number_format($customerInsights['returningRate'], 1) }}%</dd></div></dl></article>
+        <article class="lp-card p-5"><p class="lp-eyebrow">Sales rhythm</p><h2 class="lp-section-title mt-1">Strongest and weakest days</h2><dl class="mt-4 space-y-3 text-sm"><div class="flex justify-between"><dt class="text-slate-500">Best day</dt><dd class="font-semibold text-emerald-700">{{ $bestSalesDay['day'] }} · {{ $bestSalesDay['count'] }}</dd></div><div class="flex justify-between"><dt class="text-slate-500">Weakest day</dt><dd class="font-semibold text-rose-700">{{ $worstSalesDay['day'] }} · {{ $worstSalesDay['count'] }}</dd></div></dl></article>
+        <article class="lp-card p-5"><p class="lp-eyebrow">Recommended focus</p><h2 class="lp-section-title mt-1">Your next move</h2><p class="mt-4 text-sm leading-6 text-slate-600">@if($revenueGrowth < 0)Revenue is behind last month. Share a proven product and follow up with returning customers.@elseif(($businessSummary['topProductShare'] ?? 0) > 30)Your top product drives a large share of revenue. Keep it stocked and promote related items.@else Keep building traffic and make product benefits clearer to improve conversion.@endif</p></article>
+    </section>
 @endsection

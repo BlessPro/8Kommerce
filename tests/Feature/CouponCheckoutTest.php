@@ -28,6 +28,7 @@ class CouponCheckoutTest extends TestCase
             'business_name' => 'Coupon Seller',
             'public_slug' => 'coupon-seller',
             'paystack_subaccount_code' => 'ACCT_test_sub',
+            'storefront_settings' => ['fulfillment_options' => [['type' => 'pickup', 'label' => 'Main counter', 'fee' => '0.00']]],
         ]);
 
         $product = Product::create([
@@ -64,6 +65,7 @@ class CouponCheckoutTest extends TestCase
             'phone_number' => '0541900229',
             'phone_country' => '+233',
             'coupon_code' => 'SAVE10',
+            'fulfillment_method' => 'option_0',
             'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
         ]);
 
@@ -76,7 +78,7 @@ class CouponCheckoutTest extends TestCase
         $this->assertSame('100.00', (string) $order->total);
         $this->assertNull($order->coupon_code);
         $this->assertNull($order->customer_name);
-        $this->assertNull($order->customer_location);
+        $this->assertSame('Main counter', $order->customer_location);
         $this->assertFalse((bool) $order->delivery_required);
         $this->assertNull($order->delivery_note);
 

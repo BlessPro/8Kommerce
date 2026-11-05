@@ -252,6 +252,10 @@ class PublicListingController extends Controller
             'customer_location' => $location !== '' ? $location : null,
             'delivery_required' => $deliveryRequired,
             'fulfillment_type' => $fulfillment['type'],
+            'fulfillment_method' => $fulfillment['method'],
+            'fulfillment_label' => $fulfillment['label'],
+            'fulfillment_fee' => $fulfillmentFee,
+            'fulfillment_details' => $fulfillment['details'],
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => (string) $product->price,
             'coupon_code' => null,
@@ -520,6 +524,10 @@ class PublicListingController extends Controller
             'customer_location' => $location !== '' ? $location : null,
             'delivery_required' => $deliveryRequired,
             'fulfillment_type' => $fulfillment['type'],
+            'fulfillment_method' => $fulfillment['method'],
+            'fulfillment_label' => $fulfillment['label'],
+            'fulfillment_fee' => $fulfillmentFee,
+            'fulfillment_details' => $fulfillment['details'],
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => $subtotal,
             'coupon_code' => $couponCode,
@@ -819,47 +827,16 @@ class PublicListingController extends Controller
                 'type' => $deliveryRequired ? Order::FULFILLMENT_DELIVERY : Order::FULFILLMENT_PICKUP,
                 'label' => ($deliveryRequired ? 'Delivery area: ' : 'Pickup station: ').$option['label'],
                 'fee' => $option['fee'],
+                'details' => $option['details'] ?? null,
                 'location' => $deliveryRequired ? ($customerLocation ?: null) : $option['label'],
                 'delivery_required' => $deliveryRequired,
             ]];
         })->all();
 
         if ($options === []) {
-            $settings = $profile->resolvedStorefrontSettings();
-
-            if ($settings['fulfillment_pickup_enabled']) {
-                $options['pickup'] = [
-                    'type' => Order::FULFILLMENT_PICKUP,
-                    'label' => 'Pickup · '.($settings['pickup_station'] ?: 'Seller pickup station'),
-                    'fee' => (string) $settings['pickup_price'],
-                    'location' => $settings['pickup_station'] ?: null,
-                    'delivery_required' => false,
-                ];
-            }
-            foreach (['accra' => 'Accra delivery', 'tema' => 'Tema delivery'] as $area => $label) {
-                if ($settings['delivery_'.$area.'_enabled']) {
-                    $options['delivery_'.$area] = [
-                        'type' => Order::FULFILLMENT_DELIVERY,
-                        'label' => $label,
-                        'fee' => (string) $settings['delivery_'.$area.'_price'],
-                        'location' => trim((string) ($validated['location'] ?? '')) ?: null,
-                        'delivery_required' => true,
-                    ];
-                }
-            }
-        }
-
-        if ($options === []) {
-            $location = trim((string) ($validated['location'] ?? ''));
-
-            return [
-                'method' => $location !== '' ? 'delivery' : 'pickup',
-                'type' => $location !== '' ? Order::FULFILLMENT_DELIVERY : Order::FULFILLMENT_PICKUP,
-                'label' => $location !== '' ? 'Delivery' : 'Pickup',
-                'fee' => '0.00',
-                'location' => $location !== '' ? $location : null,
-                'delivery_required' => $location !== '',
-            ];
+            throw ValidationException::withMessages([
+                'fulfillment_method' => 'This store has not configured delivery or pickup yet. Contact the seller before paying.',
+            ]);
         }
 
         $method = (string) ($validated['fulfillment_method'] ?? '');

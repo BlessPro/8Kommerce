@@ -1,69 +1,76 @@
 @php
-    $title = 'Customer Profile';
+    $title = 'Customer profile';
+    $initial = mb_strtoupper(mb_substr($customer['name'], 0, 1));
+    $statusTone = match($customer['status']) {
+        'Loyal' => 'success',
+        'Inactive' => 'danger',
+        default => 'info',
+    };
 @endphp
 @extends('layouts.dashboard')
 
 @section('content')
-    <a href="{{ route('customers.index') }}" class="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-        Back to Customers
-    </a>
+    <x-ui.page-header title="Customer profile" description="Purchase history and relationship details from completed transactions.">
+        <x-slot:actions>
+            @if($customer['phone'])
+                <x-ui.button variant="secondary" icon="phone" href="tel:{{ $customer['phone'] }}">Call</x-ui.button>
+                <x-ui.button variant="secondary" icon="whatsapp" href="https://wa.me/{{ preg_replace('/\D+/', '', $customer['phone']) }}" target="_blank" rel="noreferrer noopener">WhatsApp</x-ui.button>
+            @endif
+            <x-ui.button variant="ghost" icon="arrow-left" :href="route('customers.index')">Customers</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-xl font-semibold text-slate-900">{{ $customer['name'] }}</h2>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Phone</p><p class="mt-1 text-slate-700">{{ $customer['phone'] ?: '-' }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Email</p><p class="mt-1 text-slate-700">{{ $customer['email'] ?: '-' }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Location</p><p class="mt-1 text-slate-700">{{ $customer['location'] ?: '-' }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">First Purchase</p><p class="mt-1 text-slate-700">{{ $customer['first_purchase_at']?->format('M d, Y') ?: '-' }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Last Purchase</p><p class="mt-1 text-slate-700">{{ $customer['last_purchase_at']?->format('M d, Y') ?: '-' }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Total Orders</p><p class="mt-1 text-slate-700">{{ $customer['orders_count'] }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Total Spent</p><p class="mt-1 text-slate-700">{{ \App\Support\Money::format((string) $customer['total_spent'], $currency) }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Avg Order Value</p><p class="mt-1 text-slate-700">{{ \App\Support\Money::format((string) $customer['avg_order_value'], $currency) }}</p></div>
-            <div><p class="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p><p class="mt-1 text-slate-700">{{ $customer['status'] }}</p></div>
-        </div>
-    </div>
-
-    <div class="mt-8 grid gap-6 lg:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <h3 class="text-lg font-semibold text-slate-900">Purchase History</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Date</th>
-                            <th class="px-3 py-2">Product</th>
-                            <th class="px-3 py-2">Amount</th>
-                            <th class="px-3 py-2">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($customer['purchase_history'] as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['date']->format('M d, Y') }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['product'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ \App\Support\Money::format((string) $row['amount'], $currency) }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['status'] }}</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="4" class="px-3 py-5 text-center text-slate-500">No purchases yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    <section class="lp-card mt-6 overflow-hidden">
+        <div class="flex flex-col gap-5 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div class="flex min-w-0 items-center gap-4">
+                <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-lg font-semibold text-emerald-800">{{ $initial }}</span>
+                <div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h2 class="truncate text-xl font-semibold text-slate-950">{{ $customer['name'] }}</h2><x-ui.badge :tone="$statusTone">{{ $customer['status'] }}</x-ui.badge></div><p class="mt-1 truncate text-sm text-slate-500">{{ $customer['phone'] ?: ($customer['email'] ?: 'No contact details') }}</p></div>
+            </div>
+            <div class="grid grid-cols-3 gap-5 text-right">
+                <div><p class="text-xs text-slate-500">Orders</p><p class="mt-1 text-lg font-semibold text-slate-950">{{ $customer['orders_count'] }}</p></div>
+                <div><p class="text-xs text-slate-500">Total spent</p><p class="mt-1 text-lg font-semibold text-slate-950">{{ \App\Support\Money::format((string) $customer['total_spent'], $currency) }}</p></div>
+                <div><p class="text-xs text-slate-500">Average</p><p class="mt-1 text-lg font-semibold text-slate-950">{{ \App\Support\Money::format((string) $customer['avg_order_value'], $currency) }}</p></div>
             </div>
         </div>
+        <dl class="grid gap-px bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach([
+                ['Phone', $customer['phone'] ?: 'Not provided'],
+                ['Email', $customer['email'] ?: 'Not provided'],
+                ['Location', $customer['location'] ?: 'Not provided'],
+                ['Customer since', $customer['first_purchase_at']?->format('M j, Y') ?: '—'],
+            ] as [$label, $value])
+                <div class="bg-white px-5 py-4"><dt class="text-xs font-medium text-slate-500">{{ $label }}</dt><dd class="mt-1 truncate text-sm font-semibold text-slate-800">{{ $value }}</dd></div>
+            @endforeach
+        </dl>
+    </section>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Favorite Products</h3>
-            <div class="mt-4 space-y-3 text-sm">
-                @forelse($customer['favorite_products'] as $product)
-                    <div class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
-                        <span class="text-slate-700">{{ $product['name'] }}</span>
-                        <span class="font-semibold text-slate-900">{{ $product['count'] }} purchase{{ $product['count'] === 1 ? '' : 's' }}</span>
-                    </div>
+    <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.5fr)] xl:items-start">
+        <section class="lp-card overflow-hidden" aria-labelledby="purchase-history-heading">
+            <header class="border-b border-slate-200 px-5 py-4"><p class="lp-eyebrow">Timeline</p><h2 id="purchase-history-heading" class="lp-section-title mt-1">Purchase history</h2></header>
+            <div class="divide-y divide-slate-100">
+                @forelse($customer['purchase_history'] as $row)
+                    <article class="grid gap-3 px-5 py-4 sm:grid-cols-[110px_minmax(0,1fr)_auto] sm:items-center">
+                        <time class="text-xs font-medium text-slate-500">{{ $row['date']->format('M j, Y') }}</time>
+                        <div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-800">{{ $row['product'] }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $row['status'] }}</p></div>
+                        <span class="text-sm font-semibold tabular-nums text-slate-950">{{ \App\Support\Money::format((string) $row['amount'], $currency) }}</span>
+                    </article>
                 @empty
-                    <p class="text-slate-500">No favorite products yet.</p>
+                    <x-ui.empty-state title="No purchases yet" description="Completed orders will appear in this timeline." icon="shopping-bag" class="border-0" />
                 @endforelse
             </div>
-        </div>
+        </section>
+
+        <aside class="lp-card p-5 sm:p-6">
+            <p class="lp-eyebrow">Buying pattern</p>
+            <h2 class="lp-section-title mt-1">Favourite products</h2>
+            <div class="mt-4 divide-y divide-slate-100">
+                @forelse($customer['favorite_products'] as $product)
+                    <div class="flex items-center justify-between gap-3 py-3"><span class="min-w-0 truncate text-sm font-medium text-slate-700">{{ $product['name'] }}</span><x-ui.badge>{{ $product['count'] }} bought</x-ui.badge></div>
+                @empty
+                    <p class="py-6 text-sm text-slate-500">More purchase history is needed to identify favourites.</p>
+                @endforelse
+            </div>
+            <div class="mt-5 border-t border-slate-200 pt-4"><p class="text-xs text-slate-500">Last purchase</p><p class="mt-1 text-sm font-semibold text-slate-800">{{ $customer['last_purchase_at']?->format('M j, Y') ?: 'No purchase date' }}</p></div>
+        </aside>
     </div>
 @endsection

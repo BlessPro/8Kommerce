@@ -1,28 +1,32 @@
-@php($title = 'Coupons')
+@php
+    $title = 'Coupons';
+    $latestCoupon = $coupons->first();
+@endphp
 @extends('layouts.dashboard')
 
 @section('content')
+    <x-ui.page-header title="Coupons" description="Create clear, controlled discounts and monitor how often each code is used.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="shopping-bag" :href="route('products.orders')">Orders</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
     @if(session('status') === 'coupon-created')
-        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            Coupon created successfully.
-        </div>
+        <x-ui.alert tone="success" title="Coupon created" class="mt-5">The new discount is available for eligible checkouts.</x-ui.alert>
     @endif
     @if(session('status') === 'coupon-updated')
-        <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            Coupon status updated.
-        </div>
+        <x-ui.alert tone="info" title="Coupon updated" class="mt-5">The availability of this code has changed.</x-ui.alert>
     @endif
 
-    @if($coupons->count())
-        @php($latestCoupon = $coupons->first())
-        <section class="mb-6 rounded-lg border border-indigo-200 bg-indigo-50/70 p-5">
-            <p class="lp-eyebrow text-indigo-700">Latest coupon</p>
+    @if($latestCoupon)
+        <section class="lp-card mt-6 border-indigo-200 bg-indigo-50/50 p-5">
+            <p class="lp-eyebrow text-indigo-700">Newest coupon</p>
             <div class="mt-2 flex flex-wrap items-center justify-between gap-4"><div><p class="font-mono text-xl font-bold tracking-wide text-slate-900">{{ $latestCoupon->code }}</p><p class="mt-1 text-sm text-slate-600">{{ $latestCoupon->discount_type === \App\Models\Coupon::TYPE_PERCENT ? rtrim(rtrim(number_format((float) $latestCoupon->discount_value, 2), '0'), '.').'%' : \App\Support\Money::format((string) $latestCoupon->discount_value, config('services.paystack.currency', 'GHS')) }} off · {{ $latestCoupon->is_active ? 'Active' : 'Inactive' }}</p></div><span class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-indigo-700">Used {{ $latestCoupon->used_count }}{{ $latestCoupon->usage_limit ? '/'.$latestCoupon->usage_limit : '' }}</span></div>
         </section>
     @endif
 
-    <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <section class="lp-card p-5 sm:p-6">
             <h2 class="text-lg font-semibold text-slate-900">Create coupon</h2>
             <p class="mt-1 text-sm text-slate-500">Use codes to drive conversions on cart checkout.</p>
             <form method="POST" action="{{ route('coupons.store') }}" class="mt-5 grid gap-3 sm:grid-cols-2" data-form-draft="coupon-create-{{ auth()->id() }}" data-form-clear-on-load="{{ session('status') === 'coupon-created' ? '1' : '0' }}">
@@ -68,17 +72,15 @@
                     <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
                     Active immediately
                 </label>
-                <button type="submit" class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 sm:col-span-2">
-                    Create coupon
-                </button>
+                <x-ui.button type="submit" icon="plus" class="sm:col-span-2">Create coupon</x-ui.button>
             </form>
         </section>
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold text-slate-900">Existing coupons</h2>
-            <div class="mt-4 space-y-3">
+        <section class="lp-card overflow-hidden">
+            <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><p class="lp-eyebrow">Discount library</p><h2 class="mt-1 text-lg font-semibold text-slate-900">Existing coupons</h2></div><x-ui.badge>{{ $coupons->total() }} total</x-ui.badge></header>
+            <div class="divide-y divide-slate-100">
                 @forelse($coupons as $coupon)
-                    <div class="rounded-xl border border-slate-100 p-4">
+                    <article class="p-5">
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="text-sm font-semibold text-slate-900">{{ $coupon->code }}</p>
@@ -91,7 +93,7 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="is_active" value="{{ $coupon->is_active ? 0 : 1 }}">
-                                <button type="submit" class="rounded-full border px-3 py-1 text-xs font-semibold {{ $coupon->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-700' }}">
+                                <button type="submit" class="rounded-md border px-3 py-1.5 text-xs font-semibold {{ $coupon->is_active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700' }}">
                                     {{ $coupon->is_active ? 'Deactivate' : 'Activate' }}
                                 </button>
                             </form>
@@ -100,12 +102,12 @@
                             Min: {{ $coupon->min_order_amount ? \App\Support\Money::format((string) $coupon->min_order_amount, config('services.paystack.currency', 'GHS')) : 'None' }}
                             · Max discount: {{ $coupon->max_discount ? \App\Support\Money::format((string) $coupon->max_discount, config('services.paystack.currency', 'GHS')) : 'None' }}
                         </p>
-                    </div>
+                    </article>
                 @empty
-                    <p class="text-sm text-slate-500">No coupons yet.</p>
+                    <x-ui.empty-state title="No coupons yet" description="Create a controlled discount for your next campaign." icon="ticket" class="border-0" />
                 @endforelse
             </div>
-            <div class="mt-6">
+            <div class="border-t border-slate-200 px-5 py-4">
                 {{ $coupons->links() }}
             </div>
         </section>

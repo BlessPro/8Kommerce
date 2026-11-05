@@ -10,48 +10,39 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <h2 class="text-lg font-semibold text-slate-900">Billing</h2>
-            <p class="mt-1 text-sm text-slate-600">Manage your subscription plan.</p>
-        </div>
-        <a href="{{ route('pricing') }}" class="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-emerald-200 hover:text-emerald-700">
-            View pricing
-        </a>
-    </div>
+    <x-ui.page-header title="Plan and billing" description="See what is active, compare limits, and manage renewal without losing track of access." eyebrow="Account plan" class="mb-6">
+        <x-slot:actions><x-ui.button :href="route('pricing')" variant="secondary" icon="external-link">View public pricing</x-ui.button></x-slot:actions>
+    </x-ui.page-header>
 
     @if(session('status') === 'plan-activated')
-        <div class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800">
-            Plan activated.
-        </div>
+        <x-ui.alert tone="success" title="Plan activated">Your new plan and limits are ready to use.</x-ui.alert>
     @endif
 
     @if(session('status') === 'subscription-active')
-        <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800">Your subscription is active.</div>
+        <x-ui.alert tone="success" title="Subscription active">Your recurring subscription is active.</x-ui.alert>
     @elseif(session('status') === 'subscription-cancelled')
-        <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">Renewal cancelled. Access continues until the end of the paid period.</div>
+        <x-ui.alert tone="warning" title="Renewal cancelled">Access continues until the end of the paid period.</x-ui.alert>
     @elseif(session('status') === 'subscription-reactivated')
-        <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800">Automatic renewal has been restored.</div>
+        <x-ui.alert tone="success" title="Renewal restored">Automatic renewal has been restored.</x-ui.alert>
     @endif
-    @if(session('billing_required'))<div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">{{ session('billing_required') }}</div>@endif
-    @if($errors->any())<div class="mt-6 rounded-lg border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">{{ $errors->first() }}</div>@endif
+    @if(session('billing_required'))<x-ui.alert tone="warning" class="mt-4">{{ session('billing_required') }}</x-ui.alert>@endif
+    @if($errors->any())<x-ui.alert tone="danger" title="Billing action could not be completed" class="mt-4">{{ $errors->first() }}</x-ui.alert>@endif
 
     @if(! $recurringBillingEnabled && ! $manualActivationEnabled)
-        <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            <p class="font-semibold">Online subscription checkout is not active yet.</p>
-            <p class="mt-1 text-amber-800">Your current access remains unchanged. Plan selection will open after recurring billing and renewal webhooks are configured.</p>
-        </div>
+        <x-ui.alert tone="warning" title="Online checkout is not active yet" class="mt-4">
+            Your current access remains unchanged. Plan selection will open after recurring billing and renewal webhooks are configured.
+        </x-ui.alert>
     @endif
 
     @if($subscription)
-        <section class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subscription</p><h3 class="mt-1 text-lg font-semibold text-slate-950">{{ $subscription->plan_type }} · {{ ucfirst(str_replace('_', ' ', $subscription->status)) }}</h3><p class="mt-1 text-sm text-slate-600">{{ $subscription->billing_email }}@if($subscription->current_period_end) · Paid access through {{ $subscription->current_period_end->toFormattedDateString() }}@endif</p>@if($subscription->status === 'past_due' && $subscription->grace_ends_at)<p class="mt-2 text-sm font-semibold text-rose-700">Payment failed. Grace period ends {{ $subscription->grace_ends_at->toFormattedDateString() }}.</p>@endif</div><div>@if($subscription->status === 'active')<form method="POST" action="{{ route('billing.cancel') }}" onsubmit="return confirm('Cancel automatic renewal? Your access will continue until the paid period ends.')">@csrf<button class="lp-button-secondary">Cancel renewal</button></form>@elseif($subscription->status === 'non_renewing')<form method="POST" action="{{ route('billing.reactivate') }}">@csrf<button class="lp-button-brand">Restore renewal</button></form>@endif</div></div>
+        <section class="lp-card mb-6 p-5 sm:p-6">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><p class="lp-eyebrow">Recurring subscription</p><x-ui.badge :tone="$subscription->status === 'active' ? 'success' : ($subscription->status === 'past_due' ? 'danger' : 'warning')">{{ ucfirst(str_replace('_', ' ', $subscription->status)) }}</x-ui.badge></div><h3 class="mt-2 text-xl font-semibold text-slate-950">{{ $subscription->plan_type }} plan</h3><p class="mt-1 text-sm text-slate-600">Billing notices go to {{ $subscription->billing_email }}@if($subscription->current_period_end) · Access paid through {{ $subscription->current_period_end->toFormattedDateString() }}@endif</p>@if($subscription->status === 'past_due' && $subscription->grace_ends_at)<p class="mt-2 text-sm font-semibold text-rose-700">Payment failed. Grace period ends {{ $subscription->grace_ends_at->toFormattedDateString() }}.</p>@endif</div><div>@if($subscription->status === 'active')<form method="POST" action="{{ route('billing.cancel') }}" onsubmit="return confirm('Cancel automatic renewal? Your access will continue until the paid period ends.')">@csrf<x-ui.button type="submit" variant="secondary">Cancel renewal</x-ui.button></form>@elseif($subscription->status === 'non_renewing')<form method="POST" action="{{ route('billing.reactivate') }}">@csrf<x-ui.button type="submit" icon="activity">Restore renewal</x-ui.button></form>@endif</div></div>
         </section>
     @endif
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Current status</p>
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="lp-card p-6 lg:col-span-1">
+            <div class="flex items-center justify-between"><div><p class="lp-eyebrow">Current access</p><h2 class="mt-1 text-lg font-semibold text-slate-950">{{ $user->planDisplayName() }}</h2></div><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800"><x-ui.icon name="credit-card" /></span></div>
             <div class="mt-3 space-y-2 text-sm text-slate-700">
                 <div class="flex items-center justify-between">
                     <span class="text-slate-500">Plan</span>
@@ -74,9 +65,10 @@
                     <span class="font-semibold text-slate-900">{{ $user->plan_ends_at?->toFormattedDateString() ?: '--' }}</span>
                 </div>
             </div>
+            <div class="mt-5 border-t border-slate-200 pt-4"><p class="text-xs leading-5 text-slate-500">Plan changes take effect through the secure Paystack checkout. Your login email is not changed.</p></div>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+        <div class="lp-card p-5 sm:p-6 lg:col-span-2">
             <div class="flex items-center justify-between">
                 <h3 class="text-base font-semibold text-slate-900">Switch plan</h3>
                 <span class="text-xs font-semibold text-slate-500">Monthly subscription</span>
@@ -87,7 +79,7 @@
                     @php
                         $cfg = $plan['cfg'];
                     @endphp
-                    <div class="rounded-2xl border {{ $plan['code'] === \App\Models\User::PLAN_GROWTH ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white' }} p-5">
+                    <div class="relative rounded-lg border {{ $plan['code'] === \App\Models\User::PLAN_GROWTH ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white' }} p-5">
                         <div class="flex items-center justify-between">
                             <p class="text-sm font-semibold text-slate-900">{{ $cfg['name'] ?? $plan['code'] }}</p>
                             <p class="text-sm font-semibold text-slate-700">{{ $cfg['price_text'] ?? '' }}</p>
@@ -99,7 +91,7 @@
                             <li>Fee: {{ data_get($cfg, 'transaction_fee', '--') }}</li>
                         </ul>
                         @if($plan['code'] === $user->normalizedPlanType() && $user->hasActivePlan())
-                            <div class="mt-4 min-h-10 w-full rounded-md bg-emerald-50 px-4 py-2 text-center text-xs font-semibold text-emerald-800">Current plan</div>
+                            <div class="mt-4 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-emerald-100 px-4 py-2 text-center text-xs font-semibold text-emerald-900"><x-ui.icon name="circle-check" size="xs" />Current plan</div>
                         @elseif($recurringBillingEnabled && in_array($plan['code'], $configuredPlans, true))
                             <form method="POST" action="{{ route('billing.checkout', ['plan' => $plan['code']]) }}" class="mt-4 space-y-2">
                                 @csrf
@@ -128,6 +120,6 @@
     </div>
 
     @if($invoices->isNotEmpty())
-        <section class="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white"><div class="border-b border-slate-200 px-5 py-4"><h3 class="font-semibold text-slate-950">Billing history</h3></div><div class="divide-y divide-slate-100">@foreach($invoices as $invoice)<div class="grid gap-2 px-5 py-4 text-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"><div><p class="font-medium text-slate-800">{{ $invoice->reference ?: $invoice->provider_invoice_code ?: 'Subscription invoice' }}</p><p class="text-xs text-slate-500">{{ $invoice->created_at->toFormattedDateString() }}</p></div><span class="font-semibold text-slate-800">{{ $invoice->currency }} {{ number_format((float) $invoice->amount, 2) }}</span><span class="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{{ ucfirst($invoice->status) }}</span><a href="{{ route('billing.receipt', $invoice) }}" class="text-xs font-semibold text-emerald-700">Receipt</a></div>@endforeach</div></section>
+        <section class="lp-card mt-6 overflow-hidden"><div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><p class="lp-eyebrow">Receipts</p><h3 class="mt-1 font-semibold text-slate-950">Billing history</h3></div><x-ui.icon name="receipt" class="text-slate-400" /></div><div class="divide-y divide-slate-100">@foreach($invoices as $invoice)<div class="grid gap-2 px-5 py-4 text-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"><div><p class="font-medium text-slate-800">{{ $invoice->reference ?: $invoice->provider_invoice_code ?: 'Subscription invoice' }}</p><p class="text-xs text-slate-500">{{ $invoice->created_at->toFormattedDateString() }}</p></div><span class="font-semibold text-slate-800">{{ $invoice->currency }} {{ number_format((float) $invoice->amount, 2) }}</span><x-ui.badge :tone="$invoice->status === 'paid' ? 'success' : 'neutral'">{{ ucfirst($invoice->status) }}</x-ui.badge><a href="{{ route('billing.receipt', $invoice) }}" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">Open receipt <x-ui.icon name="arrow-right" size="xs" /></a></div>@endforeach</div></section>
     @endif
 @endsection

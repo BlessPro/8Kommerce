@@ -18,13 +18,20 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="max-w-4xl lp-card p-5 sm:p-6">
-        <h1 class="lp-page-heading">Add products</h1>
-        <p class="mt-1 text-sm text-slate-500">You can upload multiple products at once.</p>
+    <x-ui.page-header title="Add products" description="Build your catalogue one item at a time or prepare several products in one upload.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="filter" :href="route('product-categories.index')">Manage categories</x-ui.button>
+            <x-ui.button variant="ghost" icon="arrow-left" :href="route('products.index')">Products</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
+    <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
+    <section class="lp-card p-5 sm:p-6">
+        <div class="flex items-start gap-3"><span class="lp-icon-box"><x-ui.icon name="package" /></span><div><h2 class="text-base font-semibold text-slate-900">Product information</h2><p class="mt-1 text-sm text-slate-500">Fields marked as required must be completed before saving.</p></div></div>
         @error('upload')
             <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ $message }}</div>
         @enderror
-        <div id="upload-summary" class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div id="upload-summary" class="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
             <p class="font-semibold">Upload summary</p>
             <p id="upload-summary-text" class="mt-1 text-xs text-slate-500">No image selected yet.</p>
             <p class="mt-2 text-xs text-slate-500">
@@ -37,7 +44,7 @@
             @csrf
             <div id="product-items" class="space-y-4">
                 @foreach($oldProducts as $index => $item)
-                    <fieldset class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="{{ $index }}">
+                    <fieldset class="rounded-lg border border-slate-200 bg-white p-4 product-item sm:p-5" data-index="{{ $index }}">
                         <div class="mb-3 flex items-center justify-between">
                             <p class="text-sm font-semibold text-slate-800">Product <span class="product-number">{{ $index + 1 }}</span></p>
                             <button type="button" class="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 remove-product" @if($loop->count === 1) hidden @endif>
@@ -103,7 +110,7 @@
             </div>
             <div>
                 <button type="button" id="add-product" class="lp-button-secondary" >
-                    + Next product
+                             Add another product
                 </button>
             </div>
             <div class="hidden items-center gap-4 sm:flex">
@@ -123,10 +130,21 @@
                 </div>
             </div>
         </form>
+    </section>
+    <aside class="lp-card p-5 xl:sticky xl:top-24">
+        <p class="lp-eyebrow">Before you publish</p>
+        <h2 class="mt-1 text-base font-semibold text-slate-900">A stronger product listing</h2>
+        <ol class="mt-4 space-y-4 text-sm text-slate-600">
+            <li class="flex gap-3"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-700">1</span><span>Use a clear name customers will recognise when searching.</span></li>
+            <li class="flex gap-3"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-700">2</span><span>Upload a bright, square image. The storefront will crop it consistently.</span></li>
+            <li class="flex gap-3"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-700">3</span><span>Set the real quantity and a warning point before stock runs out.</span></li>
+        </ol>
+        <div class="mt-5 border-t border-slate-200 pt-4"><p class="text-xs font-semibold text-slate-700">Your progress is protected</p><p class="mt-1 text-xs leading-5 text-slate-500">Draft fields are restored after an accidental refresh on this device.</p></div>
+    </aside>
     </div>
 
     <template id="product-item-template">
-        <fieldset class="rounded-lg border border-slate-200 bg-slate-50/50 p-4 product-item" data-index="__INDEX__">
+        <fieldset class="rounded-lg border border-slate-200 bg-white p-4 product-item sm:p-5" data-index="__INDEX__">
             <div class="mb-3 flex items-center justify-between">
                 <p class="text-sm font-semibold text-slate-800">Product <span class="product-number">__NUMBER__</span></p>
                 <button type="button" class="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 remove-product">

@@ -661,3 +661,147 @@ window.addEventListener('load', () => {
         // ignore
     }
 });
+
+const setupLandingExperience = () => {
+    const hero = document.querySelector('.landing-hero');
+    if (!hero) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.documentElement.classList.add('landing-motion-ready');
+
+    const revealTargets = document.querySelectorAll('[data-reveal], .landing-template-card');
+    if (!reducedMotion && 'IntersectionObserver' in window) {
+        const revealObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-revealed');
+                observer.unobserve(entry.target);
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+        revealTargets.forEach((target) => revealObserver.observe(target));
+    } else {
+        revealTargets.forEach((target) => target.classList.add('is-revealed'));
+    }
+
+    const templateCards = Array.from(document.querySelectorAll('[data-template-card]'));
+    const activateTemplate = (selected) => {
+        templateCards.forEach((card) => {
+            const active = card === selected;
+            card.classList.toggle('is-active', active);
+            card.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    };
+    templateCards.forEach((card) => {
+        card.addEventListener('pointermove', (event) => {
+            const bounds = card.getBoundingClientRect();
+            card.style.setProperty('--pointer-x', `${event.clientX - bounds.left}px`);
+            card.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
+        });
+        card.addEventListener('click', () => activateTemplate(card));
+        card.addEventListener('keydown', (event) => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            activateTemplate(card);
+        });
+    });
+
+    const faqItems = Array.from(document.querySelectorAll('.landing-faq__list details'));
+    faqItems.forEach((item) => {
+        item.addEventListener('toggle', () => {
+            if (!item.open) return;
+            faqItems.forEach((other) => {
+                if (other !== item) other.open = false;
+            });
+        });
+    });
+
+    const storyScreen = document.querySelector('[data-story-screen]');
+    const storySteps = Array.from(document.querySelectorAll('[data-story-step]'));
+    const storyContent = {
+        products: {
+            eyebrow: 'CATALOGUE', title: 'Products and stock', action: 'Add product',
+            metrics: [['Products', '48'], ['Low stock', '4'], ['Store status', 'Live']],
+            rows: [['Essential cotton shirt', '12 in stock'], ['Everyday leather tote', '8 in stock'], ['Amber signature scent', '3 left']],
+        },
+        orders: {
+            eyebrow: 'ORDERS', title: 'Today’s fulfilment', action: 'New order',
+            metrics: [['New', '12'], ['Preparing', '7'], ['Ready', '5']],
+            rows: [['#1048 · Ama Mensah', 'Ready'], ['#1047 · Kojo Frimpong', 'Packing'], ['#1046 · Naa Dedei', 'Paid']],
+        },
+        payments: {
+            eyebrow: 'MONEY', title: 'Payments and invoices', action: 'Create invoice',
+            metrics: [['Today', 'GHS 1.8k'], ['Paid', '18'], ['Pending', '3']],
+            rows: [['Checkout payment', 'GHS 185'], ['Invoice #INV-084', 'GHS 420'], ['Checkout payment', 'GHS 96']],
+        },
+        customers: {
+            eyebrow: 'CUSTOMERS', title: 'Context for every buyer', action: 'View customers',
+            metrics: [['Customers', '126'], ['Returning', '38%'], ['Messages', '6']],
+            rows: [['Ama Mensah', '3 orders'], ['Kojo Frimpong', '2 orders'], ['Naa Dedei', 'New customer']],
+        },
+    };
+    const escapeText = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+    const activateStory = (key) => {
+        const content = storyContent[key];
+        if (!storyScreen || !content || storyScreen.dataset.activeStory === key) return;
+        storyScreen.dataset.activeStory = key;
+        storySteps.forEach((step) => step.classList.toggle('is-active', step.dataset.storyStep === key));
+        storyScreen.classList.remove('is-changing');
+        void storyScreen.offsetWidth;
+        storyScreen.innerHTML = `
+            <div class="landing-story__screen-head"><div><small>${escapeText(content.eyebrow)}</small><h3>${escapeText(content.title)}</h3></div><button type="button" tabindex="-1">${escapeText(content.action)}</button></div>
+            <div class="landing-story__metrics">${content.metrics.map(([label, value]) => `<span><small>${escapeText(label)}</small><strong>${escapeText(value)}</strong></span>`).join('')}</div>
+            <div class="landing-story__rows">${content.rows.map(([label, value]) => `<span><i></i><b>${escapeText(label)}</b><em>${escapeText(value)}</em></span>`).join('')}</div>`;
+        storyScreen.classList.add('is-changing');
+    };
+    storySteps.forEach((step) => {
+        step.addEventListener('mouseenter', () => activateStory(step.dataset.storyStep));
+        step.addEventListener('focus', () => activateStory(step.dataset.storyStep));
+        step.addEventListener('click', () => activateStory(step.dataset.storyStep));
+    });
+    if (!reducedMotion && 'IntersectionObserver' in window && storySteps.length) {
+        const storyObserver = new IntersectionObserver((entries) => {
+            const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (visible) activateStory(visible.target.dataset.storyStep);
+        }, { threshold: [0.35, 0.6, 0.85], rootMargin: '-20% 0px -35% 0px' });
+        storySteps.forEach((step) => storyObserver.observe(step));
+    }
+
+    const stepsSection = document.querySelector('[data-landing-steps]');
+    if (stepsSection && 'IntersectionObserver' in window && !reducedMotion) {
+        const stepObserver = new IntersectionObserver((entries, observer) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            stepsSection.classList.add('is-visible');
+            observer.disconnect();
+        }, { threshold: 0.25 });
+        stepObserver.observe(stepsSection);
+    } else {
+        stepsSection?.classList.add('is-visible');
+    }
+
+    if (!reducedMotion && window.matchMedia('(pointer: fine)').matches) {
+        const showcase = hero.querySelector('.landing-device-showcase');
+        const floaters = showcase?.querySelectorAll('[data-ai-float]');
+        showcase?.addEventListener('pointermove', (event) => {
+            const bounds = showcase.getBoundingClientRect();
+            const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+            const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+            showcase.style.setProperty('--parallax-x', `${x * 10}px`);
+            showcase.style.setProperty('--parallax-y', `${y * 8}px`);
+            floaters?.forEach((floater, index) => {
+                const depth = 0.55 + (index * 0.18);
+                floater.style.setProperty('--float-x', `${x * 15 * depth}px`);
+                floater.style.setProperty('--float-y', `${y * 12 * depth}px`);
+            });
+        });
+        showcase?.addEventListener('pointerleave', () => {
+            showcase.style.setProperty('--parallax-x', '0px');
+            showcase.style.setProperty('--parallax-y', '0px');
+            floaters?.forEach((floater) => {
+                floater.style.setProperty('--float-x', '0px');
+                floater.style.setProperty('--float-y', '0px');
+            });
+        });
+    }
+};
+
+setupLandingExperience();

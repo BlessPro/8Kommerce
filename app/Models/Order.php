@@ -25,6 +25,12 @@ class Order extends Model
 
     public const STATUS_DELIVERED = 'DELIVERED';
 
+    public const STATUS_DELIVERY_ATTEMPTED = 'DELIVERY_ATTEMPTED';
+
+    public const STATUS_DELIVERY_RESCHEDULED = 'DELIVERY_RESCHEDULED';
+
+    public const STATUS_RETURNED = 'RETURNED';
+
     public const STATUS_CANNOT_FULFILL = 'CANNOT_FULFILL';
 
     public const STATUS_COMPLETED = 'COMPLETED';
@@ -61,12 +67,19 @@ class Order extends Model
         'status',
         'payment_status',
         'refund_status',
+        'refund_requested_amount',
+        'refund_reason',
         'customer_name',
         'customer_phone',
         'customer_location',
         'delivery_required',
         'fulfillment_type',
+        'fulfillment_method',
+        'fulfillment_label',
+        'fulfillment_fee',
+        'fulfillment_details',
         'delivery_note',
+        'delivery_failure_reason',
         'subtotal',
         'coupon_code',
         'discount_amount',
@@ -78,7 +91,10 @@ class Order extends Model
         'processing_at',
         'ready_at',
         'shipped_at',
+        'delivery_attempted_at',
+        'rescheduled_for',
         'delivered_at',
+        'returned_at',
         'cancelled_at',
     ];
 
@@ -88,6 +104,8 @@ class Order extends Model
             'delivery_required' => 'boolean',
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',
+            'fulfillment_fee' => 'decimal:2',
+            'refund_requested_amount' => 'decimal:2',
             'total' => 'decimal:2',
             'paid_at' => 'datetime',
             'seller_response_due_at' => 'datetime',
@@ -95,7 +113,10 @@ class Order extends Model
             'processing_at' => 'datetime',
             'ready_at' => 'datetime',
             'shipped_at' => 'datetime',
+            'delivery_attempted_at' => 'datetime',
+            'rescheduled_for' => 'datetime',
             'delivered_at' => 'datetime',
+            'returned_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
     }
@@ -108,6 +129,8 @@ class Order extends Model
             self::STATUS_PROCESSING,
             self::STATUS_READY,
             self::STATUS_SHIPPED,
+            self::STATUS_DELIVERY_ATTEMPTED,
+            self::STATUS_DELIVERY_RESCHEDULED,
             self::STATUS_DELIVERED,
             self::STATUS_COMPLETED,
         ];

@@ -4,20 +4,19 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h2 class="lp-page-heading">Products</h2>
-            <p class="lp-page-description">Manage your catalogue, inventory, sales, and customer demand.</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('products.orders') }}" class="lp-button-secondary">
-                Manage orders
-            </a>
-            <a href="{{ route('products.create') }}" class="lp-button-brand">
-                New product
-            </a>
-        </div>
-    </div>
+    <x-ui.page-header title="Products" description="Manage what customers see, keep stock accurate, and understand what is selling.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="filter" :href="route('product-categories.index')">Categories</x-ui.button>
+            <x-ui.button variant="secondary" icon="shopping-bag" :href="route('products.orders')">Orders</x-ui.button>
+            <x-ui.button icon="plus" :href="route('products.create')">Add products</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
+    @if(session('status'))
+        <x-ui.alert tone="success" title="Catalogue updated" class="mt-5">
+            {{ session('status') === 'products-created' ? session('products_created_count', 1).' products were added.' : 'Your product changes have been saved.' }}
+        </x-ui.alert>
+    @endif
 
     <div class="mt-4 sm:hidden">
         <button type="button" id="stock-filter-open" class="lp-button-secondary min-h-9 px-3 text-xs">
@@ -82,27 +81,15 @@
         </div>
     </div>
 
+    <section class="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Catalogue overview">
+        <x-ui.stat-card label="Product revenue" :value="\App\Support\Money::format($totalRevenue, $currency)" meta="All-time completed sales" icon="credit-card" />
+        <x-ui.stat-card label="Paid orders" :value="$totalOrders" meta="Across products and carts" icon="shopping-bag" />
+        <x-ui.stat-card label="Customers" :value="$totalCustomers" meta="Unique paying contacts" icon="users" />
+    </section>
+
     <div class="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch">
         <div class="flex flex-col h-full gap-6">
-            <div class="lp-card grid overflow-hidden sm:grid-cols-3">
-                <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r">
-                    <p class="lp-eyebrow">Revenue</p>
-                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ \App\Support\Money::format($totalRevenue, $currency) }}</p>
-                    <p class="mt-1 text-xs text-slate-500">All-time product sales</p>
-                </div>
-                <div class="border-b border-slate-200 p-4 sm:border-b-0 sm:border-r">
-                    <p class="lp-eyebrow">Orders</p>
-                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $totalOrders }}</p>
-                    <p class="mt-1 text-xs text-slate-500">Successful payments</p>
-                </div>
-                <div class="p-4">
-                    <p class="lp-eyebrow">Customers</p>
-                    <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $totalCustomers }}</p>
-                    <p class="mt-1 text-xs text-slate-500">Unique contacts</p>
-                </div>
-            </div>
-
-            <div class="flex flex-col flex-1 p-6 bg-white border shadow-sm rounded-2xl border-slate-200">
+            <div class="lp-card flex flex-col flex-1 p-5 sm:p-6">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h3 class="text-lg font-semibold text-slate-900">Product performance</h3>
@@ -159,7 +146,7 @@
         </div>
 
         <div class="flex flex-col h-full gap-6">
-            <div class="p-6 bg-white border shadow-sm rounded-2xl border-slate-200">
+            <div class="lp-card p-5 sm:p-6">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-900">Top products</h3>
                     <a href="#product-list" class="text-xs font-semibold text-emerald-600 hover:text-emerald-500">See more</a>
@@ -187,7 +174,7 @@
                 </div>
             </div>
 
-            <div class="p-6 bg-white border shadow-sm rounded-2xl border-slate-200">
+            <div class="lp-card p-5 sm:p-6">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-900">Stock mix</h3>
                     <span class="text-xs text-slate-400">All products</span>
@@ -205,7 +192,7 @@
                 </div>
             </div>
 
-            <div class="p-6 bg-white border shadow-sm rounded-2xl border-slate-200">
+            <div class="lp-card p-5 sm:p-6">
                 <h3 class="text-sm font-semibold text-slate-900">Export inventory</h3>
                 <form method="POST" action="{{ route('products.exportPdf') }}" class="mt-4 space-y-3" id="export-form">
                     @csrf

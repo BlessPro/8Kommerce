@@ -4,10 +4,16 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+    <x-ui.page-header title="Edit product" description="Update the listing customers see and the stock rules your team relies on.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="external-link" :href="route('public.product', ['product_slug' => $product->slug])" target="_blank">View product</x-ui.button>
+            <x-ui.button variant="ghost" icon="arrow-left" :href="route('products.index')">Products</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:items-start">
         <div class="lp-card p-5 sm:p-6">
-            <h1 class="lp-page-heading">Edit product</h1>
-            <p class="lp-page-description">Update the product details customers see and the stock rules your team uses.</p>
+            <div class="flex items-start gap-3"><span class="lp-icon-box"><x-ui.icon name="edit" /></span><div><h2 class="text-base font-semibold text-slate-900">Product information</h2><p class="mt-1 text-sm text-slate-500">Changes appear on your storefront after you save.</p></div></div>
             <form class="mt-6 space-y-5" method="POST" action="{{ route('products.update', $product) }}" enctype="multipart/form-data" data-form-draft="product-edit-{{ $product->id }}-{{ auth()->id() }}">
             @csrf
             @method('PUT')
@@ -92,8 +98,9 @@
                 </div>
             </form>
         </div>
-        <aside class="lp-card p-5 sm:p-6">
-            <h3 class="text-lg font-semibold text-slate-900">Product insights (30 days)</h3>
+        <aside class="lp-card p-5 sm:p-6 lg:sticky lg:top-24">
+            <p class="lp-eyebrow">Last 30 days</p>
+            <h3 class="mt-1 text-lg font-semibold text-slate-900">Product insights</h3>
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <div class="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
                     <p class="text-xs text-slate-400">Impressions</p>

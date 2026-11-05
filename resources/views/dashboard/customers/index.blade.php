@@ -1,204 +1,120 @@
 @php
     $title = 'Customers';
+    $statusTone = fn (string $status) => match($status) {
+        'Loyal' => 'success',
+        'Inactive' => 'danger',
+        default => 'info',
+    };
 @endphp
 @extends('layouts.dashboard')
 
 @section('content')
-    <div>
-        <h2 class="lp-page-heading">Customers</h2>
-        <p class="lp-page-description">Track customer value, retention, and activity from real transactions.</p>
+    <x-ui.page-header title="Customers" description="Understand who buys from you, recognise loyal customers, and follow recent activity.">
+        <x-slot:actions>
+            <x-ui.button variant="secondary" icon="shopping-bag" :href="route('products.orders')">View orders</x-ui.button>
+            <x-ui.button icon="plus" :href="route('invoices.create')">Create payment link</x-ui.button>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-        <div class="lp-card mt-5 grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
-            <div class="border-b border-r border-slate-200 p-4 lg:border-b-0">
-                <p class="lp-eyebrow">Total customers</p>
-                <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $overview['totalCustomers'] }}</p>
-                <p class="text-xs text-emerald-700">+{{ $overview['newThisMonth'] }} this month</p>
-            </div>
-            <div class="border-b border-slate-200 p-4 lg:border-b-0 lg:border-r">
-                <p class="lp-eyebrow">Returning customers</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">{{ $overview['returningCustomers'] }}</p>
-                <p class="text-xs text-slate-600">{{ number_format($overview['returnRate'], 1) }}% return rate</p>
-            </div>
-            <div class="border-r border-slate-200 p-4">
-                <p class="lp-eyebrow">Average customer value</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">{{ \App\Support\Money::format((string) $overview['avgCustomerValue'], $currency) }}</p>
-            </div>
-            <div class="p-4">
-                <p class="lp-eyebrow">Orders per customer</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">{{ number_format($overview['ordersPerCustomer'], 1) }}</p>
-            </div>
-        </div>
-    </div>
+    <section class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Customer overview">
+        <x-ui.stat-card label="Total customers" :value="$overview['totalCustomers']" :meta="'+' . $overview['newThisMonth'] . ' this month'" icon="users" />
+        <x-ui.stat-card label="Returning" :value="$overview['returningCustomers']" :meta="number_format($overview['returnRate'], 1) . '% return rate'" icon="activity" />
+        <x-ui.stat-card label="Average value" :value="\App\Support\Money::format((string) $overview['avgCustomerValue'], $currency)" meta="Across paying customers" icon="credit-card" />
+        <x-ui.stat-card label="Orders per customer" :value="number_format($overview['ordersPerCustomer'], 1)" meta="Average purchase frequency" icon="shopping-bag" />
+    </section>
 
-    <div class="lp-card mt-6 p-4 sm:p-5">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-slate-900">Customer List</h3>
-                <p class="text-sm text-slate-500">Search and filter customers by behavior.</p>
-            </div>
-            <form method="GET" action="{{ route('customers.index') }}" class="flex flex-wrap items-end gap-3">
+    <section class="lp-card mt-6 overflow-hidden" aria-labelledby="customer-list-heading">
+        <header class="border-b border-slate-200 px-5 py-5">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <label class="text-xs uppercase tracking-[0.2em] text-slate-400">Filter</label>
-                    <select name="filter" class="mt-1 rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="all" @selected($filter === 'all')>All Customers</option>
-                        <option value="new" @selected($filter === 'new')>New Customers</option>
-                        <option value="returning" @selected($filter === 'returning')>Returning Customers</option>
-                        <option value="inactive" @selected($filter === 'inactive')>Inactive Customers</option>
-                        <option value="top_spenders" @selected($filter === 'top_spenders')>Top Spenders</option>
-                    </select>
+                    <p class="lp-eyebrow">Customer directory</p>
+                    <h2 id="customer-list-heading" class="lp-section-title mt-1">People who have purchased</h2>
+                    <p class="mt-1 text-sm text-slate-500">{{ $customers->total() }} {{ str('customer')->plural($customers->total()) }} in this view</p>
                 </div>
-                <div>
-                    <label class="text-xs uppercase tracking-[0.2em] text-slate-400">Search</label>
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Name, phone, or email" class="mt-1 w-56 rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
-                </div>
-                <button type="submit" class="lp-button-brand">Apply filters</button>
-            </form>
-        </div>
+                <form method="GET" action="{{ route('customers.index') }}" class="grid gap-3 sm:grid-cols-[170px_minmax(220px,1fr)_auto]">
+                    <label>
+                        <span class="lp-form-label">Segment</span>
+                        <select name="filter" class="lp-form-control mt-1">
+                            <option value="all" @selected($filter === 'all')>All customers</option>
+                            <option value="new" @selected($filter === 'new')>New customers</option>
+                            <option value="returning" @selected($filter === 'returning')>Returning</option>
+                            <option value="inactive" @selected($filter === 'inactive')>Inactive</option>
+                            <option value="top_spenders" @selected($filter === 'top_spenders')>Top spenders</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span class="lp-form-label">Search</span>
+                        <span class="relative mt-1 block">
+                            <x-ui.icon name="search" size="sm" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input type="search" name="search" value="{{ $search }}" placeholder="Name, phone or email" class="lp-form-control w-full pl-9" />
+                        </span>
+                    </label>
+                    <x-ui.button type="submit" variant="secondary" icon="filter" class="self-end">Apply</x-ui.button>
+                </form>
+            </div>
+        </header>
 
-        <div class="mt-4 overflow-x-auto">
+        <div class="hidden overflow-x-auto md:block">
             <table class="min-w-full text-sm">
-                <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                    <tr>
-                        <th class="px-3 py-2">Customer</th>
-                        <th class="px-3 py-2">Orders</th>
-                        <th class="px-3 py-2">Total Spent</th>
-                        <th class="px-3 py-2">Last Order</th>
-                        <th class="px-3 py-2">Status</th>
-                    </tr>
+                <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
+                    <tr><th class="px-5 py-3">Customer</th><th class="px-4 py-3">Orders</th><th class="px-4 py-3">Total spent</th><th class="px-4 py-3">Last order</th><th class="px-4 py-3">Status</th><th class="px-5 py-3"><span class="sr-only">Open</span></th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($customers as $customer)
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-3 py-2">
-                                <a href="{{ route('customers.show', $customer['encoded_key']) }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $customer['name'] }}</a>
-                                <div class="text-xs text-slate-500">{{ $customer['phone'] ?: ($customer['email'] ?: '-') }}</div>
+                        <tr class="transition hover:bg-slate-50/80">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{{ mb_strtoupper(mb_substr($customer['name'], 0, 1)) }}</span><div><a href="{{ route('customers.show', $customer['encoded_key']) }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $customer['name'] }}</a><p class="mt-0.5 text-xs text-slate-500">{{ $customer['phone'] ?: ($customer['email'] ?: 'No contact details') }}</p></div></div>
                             </td>
-                            <td class="px-3 py-2 text-slate-600">{{ $customer['orders_count'] }}</td>
-                            <td class="px-3 py-2 text-slate-600">{{ \App\Support\Money::format((string) $customer['total_spent'], $currency) }}</td>
-                            <td class="px-3 py-2 text-slate-600">{{ $customer['last_purchase_at']?->diffForHumans() ?? '-' }}</td>
-                            <td class="px-3 py-2">
-                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $customer['status'] === 'Loyal' ? 'bg-emerald-50 text-emerald-700' : ($customer['status'] === 'Inactive' ? 'bg-rose-50 text-rose-700' : 'bg-sky-50 text-sky-700') }}">{{ $customer['status'] }}</span>
-                            </td>
+                            <td class="px-4 py-4 tabular-nums text-slate-600">{{ $customer['orders_count'] }}</td>
+                            <td class="px-4 py-4 font-medium tabular-nums text-slate-800">{{ \App\Support\Money::format((string) $customer['total_spent'], $currency) }}</td>
+                            <td class="px-4 py-4 text-slate-600">{{ $customer['last_purchase_at']?->diffForHumans() ?? '—' }}</td>
+                            <td class="px-4 py-4"><x-ui.badge :tone="$statusTone($customer['status'])">{{ $customer['status'] }}</x-ui.badge></td>
+                            <td class="px-5 py-4 text-right"><a href="{{ route('customers.show', $customer['encoded_key']) }}" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">View <x-ui.icon name="arrow-right" size="xs" /></a></td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" class="px-3 py-5 text-center text-slate-500">No customers found.</td>
-                        </tr>
+                        <tr><td colspan="6"><x-ui.empty-state title="No customers found" description="Try a different search or segment. Customers appear here after successful payments." icon="users" class="border-0" /></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="mt-4">{{ $customers->links() }}</div>
-    </div>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Customer Value Segmentation</h3>
-            <div class="mt-4 space-y-3 text-sm">
-                <div class="flex justify-between"><span class="text-slate-600">VIP (&gt; {{ \App\Support\Money::format('500', $currency) }})</span><span class="font-semibold text-slate-900">{{ $segments['vip'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-600">Regular (2-4 orders)</span><span class="font-semibold text-slate-900">{{ $segments['regular'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-600">New (1 order)</span><span class="font-semibold text-slate-900">{{ $segments['new'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-600">Inactive (30+ days)</span><span class="font-semibold text-slate-900">{{ $segments['inactive'] }}</span></div>
-            </div>
+        <div class="divide-y divide-slate-100 md:hidden">
+            @forelse($customers as $customer)
+                <a href="{{ route('customers.show', $customer['encoded_key']) }}" class="block px-5 py-4">
+                    <div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-center gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{{ mb_strtoupper(mb_substr($customer['name'], 0, 1)) }}</span><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-900">{{ $customer['name'] }}</p><p class="truncate text-xs text-slate-500">{{ $customer['phone'] ?: ($customer['email'] ?: 'No contact details') }}</p></div></div><x-ui.badge :tone="$statusTone($customer['status'])">{{ $customer['status'] }}</x-ui.badge></div>
+                    <div class="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p class="text-slate-400">Orders</p><p class="mt-1 font-semibold text-slate-800">{{ $customer['orders_count'] }}</p></div><div><p class="text-slate-400">Spent</p><p class="mt-1 font-semibold text-slate-800">{{ \App\Support\Money::format((string) $customer['total_spent'], $currency) }}</p></div><div><p class="text-slate-400">Last order</p><p class="mt-1 font-semibold text-slate-800">{{ $customer['last_purchase_at']?->diffForHumans() ?? '—' }}</p></div></div>
+                </a>
+            @empty
+                <x-ui.empty-state title="No customers found" description="Try a different search or segment." icon="users" class="border-0" />
+            @endforelse
         </div>
+        @if($customers->hasPages())<div class="border-t border-slate-200 px-5 py-4">{{ $customers->links() }}</div>@endif
+    </section>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <h3 class="text-lg font-semibold text-slate-900">Top Customers</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Customer</th>
-                            <th class="px-3 py-2">Orders</th>
-                            <th class="px-3 py-2">Revenue</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($topCustomers as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['name'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['orders_count'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ \App\Support\Money::format((string) $row['total_spent'], $currency) }}</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="px-3 py-5 text-center text-slate-500">No customer spend data yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    <section class="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]" aria-label="Customer insights">
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow">Relationship health</p><h2 class="lp-section-title mt-1">Customer segments</h2></div><x-ui.icon name="users" class="text-slate-400" /></div>
+            <div class="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200">
+                @foreach([
+                    ['VIP customers', $segments['vip'], 'Spend over '.\App\Support\Money::format('500', $currency)],
+                    ['Regulars', $segments['regular'], 'Two to four orders'],
+                    ['New customers', $segments['new'], 'First purchase'],
+                    ['Inactive', $segments['inactive'], 'No order in 30 days'],
+                ] as [$label, $value, $meta])
+                    <div class="bg-white p-4"><p class="text-xs font-medium text-slate-500">{{ $label }}</p><p class="mt-2 text-xl font-semibold text-slate-950">{{ $value }}</p><p class="mt-1 text-xs text-slate-400">{{ $meta }}</p></div>
+                @endforeach
             </div>
-        </div>
-    </div>
+        </article>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Customer Growth</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">Month</th>
-                            <th class="px-3 py-2">New Customers</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @foreach($growth as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['month'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['count'] }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Customer Retention</h3>
-            <div class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-slate-600">Total Customers</span><span class="font-semibold text-slate-900">{{ $retention['total'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-600">Returning Customers</span><span class="font-semibold text-slate-900">{{ $retention['returning'] }}</span></div>
-                <div class="flex justify-between"><span class="text-slate-600">Retention Rate</span><span class="font-semibold text-emerald-700">{{ number_format($retention['rate'], 1) }}%</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Recently Active Customers</h3>
-            <div class="mt-4 space-y-3 text-sm">
-                @forelse($recentlyActive as $row)
-                    <div class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
-                        <span class="font-medium text-slate-700">{{ $row['name'] }}</span>
-                        <span class="text-slate-500">{{ $row['last_activity_at']?->diffForHumans() ?? '-' }}</span>
-                    </div>
+        <article class="lp-card p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow">Highest lifetime value</p><h2 class="lp-section-title mt-1">Top customers</h2></div><x-ui.icon name="target" class="text-slate-400" /></div>
+            <div class="mt-4 divide-y divide-slate-100">
+                @forelse($topCustomers->take(5) as $row)
+                    <a href="{{ route('customers.show', $row['encoded_key']) }}" class="flex items-center justify-between gap-4 py-3"><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-800">{{ $row['name'] }}</p><p class="text-xs text-slate-500">{{ $row['orders_count'] }} {{ str('order')->plural($row['orders_count']) }}</p></div><span class="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{{ \App\Support\Money::format((string) $row['total_spent'], $currency) }}</span></a>
                 @empty
-                    <p class="text-slate-500">No activity yet.</p>
+                    <p class="py-8 text-center text-sm text-slate-500">No customer spend data yet.</p>
                 @endforelse
             </div>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 class="text-lg font-semibold text-slate-900">Customer Location</h3>
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-[0.2em] text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2">City</th>
-                            <th class="px-3 py-2">Customers</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($locations as $row)
-                            <tr>
-                                <td class="px-3 py-2 text-slate-700">{{ $row['city'] }}</td>
-                                <td class="px-3 py-2 text-slate-600">{{ $row['count'] }}</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="2" class="px-3 py-5 text-center text-slate-500">No location data yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+        </article>
+    </section>
 @endsection
