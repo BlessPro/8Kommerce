@@ -27,6 +27,7 @@ class BillingController extends Controller
             'plans' => config('plans'),
             'manualActivationEnabled' => (bool) config('billing.manual_activation_enabled') && app()->environment('local'),
             'recurringBillingEnabled' => (bool) config('billing.recurring_enabled'),
+            'manualRenewalEnabled' => (bool) config('billing.manual_renewal_enabled'),
             'subscription' => $user->currentSubscription(),
             'invoices' => $user->subscriptionInvoices()->latest()->take(12)->get(),
             'configuredPlans' => collect(config('billing.plan_codes'))->filter()->keys()->all(),
@@ -35,24 +36,42 @@ class BillingController extends Controller
 
     public function checkout(Request $request, string $plan, SubscriptionService $subscriptions, PaystackService $paystack): RedirectResponse
     {
-        abort_unless(config('billing.recurring_enabled'), 404);
+        $manualRenewal = (bool) config('billing.manual_renewal_enabled');
+        $recurring = (bool) config('billing.recurring_enabled');
+        abort_unless($manualRenewal || $recurring, 404);
         $plan = strtoupper(trim($plan));
         $data = $request->validate(['billing_email' => ['required', 'email:rfc', 'max:254']]);
         abort_unless(in_array($plan, [User::PLAN_STARTER, User::PLAN_GROWTH, User::PLAN_ENTERPRISE], true), 404);
 
         $pending = null;
         try {
-            $pending = $subscriptions->createPending($request->user(), $plan, $data['billing_email']);
-            $checkout = $paystack->initializeSubscriptionCheckout(
-                $pending->billing_email,
-                $pending->provider_plan_code,
-                (string) $pending->amount,
-                (string) $pending->currency,
-                $pending->checkout_reference,
-                ['payment_type' => 'subscription', 'subscription_id' => $pending->id, 'user_id' => $pending->user_id, 'plan_type' => $pending->plan_type]
-            );
+            if ($manualRenewal) {
+                $pending = $subscriptions->createManualPending($request->user(), $plan, $data['billing_email']);
+                $checkout = $paystack->initializeManualBillingCheckout(
+                    $pending->billing_email,
+                    (string) $pending->amount,
+                    (string) $pending->currency,
+                    $pending->checkout_reference,
+                    ['payment_type' => 'subscription', 'billing_mode' => 'manual_renewal', 'subscription_id' => $pending->id, 'user_id' => $pending->user_id, 'plan_type' => $pending->plan_type]
+                );
+            } else {
+                $pending = $subscriptions->createPending($request->user(), $plan, $data['billing_email']);
+                $checkout = $paystack->initializeSubscriptionCheckout(
+                    $pending->billing_email,
+                    $pending->provider_plan_code,
+                    (string) $pending->amount,
+                    (string) $pending->currency,
+                    $pending->checkout_reference,
+                    ['payment_type' => 'subscription', 'subscription_id' => $pending->id, 'user_id' => $pending->user_id, 'plan_type' => $pending->plan_type]
+                );
+            }
         } catch (Throwable $exception) {
-            $pending?->update(['status' => Subscription::STATUS_EXPIRED, 'metadata' => ['checkout_error' => true]]);
+            if ($pending) {
+                $pending->update([
+                    'status' => Subscription::STATUS_EXPIRED,
+                    'metadata' => array_merge($pending->metadata ?? [], ['checkout_error' => true]),
+                ]);
+            }
             Log::warning('Subscription checkout initialization failed', ['user_id' => $request->user()->id, 'plan' => $plan, 'message' => $exception->getMessage()]);
             return back()->withErrors(['billing' => $this->checkoutErrorMessage($exception)]);
         }
@@ -150,6 +169,10 @@ class BillingController extends Controller
 
             if (str_contains($providerMessage, 'plan not found') || str_contains($providerMessage, 'invalid plan')) {
                 return 'This subscription plan is not available in the current payment environment. Please contact support.';
+            }
+
+            if (str_contains($providerMessage, 'no active channel')) {
+                return 'No Paystack payment channel is active for this account. Please contact support.';
             }
 
             if ($status >= 500 || $status === 429) {

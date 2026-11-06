@@ -54,4 +54,9 @@ class Subscription extends Model
 
         return $this->status === self::STATUS_PAST_DUE && $this->grace_ends_at?->isFuture();
     }
+
+    public function usesManualRenewal(): bool
+    {
+        return data_get($this->metadata, 'billing_mode') === 'manual_renewal';
+    }
 }

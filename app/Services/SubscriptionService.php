@@ -54,6 +54,28 @@ class SubscriptionService
         ]);
     }
 
+    public function createManualPending(User $user, string $plan, string $email): Subscription
+    {
+        $plan = strtoupper($plan);
+        $config = $this->planConfig($plan);
+
+        return $user->subscriptions()->create([
+            'plan_type' => $plan,
+            'provider' => 'paystack',
+            'provider_plan_code' => null,
+            'checkout_reference' => 'SUB-'.Str::upper(Str::random(24)),
+            'billing_email' => Str::lower($email),
+            'status' => Subscription::STATUS_PENDING,
+            'amount' => number_format((float) ($config['price_monthly'] ?? 0), 2, '.', ''),
+            'currency' => config('services.paystack.currency', 'GHS'),
+            'interval' => 'monthly',
+            'metadata' => [
+                'billing_mode' => 'manual_renewal',
+                'access_days' => (int) config('billing.manual_period_days', 30),
+            ],
+        ]);
+    }
+
     public function findForEvent(array $data, bool $allowEmailFallback = true): ?Subscription
     {
         $subscriptionCode = $this->subscriptionCode($data);
@@ -103,10 +125,27 @@ class SubscriptionService
         }
 
         $paidAt = Carbon::parse(data_get($data, 'paid_at') ?: now());
-        $periodEnd = $this->nextPaymentDate($data) ?: $paidAt->copy()->addMonthNoOverflow();
+        $providerPeriodEnd = $this->nextPaymentDate($data);
 
-        DB::transaction(function () use ($subscription, $data, $paidAt, $periodEnd): void {
+        $activated = DB::transaction(function () use ($subscription, $data, $paidAt, $providerPeriodEnd): bool {
             $subscription = Subscription::query()->lockForUpdate()->findOrFail($subscription->id);
+
+            // A manual renewal represents exactly one payment. Paystack may
+            // deliver both the browser callback and webhook for that payment.
+            if ($subscription->usesManualRenewal() && $subscription->last_payment_at !== null) {
+                return false;
+            }
+
+            $periodEnd = $providerPeriodEnd ?: $paidAt->copy()->addMonthNoOverflow();
+            if ($subscription->usesManualRenewal()) {
+                $days = max(1, (int) data_get($subscription->metadata, 'access_days', config('billing.manual_period_days', 30)));
+                $currentUser = $subscription->user()->lockForUpdate()->firstOrFail();
+                $samePlanStillActive = $currentUser->normalizedPlanType() === $subscription->plan_type
+                    && $currentUser->plan_ends_at?->isFuture();
+                $accessStart = $samePlanStillActive ? $currentUser->plan_ends_at->copy() : $paidAt->copy();
+                $periodEnd = $accessStart->addDays($days);
+            }
+
             $subscription->update([
                 'provider_subscription_code' => $this->subscriptionCode($data) ?: $subscription->provider_subscription_code,
                 'provider_customer_code' => data_get($data, 'customer.customer_code') ?: $subscription->provider_customer_code,
@@ -128,9 +167,18 @@ class SubscriptionService
             ]);
 
             $this->recordInvoice($subscription, $data, 'paid');
+
+            return true;
         });
 
-        $this->grantMonthlyPlacement($subscription->fresh());
+        if ($activated) {
+            $this->grantMonthlyPlacement($subscription->fresh());
+            $this->notify(
+                $subscription->user,
+                'Plan payment confirmed',
+                sprintf('%s is active until %s.', ucfirst(strtolower($subscription->plan_type)), $subscription->fresh()->current_period_end?->toFormattedDateString())
+            );
+        }
     }
 
     public function handleEvent(string $event, array $data): bool
@@ -227,8 +275,62 @@ class SubscriptionService
             ->get()
             ->each(function (Subscription $subscription): void {
                 $subscription->update(['status' => Subscription::STATUS_EXPIRED]);
-                $subscription->user()->update(['plan_ends_at' => now()]);
+                $user = $subscription->user;
+                $latestAccessEnd = $user->subscriptions()
+                    ->whereIn('status', [Subscription::STATUS_ACTIVE, Subscription::STATUS_NON_RENEWING, Subscription::STATUS_PAST_DUE])
+                    ->where(function ($query): void {
+                        $query->where('current_period_end', '>', now())
+                            ->orWhere('grace_ends_at', '>', now());
+                    })
+                    ->get()
+                    ->map(fn (Subscription $active) => $active->grace_ends_at?->isFuture() ? $active->grace_ends_at : $active->current_period_end)
+                    ->filter()
+                    ->max();
+
+                $user->update(['plan_ends_at' => $latestAccessEnd ?: now()]);
             })->count();
+    }
+
+    public function sendManualRenewalReminders(): int
+    {
+        $sent = 0;
+
+        Subscription::query()
+            ->where('status', Subscription::STATUS_ACTIVE)
+            ->whereNotNull('current_period_end')
+            ->whereBetween('current_period_end', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+            ->with('user')
+            ->get()
+            ->each(function (Subscription $subscription) use (&$sent): void {
+                if (! $subscription->usesManualRenewal() || ! $subscription->user) {
+                    return;
+                }
+
+                $days = (int) round(now()->startOfDay()->diffInDays($subscription->current_period_end->copy()->startOfDay(), false));
+                if (! in_array($days, [7, 3, 1], true)) {
+                    return;
+                }
+
+                $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                $reminders = is_array($metadata['renewal_reminders'] ?? null) ? $metadata['renewal_reminders'] : [];
+                $key = $subscription->current_period_end->toDateString().':'.$days;
+                if (in_array($key, $reminders, true)) {
+                    return;
+                }
+
+                $this->notify(
+                    $subscription->user,
+                    'Plan renewal reminder',
+                    "Your {$subscription->user->planDisplayName()} access expires in {$days} day".($days === 1 ? '' : 's').'. Renew from Plan & billing to keep your store active.'
+                );
+
+                $reminders[] = $key;
+                $metadata['renewal_reminders'] = array_values(array_unique($reminders));
+                $subscription->update(['metadata' => $metadata]);
+                $sent++;
+            });
+
+        return $sent;
     }
 
     public function grantDuePlacements(): int

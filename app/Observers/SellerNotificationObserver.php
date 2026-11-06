@@ -26,7 +26,11 @@ class SellerNotificationObserver
         }
 
         $content = trim($notification->title."\n".$notification->body);
-        $content .= "\nOrders: ".route('products.index').'#orders-by-customer';
+        if (data_get($notification->data, 'billing')) {
+            $content .= "\nBilling: ".route('billing.show');
+        } else {
+            $content .= "\nOrders: ".route('products.index').'#orders-by-customer';
+        }
         $orderId = data_get($notification->data, 'order_id');
         if (is_scalar($orderId) && (string) $orderId !== '') {
             $content .= "\nOrder link: ".route('products.index').'#order-'.(string) $orderId;

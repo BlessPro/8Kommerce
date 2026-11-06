@@ -473,6 +473,10 @@ Schedule::call(fn () => app(SubscriptionService::class)->grantDuePlacements())
     ->dailyAt('00:20')
     ->name('subscriptions:grant-monthly-placements')
     ->withoutOverlapping();
+Schedule::call(fn () => app(SubscriptionService::class)->sendManualRenewalReminders())
+    ->dailyAt('08:00')
+    ->name('subscriptions:manual-renewal-reminders')
+    ->withoutOverlapping();
 Schedule::call(fn () => CustomerTrackingSession::query()->where('expires_at', '<=', now())->delete())
     ->dailyAt('03:15')
     ->name('customer-tracking:prune-sessions');
