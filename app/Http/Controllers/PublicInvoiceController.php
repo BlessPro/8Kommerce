@@ -48,7 +48,7 @@ class PublicInvoiceController extends Controller
         }
         $ogImage = Storage::disk('public')->exists($ogPath)
             ? url(Storage::url($ogPath))
-            : url('/images/og-default.jpg');
+            : url('/images/8kommerce-social-preview-v1.jpg');
 
         $currency = config('services.paystack.currency', 'GHS');
 

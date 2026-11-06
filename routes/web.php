@@ -34,6 +34,7 @@ use App\Http\Controllers\PublicOrderTrackingController;
 use App\Http\Controllers\PublicProductController;
 use App\Http\Controllers\SellerProfileController;
 use App\Http\Controllers\SellerPublicPreviewController;
+use App\Http\Controllers\SellerReferralController;
 use App\Http\Controllers\TelemetryController;
 use App\Http\Controllers\TwilioWebhookController;
 use Illuminate\Support\Facades\File;
@@ -105,6 +106,9 @@ Route::post('/pay/{token}', [PublicInvoiceController::class, 'pay'])
     ->middleware('throttle:public-pay')
     ->name('public.invoice.pay');
 Route::get('/p/{product_slug}', [PublicProductController::class, 'show'])->name('public.product');
+Route::get('/invite/{referralLink:code}', [SellerReferralController::class, 'accept'])
+    ->middleware('throttle:60,1')
+    ->name('referrals.accept');
 
 Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])->name('webhooks.paystack');
 Route::post('/webhooks/twilio/status', [TwilioWebhookController::class, 'status'])->name('webhooks.twilio.status');
@@ -124,6 +128,8 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'active_access'])->group(function () {
+    Route::get('/referrals', [SellerReferralController::class, 'index'])->name('referrals.index');
+
     Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding.index');
     Route::post('/onboarding/state', [OnboardingController::class, 'updateState'])
         ->middleware('throttle:60,1')

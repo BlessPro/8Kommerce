@@ -14,28 +14,36 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 
         @php
-            $defaultOgImage = url('/images/og-default.jpg');
+            $defaultOgImage = url('/images/8kommerce-social-preview-v1.jpg');
             $ogTitle = trim($__env->yieldContent('og_title')) ?: $title ?? config('app.name', '8Kommerce');
-            $ogDescription = trim($__env->yieldContent('og_description')) ?: 'Pay by WhatsApp with 8Kommerce';
+            $ogDescription = trim($__env->yieldContent('og_description')) ?: 'Discover products and independent businesses selling with 8Kommerce.';
             $ogImage = trim($__env->yieldContent('og_image')) ?: $defaultOgImage;
             $ogUrl = trim($__env->yieldContent('og_url')) ?: url()->current();
             $ogType = trim($__env->yieldContent('og_type')) ?: 'website';
             $ogWidth = trim($__env->yieldContent('og_image_width')) ?: '1200';
             $ogHeight = trim($__env->yieldContent('og_image_height')) ?: '630';
+            $ogImageType = trim($__env->yieldContent('og_image_type')) ?: 'image/jpeg';
+            $ogImageAlt = trim($__env->yieldContent('og_image_alt')) ?: $ogTitle;
         @endphp
 
         <title>{{ $ogTitle }}</title>
         <meta property="og:title" content="{{ $ogTitle }}">
         <meta property="og:description" content="{{ $ogDescription }}">
         <meta property="og:image" content="{{ $ogImage }}">
+        <meta property="og:image:secure_url" content="{{ $ogImage }}">
+        <meta property="og:image:type" content="{{ $ogImageType }}">
         <meta property="og:image:width" content="{{ $ogWidth }}">
         <meta property="og:image:height" content="{{ $ogHeight }}">
+        <meta property="og:image:alt" content="{{ $ogImageAlt }}">
         <meta property="og:url" content="{{ $ogUrl }}">
         <meta property="og:type" content="{{ $ogType }}">
+        <meta property="og:site_name" content="8Kommerce">
+        <link rel="canonical" href="{{ $ogUrl }}">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="{{ $ogTitle }}">
         <meta name="twitter:description" content="{{ $ogDescription }}">
         <meta name="twitter:image" content="{{ $ogImage }}">
+        <meta name="twitter:image:alt" content="{{ $ogImageAlt }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet" />

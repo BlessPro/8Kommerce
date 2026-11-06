@@ -56,7 +56,7 @@ class PublicProductController extends Controller
 
         $ogImage = Storage::disk('public')->exists($ogPath)
             ? url(Storage::url($ogPath)).'?v='.($product->updated_at?->timestamp ?: time())
-            : url('/images/og-default.jpg');
+            : url('/images/8kommerce-social-preview-v1.jpg');
 
         return view('public.product', [
             'product' => $product,
