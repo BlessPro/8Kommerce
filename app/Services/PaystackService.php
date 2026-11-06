@@ -50,6 +50,30 @@ class PaystackService
         return $response['data'] ?? [];
     }
 
+    public function initializeManualBillingCheckout(
+        string $email,
+        string $amount,
+        string $currency,
+        string $reference,
+        array $metadata
+    ): array {
+        $callbackUrl = (string) config('billing.callback_url');
+        if ($callbackUrl === '') {
+            $callbackUrl = rtrim((string) config('app.url'), '/').'/billing/callback';
+        }
+
+        $response = $this->client()->post('/transaction/initialize', [
+            'email' => $email,
+            'amount' => Money::toMinor($amount),
+            'currency' => strtoupper($currency),
+            'reference' => $reference,
+            'callback_url' => $callbackUrl,
+            'metadata' => $metadata,
+        ])->throw()->json();
+
+        return $response['data'] ?? [];
+    }
+
     public function fetchSubscription(string $code): array
     {
         $response = $this->client()->get('/subscription/'.$code)->throw()->json();

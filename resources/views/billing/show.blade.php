@@ -28,15 +28,21 @@
     @if(session('billing_required'))<x-ui.alert tone="warning" class="mt-4">{{ session('billing_required') }}</x-ui.alert>@endif
     @if($errors->any())<x-ui.alert tone="danger" title="Billing action could not be completed" class="mt-4">{{ $errors->first() }}</x-ui.alert>@endif
 
-    @if(! $recurringBillingEnabled && ! $manualActivationEnabled)
+    @if(! $recurringBillingEnabled && ! $manualRenewalEnabled && ! $manualActivationEnabled)
         <x-ui.alert tone="warning" title="Online checkout is not active yet" class="mt-4">
-            Your current access remains unchanged. Plan selection will open after recurring billing and renewal webhooks are configured.
+            Your current access remains unchanged. Plan selection will open after online billing is configured.
+        </x-ui.alert>
+    @endif
+
+    @if($manualRenewalEnabled)
+        <x-ui.alert tone="info" title="Pay monthly with your preferred channel" class="mt-4">
+            Paystack will show the payment methods active for your account, including Mobile Money where available. Access lasts {{ config('billing.manual_period_days', 30) }} days and does not debit you automatically.
         </x-ui.alert>
     @endif
 
     @if($subscription)
         <section class="lp-card mb-6 p-5 sm:p-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><p class="lp-eyebrow">Recurring subscription</p><x-ui.badge :tone="$subscription->status === 'active' ? 'success' : ($subscription->status === 'past_due' ? 'danger' : 'warning')">{{ ucfirst(str_replace('_', ' ', $subscription->status)) }}</x-ui.badge></div><h3 class="mt-2 text-xl font-semibold text-slate-950">{{ $subscription->plan_type }} plan</h3><p class="mt-1 text-sm text-slate-600">Billing notices go to {{ $subscription->billing_email }}@if($subscription->current_period_end) · Access paid through {{ $subscription->current_period_end->toFormattedDateString() }}@endif</p>@if($subscription->status === 'past_due' && $subscription->grace_ends_at)<p class="mt-2 text-sm font-semibold text-rose-700">Payment failed. Grace period ends {{ $subscription->grace_ends_at->toFormattedDateString() }}.</p>@endif</div><div>@if($subscription->status === 'active')<form method="POST" action="{{ route('billing.cancel') }}" onsubmit="return confirm('Cancel automatic renewal? Your access will continue until the paid period ends.')">@csrf<x-ui.button type="submit" variant="secondary">Cancel renewal</x-ui.button></form>@elseif($subscription->status === 'non_renewing')<form method="POST" action="{{ route('billing.reactivate') }}">@csrf<x-ui.button type="submit" icon="activity">Restore renewal</x-ui.button></form>@endif</div></div>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div class="flex flex-wrap items-center gap-2"><p class="lp-eyebrow">{{ $subscription->usesManualRenewal() ? 'Monthly access' : 'Recurring subscription' }}</p><x-ui.badge :tone="$subscription->status === 'active' ? 'success' : ($subscription->status === 'past_due' ? 'danger' : 'warning')">{{ ucfirst(str_replace('_', ' ', $subscription->status)) }}</x-ui.badge>@if($subscription->usesManualRenewal())<x-ui.badge tone="neutral">Manual renewal</x-ui.badge>@endif</div><h3 class="mt-2 text-xl font-semibold text-slate-950">{{ $subscription->plan_type }} plan</h3><p class="mt-1 text-sm text-slate-600">Billing notices go to {{ $subscription->billing_email }}@if($subscription->current_period_end) · Access paid through {{ $subscription->current_period_end->toFormattedDateString() }}@endif</p>@if($subscription->status === 'past_due' && $subscription->grace_ends_at)<p class="mt-2 text-sm font-semibold text-rose-700">Payment failed. Grace period ends {{ $subscription->grace_ends_at->toFormattedDateString() }}.</p>@endif</div><div>@if(! $subscription->usesManualRenewal() && $subscription->status === 'active')<form method="POST" action="{{ route('billing.cancel') }}" onsubmit="return confirm('Cancel automatic renewal? Your access will continue until the paid period ends.')">@csrf<x-ui.button type="submit" variant="secondary">Cancel renewal</x-ui.button></form>@elseif(! $subscription->usesManualRenewal() && $subscription->status === 'non_renewing')<form method="POST" action="{{ route('billing.reactivate') }}">@csrf<x-ui.button type="submit" icon="activity">Restore renewal</x-ui.button></form>@endif</div></div>
         </section>
     @endif
 
@@ -71,7 +77,7 @@
         <div class="lp-card p-5 sm:p-6 lg:col-span-2">
             <div class="flex items-center justify-between">
                 <h3 class="text-base font-semibold text-slate-900">Switch plan</h3>
-                <span class="text-xs font-semibold text-slate-500">Monthly subscription</span>
+                <span class="text-xs font-semibold text-slate-500">{{ $manualRenewalEnabled ? config('billing.manual_period_days', 30).'-day access' : 'Monthly subscription' }}</span>
             </div>
 
             <div class="mt-6 grid gap-6 md:grid-cols-3">
@@ -90,16 +96,22 @@
                             <li>Team: {{ data_get($cfg, 'limits.team_members', '--') }}</li>
                             <li>Fee: {{ data_get($cfg, 'transaction_fee', '--') }}</li>
                         </ul>
-                        @if($plan['code'] === $user->normalizedPlanType() && $user->hasActivePlan())
+                        @if(! $manualRenewalEnabled && $plan['code'] === $user->normalizedPlanType() && $user->hasActivePlan())
                             <div class="mt-4 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-emerald-100 px-4 py-2 text-center text-xs font-semibold text-emerald-900"><x-ui.icon name="circle-check" size="xs" />Current plan</div>
-                        @elseif($recurringBillingEnabled && in_array($plan['code'], $configuredPlans, true))
+                        @elseif($manualRenewalEnabled || ($recurringBillingEnabled && in_array($plan['code'], $configuredPlans, true)))
                             <form method="POST" action="{{ route('billing.checkout', ['plan' => $plan['code']]) }}" class="mt-4 space-y-2">
                                 @csrf
                                 <label class="block text-xs font-semibold text-slate-600">Billing email</label>
                                 <input type="email" name="billing_email" required autocomplete="email" value="{{ old('billing_email', $subscription?->billing_email ?? $user->email) }}" placeholder="name@example.com" class="w-full rounded-md border-slate-300 text-sm">
-                                <button class="lp-button-brand w-full text-xs">Subscribe securely</button>
-                                <p class="text-[11px] leading-4 text-slate-500">Paystack recurring billing currently requires a supported card. This email is for billing, not login.</p>
-                                @if($subscription?->grantsAccess())<p class="text-[11px] leading-4 text-amber-700">Changing plans charges the new monthly price immediately. We then cancel renewal on the previous plan.</p>@endif
+                                <button class="lp-button-brand w-full text-xs">{{ $manualRenewalEnabled ? ($plan['code'] === $user->normalizedPlanType() && $user->hasActivePlan() ? 'Renew securely' : 'Pay securely') : 'Subscribe securely' }}</button>
+                                <p class="text-[11px] leading-4 text-slate-500">{{ $manualRenewalEnabled ? 'Choose an available Paystack payment method. You will approve each monthly renewal yourself.' : 'Paystack recurring billing currently requires a supported card.' }} This email is for billing, not login.</p>
+                                @if($manualRenewalEnabled && $subscription?->grantsAccess() && $plan['code'] === $user->normalizedPlanType())
+                                    <p class="text-[11px] leading-4 text-emerald-700">Renewing early adds {{ config('billing.manual_period_days', 30) }} days after your current access ends.</p>
+                                @elseif($manualRenewalEnabled && $subscription?->grantsAccess())
+                                    <p class="text-[11px] leading-4 text-amber-700">Changing plans applies immediately after verified payment and starts a new access period.</p>
+                                @elseif($subscription?->grantsAccess())
+                                    <p class="text-[11px] leading-4 text-amber-700">Changing plans charges the new monthly price immediately. We then cancel renewal on the previous plan.</p>
+                                @endif
                             </form>
                         @elseif($manualActivationEnabled)
                             <form method="POST" action="{{ route('billing.activate', ['plan' => $plan['code']]) }}" class="mt-4">

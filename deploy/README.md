@@ -44,6 +44,12 @@ Use the first value for `APP_KEY`, and separate random values for `DB_PASSWORD`
 and `REDIS_PASSWORD`. Configure Paystack, Hubtel, support, plan, and operational
 values directly in `/opt/8kommerce/.env`.
 
+For Ghanaian Mobile Money-friendly package payments, set
+`BILLING_MANUAL_RENEWAL_ENABLED=true` and
+`BILLING_RECURRING_ENABLED=false`. Sellers approve each payment and receive
+the configured number of access days. Paystack plan codes remain available for
+future card-based recurring billing.
+
 ## Pre-launch
 
 Keep `CADDYFILE=./Caddyfile.prelaunch`. This serves only:

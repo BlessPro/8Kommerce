@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendOutboundMessage;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\PaystackService;
 use App\Services\SubscriptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
@@ -17,6 +19,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_seller_can_start_a_configured_subscription_checkout(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', 'PLN_starter');
         $user = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL, 'trial_started_at' => now()->subDays(10), 'trial_ends_at' => now()->subDay()]);
@@ -33,6 +36,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_unconfigured_plan_returns_a_clear_error_instead_of_failing(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', null);
         $user = User::factory()->create();
@@ -77,6 +81,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_provider_plan_mismatch_returns_an_actionable_error(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', 'PLN_wrong_environment');
         config()->set('services.paystack.secret_key', 'sk_test_checkout');
@@ -101,6 +106,169 @@ class SubscriptionBillingTest extends TestCase
             'plan_type' => User::PLAN_STARTER,
             'status' => Subscription::STATUS_EXPIRED,
         ]);
+    }
+
+    public function test_seller_can_start_a_manual_monthly_payment_without_a_paystack_plan_code(): void
+    {
+        config()->set('billing.manual_renewal_enabled', true);
+        config()->set('billing.recurring_enabled', false);
+        config()->set('billing.plan_codes.STARTER', null);
+        config()->set('services.paystack.secret_key', 'sk_test_checkout');
+        Http::fake([
+            'https://api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.test/manual-renewal'],
+            ]),
+        ]);
+        $user = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL]);
+
+        $this->actingAs($user)
+            ->post(route('billing.checkout', User::PLAN_STARTER), ['billing_email' => 'billing@example.com'])
+            ->assertRedirect('https://checkout.paystack.test/manual-renewal');
+
+        $subscription = $user->subscriptions()->firstOrFail();
+        $this->assertTrue($subscription->usesManualRenewal());
+        $this->assertNull($subscription->provider_plan_code);
+        Http::assertSent(fn ($request) => $request['amount'] === 1500
+            && $request['currency'] === 'GHS'
+            && $request['metadata']['billing_mode'] === 'manual_renewal'
+            && ! isset($request['plan'])
+            && ! isset($request['channels']));
+    }
+
+    public function test_verified_manual_payment_activates_exactly_one_access_period(): void
+    {
+        config()->set('billing.manual_period_days', 30);
+        Queue::fake();
+        $paidAt = now()->startOfSecond();
+        $user = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL]);
+        $subscription = app(SubscriptionService::class)->createManualPending($user, User::PLAN_GROWTH, 'billing@example.com');
+        $paystack = Mockery::mock(PaystackService::class);
+        $verification = ['data' => [
+            'status' => 'success', 'reference' => $subscription->checkout_reference,
+            'amount' => 3000, 'currency' => 'GHS', 'paid_at' => $paidAt->toIso8601String(),
+            'metadata' => ['subscription_id' => $subscription->id, 'billing_mode' => 'manual_renewal'],
+            'customer' => ['customer_code' => 'CUS_manual'],
+        ]];
+        $paystack->shouldReceive('verifyTransaction')->twice()->with($subscription->checkout_reference)->andReturn($verification);
+        $this->app->instance(PaystackService::class, $paystack);
+
+        $callback = route('billing.callback', ['reference' => $subscription->checkout_reference]);
+        $this->actingAs($user)->get($callback)->assertRedirect(route('billing.show'));
+        $firstPeriodEnd = $subscription->fresh()->current_period_end;
+        $this->assertTrue($firstPeriodEnd->equalTo($paidAt->copy()->addDays(30)));
+
+        $this->actingAs($user)->get($callback)->assertRedirect(route('billing.show'));
+        $this->assertTrue($subscription->fresh()->current_period_end->equalTo($firstPeriodEnd));
+        $this->assertDatabaseCount('subscription_invoices', 1);
+    }
+
+    public function test_early_manual_renewal_adds_days_after_current_access(): void
+    {
+        config()->set('billing.manual_period_days', 30);
+        Queue::fake();
+        $existingEnd = now()->addDays(8)->startOfSecond();
+        $user = User::factory()->create([
+            'plan_type' => User::PLAN_STARTER,
+            'plan_ends_at' => $existingEnd,
+        ]);
+        $subscription = app(SubscriptionService::class)->createManualPending($user, User::PLAN_STARTER, 'billing@example.com');
+
+        app(SubscriptionService::class)->activateFromCharge($subscription, [
+            'status' => 'success',
+            'reference' => $subscription->checkout_reference,
+            'amount' => 1500,
+            'currency' => 'GHS',
+            'paid_at' => now()->toIso8601String(),
+            'metadata' => ['subscription_id' => $subscription->id],
+        ]);
+
+        $this->assertTrue($subscription->fresh()->current_period_end->equalTo($existingEnd->copy()->addDays(30)));
+        $this->assertTrue($user->fresh()->plan_ends_at->equalTo($existingEnd->copy()->addDays(30)));
+    }
+
+    public function test_active_manual_plan_can_be_renewed_from_billing_page(): void
+    {
+        config()->set('billing.manual_renewal_enabled', true);
+        config()->set('billing.recurring_enabled', false);
+        $user = User::factory()->create([
+            'plan_type' => User::PLAN_STARTER,
+            'plan_ends_at' => now()->addDays(10),
+        ]);
+        $user->subscriptions()->create([
+            'plan_type' => User::PLAN_STARTER,
+            'provider' => 'paystack',
+            'checkout_reference' => 'SUB-MANUAL-ACTIVE',
+            'billing_email' => 'billing@example.com',
+            'status' => Subscription::STATUS_ACTIVE,
+            'amount' => '15.00',
+            'currency' => 'GHS',
+            'interval' => 'monthly',
+            'current_period_start' => now()->subDays(20),
+            'current_period_end' => now()->addDays(10),
+            'metadata' => ['billing_mode' => 'manual_renewal', 'access_days' => 30],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('billing.show'))
+            ->assertOk()
+            ->assertSee('Manual renewal')
+            ->assertSee('Renew securely')
+            ->assertSee('Renewing early adds 30 days');
+    }
+
+    public function test_manual_renewal_reminders_are_sent_once_and_link_to_billing(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create([
+            'plan_type' => User::PLAN_STARTER,
+            'plan_ends_at' => now()->addDays(3),
+            'phone' => '0240000000',
+        ]);
+        $subscription = $user->subscriptions()->create([
+            'plan_type' => User::PLAN_STARTER,
+            'provider' => 'paystack',
+            'checkout_reference' => 'SUB-MANUAL-REMINDER',
+            'billing_email' => 'billing@example.com',
+            'status' => Subscription::STATUS_ACTIVE,
+            'amount' => '15.00',
+            'currency' => 'GHS',
+            'interval' => 'monthly',
+            'current_period_start' => now()->subDays(27),
+            'current_period_end' => now()->addDays(3)->startOfDay(),
+            'metadata' => ['billing_mode' => 'manual_renewal', 'access_days' => 30],
+        ]);
+
+        $service = app(SubscriptionService::class);
+        $this->assertSame(1, $service->sendManualRenewalReminders());
+        $this->assertSame(0, $service->sendManualRenewalReminders());
+        $this->assertDatabaseCount('notifications', 1);
+        Queue::assertPushed(SendOutboundMessage::class, fn ($job) => str_contains($job->message, route('billing.show')));
+        $this->assertCount(1, data_get($subscription->fresh()->metadata, 'renewal_reminders', []));
+    }
+
+    public function test_expiring_an_old_payment_does_not_end_newer_access(): void
+    {
+        $futureEnd = now()->addDays(20)->startOfSecond();
+        $user = User::factory()->create([
+            'plan_type' => User::PLAN_GROWTH,
+            'plan_ends_at' => $futureEnd,
+        ]);
+        $base = [
+            'user_id' => $user->id,
+            'plan_type' => User::PLAN_GROWTH,
+            'provider' => 'paystack',
+            'billing_email' => 'billing@example.com',
+            'amount' => '30.00',
+            'currency' => 'GHS',
+            'interval' => 'monthly',
+            'metadata' => ['billing_mode' => 'manual_renewal'],
+        ];
+        Subscription::create([...$base, 'checkout_reference' => 'SUB-OLD', 'status' => Subscription::STATUS_ACTIVE, 'current_period_end' => now()->subMinute()]);
+        Subscription::create([...$base, 'checkout_reference' => 'SUB-NEW', 'status' => Subscription::STATUS_ACTIVE, 'current_period_end' => $futureEnd]);
+
+        $this->assertSame(1, app(SubscriptionService::class)->expireStale());
+        $this->assertTrue($user->fresh()->plan_ends_at->equalTo($futureEnd));
     }
 
     public function test_verified_callback_activates_plan_and_records_invoice(): void
