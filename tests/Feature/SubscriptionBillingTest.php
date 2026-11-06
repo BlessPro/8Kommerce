@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\PaystackService;
 use App\Services\SubscriptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
 
@@ -21,13 +22,85 @@ class SubscriptionBillingTest extends TestCase
         $user = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL, 'trial_started_at' => now()->subDays(10), 'trial_ends_at' => now()->subDay()]);
 
         $paystack = Mockery::mock(PaystackService::class);
-        $paystack->shouldReceive('initializeSubscriptionCheckout')->once()->withArgs(fn ($email, $code, $reference, $metadata) => $email === 'billing@example.com' && $code === 'PLN_starter' && str_starts_with($reference, 'SUB-') && $metadata['plan_type'] === User::PLAN_STARTER)->andReturn(['authorization_url' => 'https://checkout.paystack.test/subscription']);
+        $paystack->shouldReceive('initializeSubscriptionCheckout')->once()->withArgs(fn ($email, $code, $amount, $currency, $reference, $metadata) => $email === 'billing@example.com' && $code === 'PLN_starter' && $amount === '15.00' && $currency === 'GHS' && str_starts_with($reference, 'SUB-') && $metadata['plan_type'] === User::PLAN_STARTER)->andReturn(['authorization_url' => 'https://checkout.paystack.test/subscription']);
         $this->app->instance(PaystackService::class, $paystack);
 
         $this->actingAs($user)->post(route('billing.checkout', User::PLAN_STARTER), ['billing_email' => 'billing@example.com'])
             ->assertRedirect('https://checkout.paystack.test/subscription');
 
         $this->assertDatabaseHas('subscriptions', ['user_id' => $user->id, 'plan_type' => User::PLAN_STARTER, 'status' => Subscription::STATUS_PENDING]);
+    }
+
+    public function test_unconfigured_plan_returns_a_clear_error_instead_of_failing(): void
+    {
+        config()->set('billing.recurring_enabled', true);
+        config()->set('billing.plan_codes.STARTER', null);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from(route('billing.show'))
+            ->post(route('billing.checkout', User::PLAN_STARTER), ['billing_email' => 'billing@example.com'])
+            ->assertRedirect(route('billing.show'))
+            ->assertSessionHasErrors(['billing' => 'This subscription plan is not available yet. Please choose another plan or contact support.']);
+
+        $this->assertDatabaseMissing('subscriptions', ['user_id' => $user->id]);
+    }
+
+    public function test_subscription_checkout_sends_plan_amount_currency_and_card_channel(): void
+    {
+        config()->set('services.paystack.secret_key', 'sk_test_checkout');
+        config()->set('billing.callback_url', 'https://app.8kommerce.test/billing/callback');
+        Http::fake([
+            'https://api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.test/subscription'],
+            ]),
+        ]);
+
+        app(PaystackService::class)->initializeSubscriptionCheckout(
+            'billing@example.com',
+            'PLN_starter',
+            '15.00',
+            'GHS',
+            'SUB-CHECKOUT-1',
+            ['plan_type' => User::PLAN_STARTER]
+        );
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.paystack.co/transaction/initialize'
+            && $request['email'] === 'billing@example.com'
+            && $request['plan'] === 'PLN_starter'
+            && $request['amount'] === 1500
+            && $request['currency'] === 'GHS'
+            && $request['channels'] === ['card']
+            && $request['callback_url'] === 'https://app.8kommerce.test/billing/callback');
+    }
+
+    public function test_provider_plan_mismatch_returns_an_actionable_error(): void
+    {
+        config()->set('billing.recurring_enabled', true);
+        config()->set('billing.plan_codes.STARTER', 'PLN_wrong_environment');
+        config()->set('services.paystack.secret_key', 'sk_test_checkout');
+        Http::fake([
+            'https://api.paystack.co/transaction/initialize' => Http::response([
+                'status' => false,
+                'message' => 'Plan not found',
+            ], 404),
+        ]);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from(route('billing.show'))
+            ->post(route('billing.checkout', User::PLAN_STARTER), ['billing_email' => 'billing@example.com'])
+            ->assertRedirect(route('billing.show'))
+            ->assertSessionHasErrors([
+                'billing' => 'This subscription plan is not available in the current payment environment. Please contact support.',
+            ]);
+
+        $this->assertDatabaseHas('subscriptions', [
+            'user_id' => $user->id,
+            'plan_type' => User::PLAN_STARTER,
+            'status' => Subscription::STATUS_EXPIRED,
+        ]);
     }
 
     public function test_verified_callback_activates_plan_and_records_invoice(): void

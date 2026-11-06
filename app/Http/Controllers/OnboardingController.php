@@ -52,6 +52,7 @@ class OnboardingController extends Controller
         $user = $request->user();
         $data = $request->validate([
             'desktop_popup_dismissed' => ['nullable', 'boolean'],
+            'desktop_popup_minimized' => ['nullable', 'boolean'],
             'mobile_step' => ['nullable', 'integer', 'min:0', 'max:100'],
             'skip_step' => ['nullable', 'string', 'max:50'],
             'unskip_step' => ['nullable', 'string', 'max:50'],
@@ -70,6 +71,12 @@ class OnboardingController extends Controller
 
         if (array_key_exists('desktop_popup_dismissed', $data)) {
             $state['desktop_popup_dismissed'] = (bool) $data['desktop_popup_dismissed'];
+        }
+        if (array_key_exists('desktop_popup_minimized', $data)) {
+            $state['desktop_popup_minimized'] = (bool) $data['desktop_popup_minimized'];
+            // Keep older clients and existing JSON state compatible while the UI
+            // adopts the more accurate "minimized" naming.
+            $state['desktop_popup_dismissed'] = (bool) $data['desktop_popup_minimized'];
         }
         if (array_key_exists('mobile_step', $data)) {
             $state['mobile_step'] = max(0, (int) $data['mobile_step']);

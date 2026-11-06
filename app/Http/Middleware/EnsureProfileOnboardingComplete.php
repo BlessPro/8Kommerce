@@ -26,27 +26,8 @@ class EnsureProfileOnboardingComplete
             return $next($request);
         }
 
-        if ($user->hasCompletedProfileOnboarding()) {
-            return $next($request);
-        }
-
-        if ($this->isMobile($request)) {
-            return redirect()
-                ->route('onboarding.index')
-                ->with('onboarding_required', 'Complete onboarding to continue.');
-        }
-
-        // Desktop stays non-blocking; onboarding is guided through popup and checklist.
+        // Onboarding is guidance, not an access gate. Incomplete sellers can keep
+        // working on every device and return to the checklist when they are ready.
         return $next($request);
-    }
-
-    private function isMobile(Request $request): bool
-    {
-        $userAgent = strtolower((string) $request->userAgent());
-
-        return str_contains($userAgent, 'mobile')
-            || str_contains($userAgent, 'android')
-            || str_contains($userAgent, 'iphone')
-            || str_contains($userAgent, 'ipad');
     }
 }

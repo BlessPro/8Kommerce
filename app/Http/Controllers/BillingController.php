@@ -10,6 +10,10 @@ use App\Services\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 class BillingController extends Controller
 {
@@ -36,18 +40,21 @@ class BillingController extends Controller
         $data = $request->validate(['billing_email' => ['required', 'email:rfc', 'max:254']]);
         abort_unless(in_array($plan, [User::PLAN_STARTER, User::PLAN_GROWTH, User::PLAN_ENTERPRISE], true), 404);
 
-        $pending = $subscriptions->createPending($request->user(), $plan, $data['billing_email']);
+        $pending = null;
         try {
+            $pending = $subscriptions->createPending($request->user(), $plan, $data['billing_email']);
             $checkout = $paystack->initializeSubscriptionCheckout(
                 $pending->billing_email,
                 $pending->provider_plan_code,
+                (string) $pending->amount,
+                (string) $pending->currency,
                 $pending->checkout_reference,
                 ['payment_type' => 'subscription', 'subscription_id' => $pending->id, 'user_id' => $pending->user_id, 'plan_type' => $pending->plan_type]
             );
-        } catch (\Throwable $exception) {
-            $pending->update(['status' => Subscription::STATUS_EXPIRED, 'metadata' => ['checkout_error' => true]]);
+        } catch (Throwable $exception) {
+            $pending?->update(['status' => Subscription::STATUS_EXPIRED, 'metadata' => ['checkout_error' => true]]);
             Log::warning('Subscription checkout initialization failed', ['user_id' => $request->user()->id, 'plan' => $plan, 'message' => $exception->getMessage()]);
-            return back()->withErrors(['billing' => 'Subscription checkout could not be started. Confirm the plan codes and try again.']);
+            return back()->withErrors(['billing' => $this->checkoutErrorMessage($exception)]);
         }
 
         $url = (string) ($checkout['authorization_url'] ?? '');
@@ -125,5 +132,31 @@ class BillingController extends Controller
         return redirect()
             ->route('billing.show')
             ->with('status', 'plan-activated');
+    }
+
+    private function checkoutErrorMessage(Throwable $exception): string
+    {
+        if ($exception instanceof RuntimeException && str_contains(Str::lower($exception->getMessage()), 'not configured')) {
+            return 'This subscription plan is not available yet. Please choose another plan or contact support.';
+        }
+
+        if ($exception instanceof RequestException) {
+            $status = $exception->response->status();
+            $providerMessage = Str::lower((string) $exception->response->json('message', ''));
+
+            if ($status === 401 || str_contains($providerMessage, 'authorization')) {
+                return 'Subscription checkout is temporarily unavailable because the payment account could not be authenticated. Please contact support.';
+            }
+
+            if (str_contains($providerMessage, 'plan not found') || str_contains($providerMessage, 'invalid plan')) {
+                return 'This subscription plan is not available in the current payment environment. Please contact support.';
+            }
+
+            if ($status >= 500 || $status === 429) {
+                return 'Paystack is temporarily unavailable. Please wait a moment and try again.';
+            }
+        }
+
+        return 'Subscription checkout could not be started. Please try again or contact support if the problem continues.';
     }
 }

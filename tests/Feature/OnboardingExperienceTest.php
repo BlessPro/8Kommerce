@@ -13,7 +13,7 @@ class OnboardingExperienceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mobile_user_with_incomplete_onboarding_is_redirected_to_onboarding_screen(): void
+    public function test_mobile_user_with_incomplete_onboarding_can_continue_working(): void
     {
         $user = User::factory()->create([
             'pin_hash' => Hash::make('2486'),
@@ -29,7 +29,7 @@ class OnboardingExperienceTest extends TestCase
         $this->actingAs($user)
             ->withHeader('User-Agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile')
             ->get(route('dashboard'))
-            ->assertRedirect(route('onboarding.index'));
+            ->assertOk();
     }
 
     public function test_desktop_user_with_incomplete_onboarding_can_still_access_dashboard(): void
@@ -87,6 +87,7 @@ class OnboardingExperienceTest extends TestCase
         $this->actingAs($user)
             ->postJson(route('onboarding.state'), [
                 'desktop_popup_dismissed' => true,
+                'desktop_popup_minimized' => true,
                 'mobile_step' => 2,
                 'desktop_tour_step' => 1,
                 'desktop_tour_completed' => false,
@@ -97,6 +98,7 @@ class OnboardingExperienceTest extends TestCase
 
         $state = $user->fresh()->onboarding_state;
         $this->assertTrue((bool) ($state['desktop_popup_dismissed'] ?? false));
+        $this->assertTrue((bool) ($state['desktop_popup_minimized'] ?? false));
         $this->assertSame(2, (int) ($state['mobile_step'] ?? 0));
         $this->assertSame(1, (int) ($state['desktop_tour_step'] ?? 0));
         $this->assertFalse((bool) ($state['desktop_tour_completed'] ?? true));
