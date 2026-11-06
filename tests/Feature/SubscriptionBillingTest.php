@@ -19,6 +19,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_seller_can_start_a_configured_subscription_checkout(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', 'PLN_starter');
         $user = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL, 'trial_started_at' => now()->subDays(10), 'trial_ends_at' => now()->subDay()]);
@@ -35,6 +36,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_unconfigured_plan_returns_a_clear_error_instead_of_failing(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', null);
         $user = User::factory()->create();
@@ -79,6 +81,7 @@ class SubscriptionBillingTest extends TestCase
 
     public function test_provider_plan_mismatch_returns_an_actionable_error(): void
     {
+        config()->set('billing.manual_renewal_enabled', false);
         config()->set('billing.recurring_enabled', true);
         config()->set('billing.plan_codes.STARTER', 'PLN_wrong_environment');
         config()->set('services.paystack.secret_key', 'sk_test_checkout');
