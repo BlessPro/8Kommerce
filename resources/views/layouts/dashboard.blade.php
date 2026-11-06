@@ -476,7 +476,7 @@
             </div>
         </section>
         @if(! $onboarding['is_complete'] && !request()->routeIs('onboarding.*'))
-            <aside class="js-onboarding-popup lp-card fixed bottom-5 right-5 z-40 hidden w-[360px] p-4 shadow-2xl lg:block" data-dismissed="{{ data_get($onboarding, 'state.desktop_popup_dismissed') ? '1' : '0' }}">
+            <aside class="js-onboarding-popup lp-card fixed bottom-5 right-5 z-40 hidden w-[360px] p-4 shadow-2xl lg:block" data-minimized="{{ data_get($onboarding, 'state.desktop_popup_minimized', data_get($onboarding, 'state.desktop_popup_dismissed')) ? '1' : '0' }}">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Onboarding</p>
@@ -616,8 +616,8 @@
                 };
 
                 if (onboardingPopup) {
-                    const dismissed = onboardingPopup.dataset.dismissed === '1';
-                    if (!dismissed) {
+                    const minimized = onboardingPopup.dataset.minimized === '1';
+                    if (!minimized) {
                         onboardingPopup.classList.remove('hidden');
                         onboardingRestore?.classList.add('hidden');
                     } else {
@@ -628,14 +628,14 @@
                         onboardingClose.addEventListener('click', () => {
                             onboardingPopup.classList.add('hidden');
                             onboardingRestore?.classList.remove('hidden');
-                            postOnboardingState({ desktop_popup_dismissed: true });
+                            postOnboardingState({ desktop_popup_minimized: true });
                         });
                     }
 
                     onboardingRestore?.addEventListener('click', () => {
                         onboardingPopup.classList.remove('hidden');
                         onboardingRestore.classList.add('hidden');
-                        postOnboardingState({ desktop_popup_dismissed: false });
+                        postOnboardingState({ desktop_popup_minimized: false });
                     });
 
                     if (onboardingCopy) {
@@ -848,15 +848,8 @@
                     }
                 });
 
-                const shouldAutoStartDesktopTour = window.matchMedia('(min-width: 1024px)').matches
-                    && desktopTourSteps.length > 0
-                    && !onboardingState.desktop_tour_completed
-                    && !onboardingState.desktop_tour_dismissed
-                    && {{ $onboarding['is_complete'] ? 'false' : 'true' }};
-
-                if (shouldAutoStartDesktopTour) {
-                    openDesktopTour(false);
-                }
+                // Tutorials are deliberately opt-in. The setup card may be
+                // minimized, but it must never take over the seller workspace.
 
                 const panel = document.querySelector('.js-quick-actions-panel');
                 const backdrop = document.querySelector('.js-quick-actions-backdrop');

@@ -20,7 +20,14 @@ class PaystackService
         return Money::compare($charge, '0.00') === 1 ? $charge : null;
     }
 
-    public function initializeSubscriptionCheckout(string $email, string $planCode, string $reference, array $metadata): array
+    public function initializeSubscriptionCheckout(
+        string $email,
+        string $planCode,
+        string $amount,
+        string $currency,
+        string $reference,
+        array $metadata
+    ): array
     {
         $callbackUrl = (string) config('billing.callback_url');
         if ($callbackUrl === '') {
@@ -29,10 +36,15 @@ class PaystackService
 
         $response = $this->client()->post('/transaction/initialize', [
             'email' => $email,
+            // Paystack uses the plan amount when a plan is supplied, but amount
+            // remains part of transaction initialization validation.
+            'amount' => Money::toMinor($amount),
+            'currency' => strtoupper($currency),
             'plan' => $planCode,
             'reference' => $reference,
             'callback_url' => $callbackUrl,
             'metadata' => $metadata,
+            'channels' => ['card'],
         ])->throw()->json();
 
         return $response['data'] ?? [];
