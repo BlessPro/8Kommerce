@@ -22,6 +22,13 @@
                     <span aria-current="page">Create account</span>
                 </nav>
 
+                @if(session(\App\Services\SellerReferralService::SESSION_INVITER_NAME))
+                    <div class="mt-5 rounded-md border border-[#B7CBD0] bg-[#F2F7F8] px-4 py-3 text-sm leading-6 text-[#073B4C]">
+                        <strong class="block">Seller invitation</strong>
+                        <span>{{ session(\App\Services\SellerReferralService::SESSION_INVITER_NAME) }} invited you to create your 8Kommerce seller account.</span>
+                    </div>
+                @endif
+
                 @if(!$phoneAuthEnabled)
                     <div class="mt-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Phone signup is currently unavailable. Please contact support.</div>
                 @else

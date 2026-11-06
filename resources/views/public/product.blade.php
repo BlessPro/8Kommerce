@@ -6,9 +6,11 @@
 
 @section('og_title', $ogTitle ?? ($product->name.' - '.($profile?->business_name ?? 'Seller')))
 @section('og_description', $ogDescription ?? ($smallDescription ?? 'Discover this product on 8Kommerce.'))
-@section('og_image', $ogImage ?? url('/images/og-default.jpg'))
+@section('og_image', $ogImage ?? url('/images/8kommerce-social-preview-v1.jpg'))
 @section('og_image_width', $ogImageWidth ?? '1200')
 @section('og_image_height', $ogImageHeight ?? '630')
+@section('og_image_type', 'image/jpeg')
+@section('og_image_alt', $product->name.' from '.($profile?->business_name ?? 'an 8Kommerce seller'))
 @section('og_url', $ogUrl ?? url()->current())
 @section('og_type', $ogType ?? 'website')
 

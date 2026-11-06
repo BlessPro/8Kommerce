@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SellerProfile;
 use App\Models\User;
 use App\Services\SmsOtpService;
+use App\Services\SellerReferralService;
 use App\Support\Phone;
 use App\Support\Privacy;
 use Illuminate\Auth\Events\Registered;
@@ -74,7 +75,11 @@ class PhoneSignupController extends Controller
             ->withInput();
     }
 
-    public function complete(Request $request, SmsOtpService $smsOtp): RedirectResponse
+    public function complete(
+        Request $request,
+        SmsOtpService $smsOtp,
+        SellerReferralService $referrals
+    ): RedirectResponse
     {
         $data = $request->validate([
             'phone_number' => ['required', 'string', 'max:20'],
@@ -150,6 +155,15 @@ class PhoneSignupController extends Controller
         ]);
 
         event(new Registered($user));
+
+        try {
+            $referrals->attributeRegistration($request, $user);
+        } catch (\Throwable $exception) {
+            Log::warning('Seller referral attribution failed', [
+                'user_id' => $user->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
 
         Auth::login($user);
         $request->session()->regenerate();

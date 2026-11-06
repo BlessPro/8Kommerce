@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="8Kommerce helps small businesses manage products, stock, orders, payments, and customer fulfilment from one practical workspace.">
     <title>8Kommerce — Run your business from one place</title>
+    @php
+        $landingTitle = '8Kommerce — Sell beautifully. Run everything behind it.';
+        $landingDescription = 'Create a trusted storefront and manage products, stock, orders, payments, delivery, and customers from one practical workspace.';
+        $landingUrl = url()->current();
+        $landingImage = url('/images/8kommerce-social-preview-v1.jpg');
+    @endphp
+    <link rel="canonical" href="{{ $landingUrl }}">
+    <meta property="og:title" content="{{ $landingTitle }}">
+    <meta property="og:description" content="{{ $landingDescription }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ $landingUrl }}">
+    <meta property="og:site_name" content="8Kommerce">
+    <meta property="og:image" content="{{ $landingImage }}">
+    <meta property="og:image:secure_url" content="{{ $landingImage }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="8Kommerce storefront and business management platform">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $landingTitle }}">
+    <meta name="twitter:description" content="{{ $landingDescription }}">
+    <meta name="twitter:image" content="{{ $landingImage }}">
+    <meta name="twitter:image:alt" content="8Kommerce storefront and business management platform">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <meta name="theme-color" content="#073B4C">
     <meta name="mobile-web-app-capable" content="yes">

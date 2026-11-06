@@ -47,6 +47,7 @@
         'truck' => 'icon-[tabler--truck-delivery]',
         'upload' => 'icon-[tabler--upload]',
         'user-circle' => 'icon-[tabler--user-circle]',
+        'user-plus' => 'icon-[tabler--user-plus]',
         'users' => 'icon-[tabler--users]',
         'warning' => 'icon-[tabler--alert-triangle]',
         'whatsapp' => 'icon-[tabler--brand-whatsapp]',

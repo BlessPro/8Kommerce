@@ -246,6 +246,7 @@
                         <p class="lp-eyebrow js-sidebar-group-label px-3 pb-1">Grow</p>
                         <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}" title="Goals"><x-ui.icon name="target" /><span class="js-sidebar-label">Goals</span></a>
                         <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}" title="Promote"><x-ui.icon name="speakerphone" /><span class="js-sidebar-label">Promote</span></a>
+                        <a href="{{ route('referrals.index') }}" class="{{ $navClass('referrals.*') }}" title="Seller referrals"><x-ui.icon name="user-plus" /><span class="js-sidebar-label">Referrals</span></a>
                     </div>
 
                     <div class="space-y-1">
@@ -442,6 +443,7 @@
                     <p class="lp-eyebrow px-3">Grow</p>
                     <a href="{{ route('goals.index') }}" class="{{ $navClass('goals.*') }}"><x-ui.icon name="target" />Goals</a>
                     <a href="{{ route('promotions.index') }}" class="{{ $navClass('promotions.*') }}"><x-ui.icon name="speakerphone" />Promote</a>
+                    <a href="{{ route('referrals.index') }}" class="{{ $navClass('referrals.*') }}"><x-ui.icon name="user-plus" />Referrals</a>
                 </div>
                 <div class="space-y-1">
                     <p class="lp-eyebrow px-3">Store & account</p>

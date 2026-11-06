@@ -304,6 +304,21 @@ class User extends Authenticatable
         return $this->hasMany(SubscriptionInvoice::class);
     }
 
+    public function referralLink()
+    {
+        return $this->hasOne(ReferralLink::class);
+    }
+
+    public function referralsMade()
+    {
+        return $this->hasMany(SellerReferral::class, 'referrer_id');
+    }
+
+    public function referralAttribution()
+    {
+        return $this->hasOne(SellerReferral::class, 'referred_user_id');
+    }
+
     public function currentSubscription(): ?Subscription
     {
         return $this->subscriptions()->latest('id')->get()->first(fn (Subscription $item) => $item->grantsAccess())
