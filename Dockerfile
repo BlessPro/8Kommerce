@@ -31,7 +31,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-
 COPY . .
 RUN composer dump-autoload --no-dev --classmap-authoritative
 
-FROM node:20-alpine AS assets
+FROM node:25-alpine AS assets
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
