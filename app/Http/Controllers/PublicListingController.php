@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InventoryUnavailableException;
 use App\Models\AnalyticsEvent;
 use App\Models\Lead;
 use App\Models\Order;
@@ -12,6 +13,7 @@ use App\Models\PublicCartSession;
 use App\Models\SellerNotification;
 use App\Models\SellerProfile;
 use App\Services\AnalyticsService;
+use App\Services\InventoryService;
 use App\Services\OgImageService;
 use App\Services\PaystackService;
 use App\Services\SellerNotifier;
@@ -171,7 +173,8 @@ class PublicListingController extends Controller
         string $public_slug,
         Product $product,
         PaystackService $paystack,
-        AnalyticsService $analytics
+        AnalyticsService $analytics,
+        InventoryService $inventory,
     ) {
         $validated = $this->validateCheckoutContact($request);
 
@@ -307,6 +310,21 @@ class PublicListingController extends Controller
             ],
         ]);
 
+        try {
+            $inventory->reserveForOrder($order, $payment);
+        } catch (InventoryUnavailableException $exception) {
+            $this->releaseIdempotencyKey($request, $idempotencyScope, $idempotencyKey);
+            $payment->forceFill(['status' => Payment::STATUS_FAILED])->save();
+            $order->forceFill([
+                'status' => Order::STATUS_CANNOT_FULFILL,
+                'payment_status' => Payment::STATUS_FAILED,
+            ])->save();
+
+            return back()->withErrors([
+                'paystack' => $exception->getMessage().' Your cart was not charged.',
+            ])->withInput();
+        }
+
         $platformFee = $paystack->platformChargeFor($total, $sellerUser);
 
         try {
@@ -331,6 +349,7 @@ class PublicListingController extends Controller
             );
         } catch (RequestException $exception) {
             $this->releaseIdempotencyKey($request, $idempotencyScope, $idempotencyKey);
+            $inventory->releaseForOrder($order);
             $payment->status = Payment::STATUS_FAILED;
             $payment->raw_payload = array_merge($payment->raw_payload ?? [], [
                 'initialize_error' => $exception->getMessage(),
@@ -439,8 +458,13 @@ class PublicListingController extends Controller
         return back()->with('status', 'cart-updated');
     }
 
-    public function checkoutCart(Request $request, string $public_slug, PaystackService $paystack, AnalyticsService $analytics)
-    {
+    public function checkoutCart(
+        Request $request,
+        string $public_slug,
+        PaystackService $paystack,
+        AnalyticsService $analytics,
+        InventoryService $inventory
+    ) {
         $validated = $this->validateCheckoutContact($request);
 
         $profile = SellerProfile::where('public_slug', $public_slug)
@@ -585,6 +609,21 @@ class PublicListingController extends Controller
             ],
         ]);
 
+        try {
+            $inventory->reserveForOrder($order, $payment);
+        } catch (InventoryUnavailableException $exception) {
+            $this->releaseIdempotencyKey($request, $idempotencyScope, $idempotencyKey);
+            $payment->forceFill(['status' => Payment::STATUS_FAILED])->save();
+            $order->forceFill([
+                'status' => Order::STATUS_CANNOT_FULFILL,
+                'payment_status' => Payment::STATUS_FAILED,
+            ])->save();
+
+            return back()->withErrors([
+                'paystack' => $exception->getMessage().' Your cart was not charged.',
+            ])->withInput();
+        }
+
         $platformFee = $paystack->platformChargeFor($total, $sellerUser);
 
         try {
@@ -609,6 +648,7 @@ class PublicListingController extends Controller
             );
         } catch (RequestException $exception) {
             $this->releaseIdempotencyKey($request, $idempotencyScope, $idempotencyKey);
+            $inventory->releaseForOrder($order);
             $payment->status = Payment::STATUS_FAILED;
             $payment->raw_payload = array_merge($payment->raw_payload ?? [], [
                 'initialize_error' => $exception->getMessage(),

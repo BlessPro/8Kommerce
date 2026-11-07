@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Payment;
 use App\Models\SellerNotification;
+use App\Observers\PaymentObserver;
 use App\Observers\SellerNotificationObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         SellerNotification::observe(SellerNotificationObserver::class);
+        Payment::observe(PaymentObserver::class);
         $this->configureRateLimiting();
 
         $forceHttps = (bool) env('APP_FORCE_HTTPS', app()->environment('production'));

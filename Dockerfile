@@ -45,9 +45,12 @@ WORKDIR /var/www/html
 COPY --from=vendor /app /var/www/html
 COPY --from=assets /app/public/build /var/www/html/public/build
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/99-production.ini
+COPY docker/apache-production.conf /etc/apache2/conf-available/99-production.conf
 
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-RUN rm -f /var/www/html/public/hot \
+RUN a2enconf 99-production \
+    && rm -f /var/www/html/public/hot \
     && mkdir -p /var/www/html/storage/framework/views \
     /var/www/html/storage/framework/cache \
     /var/www/html/storage/framework/sessions \

@@ -11,6 +11,7 @@ use App\Models\SellerNotification;
 use App\Models\TwilioMessageLog;
 use App\Models\User;
 use App\Models\WebhookEvent;
+use App\Services\InventoryService;
 use App\Services\PaymentReconciliationService;
 use App\Services\SellerNotifier;
 use App\Services\SmsDeliveryService;
@@ -347,6 +348,17 @@ Artisan::command('ops:queue-health {--max=}', function () {
 })->purpose('Report queue depths and alert when work is backing up');
 
 Schedule::command('ops:queue-health')->everyMinute()->withoutOverlapping();
+
+Artisan::command('inventory:release-expired {--limit=100}', function (InventoryService $inventory) {
+    $released = $inventory->releaseExpired(max(1, (int) $this->option('limit')));
+    $this->info("Released {$released} expired inventory reservation(s).");
+
+    return 0;
+})->purpose('Return stock held by abandoned or expired checkouts');
+
+Schedule::command('inventory:release-expired --limit=250')
+    ->everyMinute()
+    ->withoutOverlapping();
 
 Artisan::command('ops:failed-jobs:retry-latest {--limit=25} {--dry-run}', function () {
     $limit = max(1, min(200, (int) $this->option('limit')));

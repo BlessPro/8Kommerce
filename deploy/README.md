@@ -44,6 +44,12 @@ Use the first value for `APP_KEY`, and separate random values for `DB_PASSWORD`
 and `REDIS_PASSWORD`. Configure Paystack, Hubtel, support, plan, and operational
 values directly in `/opt/8kommerce/.env`.
 
+The default production profile runs two general queue workers and one isolated
+OTP worker. `QUEUE_WORKER_REPLICAS` and `OTP_WORKER_REPLICAS` can be adjusted in
+`.env`; increase them only after a controlled load test confirms spare CPU and
+database capacity. Public storefront load-test instructions are in
+`docs/LOAD_TESTING.md` in the source repository.
+
 For Ghanaian Mobile Money-friendly package payments, set
 `BILLING_MANUAL_RENEWAL_ENABLED=true` and
 `BILLING_RECURRING_ENABLED=false`. Sellers approve each payment and receive

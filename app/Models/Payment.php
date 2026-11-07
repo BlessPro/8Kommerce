@@ -12,10 +12,13 @@ class Payment extends Model
     use HasUuids;
 
     public const STATUS_PENDING = 'PENDING';
+
     public const STATUS_SUCCESS = 'SUCCESS';
+
     public const STATUS_FAILED = 'FAILED';
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -80,5 +83,10 @@ class Payment extends Model
     public function twilioLogs()
     {
         return $this->hasMany(TwilioMessageLog::class);
+    }
+
+    public function inventoryReservations()
+    {
+        return $this->hasMany(InventoryReservation::class);
     }
 }

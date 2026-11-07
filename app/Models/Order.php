@@ -151,6 +151,11 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function inventoryReservations()
+    {
+        return $this->hasMany(InventoryReservation::class);
+    }
+
     public function feedbackTokens()
     {
         return $this->hasMany(OrderFeedbackToken::class);
