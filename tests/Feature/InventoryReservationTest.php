@@ -123,6 +123,7 @@ class InventoryReservationTest extends TestCase
         $this->assertSame(Payment::STATUS_SUCCESS, $latePayment->fresh()->status);
         $this->assertSame(Order::STATUS_CANNOT_FULFILL, $lateOrder->fresh()->status);
         $this->assertSame(Order::REFUND_REQUESTED, $lateOrder->fresh()->refund_status);
+        $this->assertSame('inventory_reservation_expired', $lateOrder->fresh()->refund_reason);
         $this->assertSame(0, $product->fresh()->stock_quantity);
     }
 

@@ -192,7 +192,7 @@ class PaymentService
                         if ($inventoryFailure) {
                             $order->refund_status = Order::REFUND_REQUESTED;
                             $order->refund_requested_amount = $order->total;
-                            $order->refund_reason = 'Automatic review: payment completed after the stock reservation was no longer available.';
+                            $order->refund_reason = 'inventory_reservation_expired';
                         }
                         $order->save();
 
