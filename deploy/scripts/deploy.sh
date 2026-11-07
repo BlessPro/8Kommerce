@@ -19,7 +19,19 @@ if "${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx app; th
 fi
 
 "${COMPOSE[@]}" pull
-"${COMPOSE[@]}" up -d --remove-orphans --wait --wait-timeout 240
+QUEUE_WORKER_REPLICAS="$(sed -n 's/^QUEUE_WORKER_REPLICAS=//p' "$BASE_DIR/.env" | tail -n 1)"
+OTP_WORKER_REPLICAS="$(sed -n 's/^OTP_WORKER_REPLICAS=//p' "$BASE_DIR/.env" | tail -n 1)"
+QUEUE_WORKER_REPLICAS="${QUEUE_WORKER_REPLICAS:-2}"
+OTP_WORKER_REPLICAS="${OTP_WORKER_REPLICAS:-1}"
+
+if ! [[ "$QUEUE_WORKER_REPLICAS" =~ ^[1-9][0-9]*$ && "$OTP_WORKER_REPLICAS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Worker replica values must be positive whole numbers." >&2
+    exit 1
+fi
+
+"${COMPOSE[@]}" up -d --remove-orphans --wait --wait-timeout 240 \
+    --scale worker="$QUEUE_WORKER_REPLICAS" \
+    --scale worker-otp="$OTP_WORKER_REPLICAS"
 "${COMPOSE[@]}" exec -T app php artisan optimize
 "${COMPOSE[@]}" exec -T app php artisan queue:restart
 

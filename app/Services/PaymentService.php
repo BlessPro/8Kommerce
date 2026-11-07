@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\InventoryUnavailableException;
 use App\Jobs\SendOutboundMessage;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
@@ -39,6 +40,22 @@ class PaymentService
                     $verificationError = $this->providerVerificationError($payment, $verifiedData);
                     if ($verificationError !== null) {
                         throw new \RuntimeException('Payment verification mismatch: '.$verificationError);
+                    }
+                }
+
+                $inventoryFailure = null;
+                $orderForInventory = $payment->order;
+                if ($orderForInventory) {
+                    try {
+                        $inventory = app(InventoryService::class);
+                        if (! $inventory->commitForOrder($orderForInventory, $payment->user)) {
+                            // Compatibility for pending orders created before reservations existed.
+                            $inventory->decrementForOrder($orderForInventory, $payment->user);
+                        }
+                    } catch (InventoryUnavailableException $exception) {
+                        // The provider has already charged the customer. Record that truth, but
+                        // stop fulfilment and put the order into the existing refund workflow.
+                        $inventoryFailure = $exception;
                     }
                 }
 
@@ -162,13 +179,20 @@ class PaymentService
                 if ($payment->order_id) {
                     $order = Order::with('items')->find($payment->order_id);
                     if ($order) {
-                        $order->status = Order::STATUS_PAID;
+                        $order->status = $inventoryFailure
+                            ? Order::STATUS_CANNOT_FULFILL
+                            : Order::STATUS_PAID;
                         $order->payment_status = Payment::STATUS_SUCCESS;
                         if (! $order->paid_at) {
                             $order->paid_at = $payment->paid_at ?: now();
                         }
-                        if (! $order->seller_response_due_at) {
+                        if (! $inventoryFailure && ! $order->seller_response_due_at) {
                             $order->seller_response_due_at = now()->addHours((int) config('orders.seller_response_hours', 24));
+                        }
+                        if ($inventoryFailure) {
+                            $order->refund_status = Order::REFUND_REQUESTED;
+                            $order->refund_requested_amount = $order->total;
+                            $order->refund_reason = 'inventory_reservation_expired';
                         }
                         $order->save();
 
@@ -180,8 +204,10 @@ class PaymentService
                             app(SellerNotifier::class)->notify(
                                 $user,
                                 SellerNotification::TYPE_PAYMENT_RECEIVED,
-                                'New paid order',
-                                'Order '.$order->reference.' paid. '.$itemsSummary,
+                                $inventoryFailure ? 'Paid order needs a refund review' : 'New paid order',
+                                $inventoryFailure
+                                    ? 'Order '.$order->reference.' was paid after its stock reservation expired. Do not fulfil it; review the refund request.'
+                                    : 'Order '.$order->reference.' paid. '.$itemsSummary,
                                 [
                                     'order_id' => $order->id,
                                     'reference' => $order->reference,
@@ -195,8 +221,6 @@ class PaymentService
                             );
 
                         }
-
-                        app(InventoryService::class)->decrementForOrder($order, $user);
 
                         if (! $payment->product_id) {
                             $publicSlug = (string) data_get($payment->raw_payload, 'order.public_slug', '');
