@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Models\WebhookEvent;
 use App\Services\InventoryService;
 use App\Services\PaymentReconciliationService;
+use App\Services\PaymentService;
+use App\Services\PaystackService;
 use App\Services\SellerNotifier;
 use App\Services\SmsDeliveryService;
 use App\Services\SubscriptionService;
@@ -59,6 +61,35 @@ Artisan::command('ops:sms-health', function (SmsDeliveryService $sms) {
 
     return 0;
 })->purpose('Check SMS provider and OTP queue configuration without exposing credentials');
+
+Artisan::command('ops:admin-auth-health', function () {
+    $mailer = (string) config('mail.default');
+    $allowedCount = count((array) config('admin.allowed_emails', []));
+    $canDeliver = ! in_array($mailer, ['log', 'array', ''], true);
+    if ($mailer === 'smtp') {
+        $canDeliver = filled(config('mail.mailers.smtp.host'))
+            && filled(config('mail.mailers.smtp.username'))
+            && filled(config('mail.mailers.smtp.password'))
+            && filled(config('mail.from.address'));
+    }
+
+    $this->table(['Check', 'Value'], [
+        ['Allowed administrator addresses', $allowedCount],
+        ['Selected mailer', $mailer ?: 'none'],
+        ['Real email delivery', $canDeliver ? 'configured' : 'disabled'],
+        ['OTP queue connection', (string) config('auth_phone.otp.queue_connection')],
+    ]);
+
+    if ($allowedCount < 1 || ! $canDeliver) {
+        $this->error('Admin OTP authentication is not ready. Configure the allowlist and a real email provider.');
+
+        return 1;
+    }
+
+    $this->info('Admin OTP authentication configuration is ready. This command does not send an email.');
+
+    return 0;
+})->purpose('Check admin allowlist, email delivery, and OTP queue configuration');
 
 Artisan::command('demo:seed {--reset} {--force}', function () {
     if (app()->environment('production') && ! $this->option('force')) {
@@ -151,6 +182,42 @@ Artisan::command('ops:smoke:test-suite', function () {
 
     return 0;
 })->purpose('Run key smoke feature tests (register/login/checkout/webhook)');
+
+Artisan::command('payments:verify-pending {--limit=100}', function (PaystackService $paystack, PaymentService $payments) {
+    $verified = 0;
+    $failed = 0;
+    $limit = max(1, min((int) $this->option('limit'), 500));
+
+    Payment::query()
+        ->where('status', Payment::STATUS_PENDING)
+        ->whereNotNull('reference')
+        ->whereBetween('created_at', [now()->subMinutes(30), now()->subMinutes(3)])
+        ->oldest()
+        ->limit($limit)
+        ->get()
+        ->each(function (Payment $payment) use ($paystack, $payments, &$verified, &$failed): void {
+            try {
+                $response = $paystack->verifyTransaction($payment->reference);
+                if (data_get($response, 'data.status') === 'success') {
+                    $payments->markSuccess($payment, (array) data_get($response, 'data', []));
+                    $verified++;
+                }
+            } catch (Throwable $exception) {
+                $failed++;
+                Log::warning('Scheduled pending payment verification failed', [
+                    'payment_id' => $payment->id,
+                    'reference' => $payment->reference,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        });
+
+    $this->info("Pending verification finished: {$verified} confirmed, {$failed} provider failures.");
+
+    return 0;
+})->purpose('Verify recent pending Paystack payments outside customer requests');
+
+Schedule::command('payments:verify-pending --limit=100')->everyFiveMinutes()->withoutOverlapping();
 
 Artisan::command('payments:reconcile {--days=1}', function (PaymentReconciliationService $reconciliation) {
     $days = (int) $this->option('days');

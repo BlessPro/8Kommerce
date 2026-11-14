@@ -65,10 +65,10 @@
     <section class="mt-7" aria-labelledby="performance-heading">
         <div class="flex items-end justify-between gap-4"><div><p class="lp-eyebrow">This month</p><h2 id="performance-heading" class="lp-section-title mt-1">Business snapshot</h2></div><a href="{{ route('goals.index') }}" class="text-sm font-semibold text-[#073B4C]">View goals</a></div>
         <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <x-ui.stat-card label="Amount received" :value="\App\Support\Money::format($amountReceived, $currency)" :meta="'Successful payments in '.now()->format('F')" icon="credit-card" />
-            <x-ui.stat-card label="Orders" :value="number_format($ordersCount)" meta="Confirmed this month" icon="shopping-bag" />
-            <x-ui.stat-card label="Store visits" :value="number_format($trafficCount)" meta="Store and product activity" icon="eye" />
-            <x-ui.stat-card label="Conversion" :value="number_format($salesConversionRate, 1).'%'" :meta="number_format($newCustomersCount).' new customers'" icon="chart-bar" />
+            <x-ui.stat-card label="Amount received" :value="\App\Support\Money::format($amountReceived, $currency)" :meta="'Successful payments in '.now()->format('F')" icon="credit-card" live-key="amount_received" />
+            <x-ui.stat-card label="Orders" :value="number_format($ordersCount)" meta="Confirmed this month" icon="shopping-bag" live-key="orders_count" />
+            <x-ui.stat-card label="Store visits" :value="number_format($trafficCount)" meta="Store and product activity" icon="eye" live-key="traffic_count" />
+            <x-ui.stat-card label="Conversion" :value="number_format($salesConversionRate, 1).'%'" :meta="number_format($newCustomersCount).' new customers'" icon="chart-bar" live-key="conversion_rate" live-meta-key="new_customers" />
         </div>
     </section>
 

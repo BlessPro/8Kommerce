@@ -18,6 +18,7 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $notifications = $request->user()->sellerNotifications()->latest()->paginate(10);
+        $request->user()->sellerNotifications()->whereNull('read_at')->update(['read_at' => now()]);
         $pendingOrders = $request->user()->orders()
             ->with(['items', 'payments'])
             ->where('status', Order::STATUS_PAID)

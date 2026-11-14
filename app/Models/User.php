@@ -3,22 +3,27 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     public const PLAN_FREE_TRIAL = 'FREE_TRIAL';
+
     public const PLAN_STARTER = 'STARTER';
+
     public const PLAN_GROWTH = 'GROWTH';
+
     public const PLAN_ENTERPRISE = 'ENTERPRISE';
 
     // Legacy plans (kept for backward compatibility with existing rows).
     public const PLAN_PROMOTION = 'PROMOTION';
+
     public const PLAN_PAYMENTS = 'PAYMENTS';
 
     /**
@@ -317,6 +322,11 @@ class User extends Authenticatable
     public function referralAttribution()
     {
         return $this->hasOne(SellerReferral::class, 'referred_user_id');
+    }
+
+    public function promoterProfile()
+    {
+        return $this->hasOne(PromoterProfile::class);
     }
 
     public function currentSubscription(): ?Subscription
