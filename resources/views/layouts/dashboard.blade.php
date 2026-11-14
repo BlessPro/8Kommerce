@@ -191,6 +191,7 @@
             $onboarding = app(\App\Services\OnboardingService::class)->forUser($user);
             $accountLabel = $profile?->business_name ?: $user->name ?: 'Seller';
             $accountPhone = $user->phone ?: 'Phone not set';
+            $unreadActivityCount = $user->sellerNotifications()->whereNull('read_at')->count();
             $accountInitials = collect(preg_split('/\s+/', trim($accountLabel)))->filter()->take(2)->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->implode('');
             $navClass = function (string|array $routes) {
                 return request()->routeIs(...(array) $routes)
@@ -284,7 +285,7 @@
                             </button>
                             <div>
                             <p class="lp-eyebrow sm:hidden">8Kommerce</p>
-                            <p class="hidden text-xs font-medium text-slate-500 sm:block">Seller workspace</p>
+                            <p class="hidden text-xs font-medium text-slate-500 sm:block">Seller workspace <span class="ml-1 text-slate-400" data-live-status aria-live="polite"></span></p>
                             <h1 class="font-display text-xl font-semibold tracking-tight text-slate-950">{{ $title ?? 'Overview' }}</h1>
                             </div>
                         </div>
@@ -293,7 +294,7 @@
                                 <x-ui.icon name="circle-plus" size="sm" />
                                 Quick menu
                             </button>
-                            <a href="{{ route('notifications.index') }}" class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" aria-label="Open activity" title="Activity"><x-ui.icon name="bell" /></a>
+                            <a href="{{ route('notifications.index') }}" class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" aria-label="Open activity" title="Activity"><x-ui.icon name="bell" /><span data-live-badge-key="unread_activity" class="absolute -right-1 -top-1 min-w-4 rounded-full bg-[#7A1F3D] px-1 text-center text-[10px] font-bold leading-4 text-white {{ $unreadActivityCount > 0 ? '' : 'hidden' }}">{{ min($unreadActivityCount, 99) }}</span></a>
                             <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 js-theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
                                 <x-ui.icon name="moon" class="js-theme-icon-moon" size="sm" />
                                 <x-ui.icon name="sun" class="js-theme-icon-sun hidden" size="sm" />
@@ -324,9 +325,9 @@
                             <a
                                 href="{{ route('notifications.index') }}"
                                 aria-label="Notifications"
-                                class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700"
+                                class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700"
                             >
-                                <x-ui.icon name="bell" />
+                                <x-ui.icon name="bell" /><span data-live-badge-key="unread_activity" class="absolute -right-1 -top-1 min-w-4 rounded-full bg-[#7A1F3D] px-1 text-center text-[10px] font-bold leading-4 text-white {{ $unreadActivityCount > 0 ? '' : 'hidden' }}">{{ min($unreadActivityCount, 99) }}</span>
                             </a>
                             <button
                                 type="button"
@@ -1033,6 +1034,74 @@
                     });
                 }
             });
+        </script>
+        <script>
+            (() => {
+                const endpoint = @json(route('seller.live-summary'));
+                let etag = null;
+                let timer = null;
+                let controller = null;
+                let delay = 20000;
+
+                const schedule = () => {
+                    window.clearTimeout(timer);
+                    timer = window.setTimeout(refresh, delay);
+                };
+                const updatePage = (values) => {
+                    document.querySelectorAll('[data-live-key]').forEach((element) => {
+                        const value = values[element.dataset.liveKey];
+                        if (value !== undefined) element.textContent = value;
+                    });
+                    document.querySelectorAll('[data-live-badge-key]').forEach((element) => {
+                        const value = Number(values[element.dataset.liveBadgeKey] ?? 0);
+                        element.textContent = Math.min(value, 99).toString();
+                        element.classList.toggle('hidden', value < 1);
+                    });
+                    document.querySelectorAll('[data-live-status]').forEach((element) => {
+                        element.textContent = '· updated just now';
+                    });
+                    document.dispatchEvent(new CustomEvent('seller:live-summary', { detail: values }));
+                };
+                async function refresh() {
+                    if (document.hidden || !navigator.onLine || controller) {
+                        schedule();
+                        return;
+                    }
+                    controller = new AbortController();
+                    try {
+                        const headers = { Accept: 'application/json' };
+                        if (etag) headers['If-None-Match'] = etag;
+                        const response = await fetch(endpoint, {
+                            headers,
+                            credentials: 'same-origin',
+                            signal: controller.signal,
+                        });
+                        if (response.status === 304) {
+                            delay = 20000;
+                            return;
+                        }
+                        if (!response.ok) throw new Error('Live summary unavailable');
+                        etag = response.headers.get('ETag') || etag;
+                        const payload = await response.json();
+                        if (payload?.values) updatePage(payload.values);
+                        delay = 20000;
+                    } catch (error) {
+                        if (error.name !== 'AbortError') delay = Math.min(delay * 2, 60000);
+                    } finally {
+                        controller = null;
+                        schedule();
+                    }
+                }
+                const refreshNow = () => {
+                    if (document.hidden || !navigator.onLine) return;
+                    window.clearTimeout(timer);
+                    if (!controller) refresh();
+                };
+                document.addEventListener('visibilitychange', () => !document.hidden && refreshNow());
+                window.addEventListener('focus', refreshNow);
+                window.addEventListener('online', refreshNow);
+                window.setTimeout(refresh, 1500);
+            })();
         </script>
         @stack('scripts')
         @include('components.page-loader')

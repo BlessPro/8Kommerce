@@ -32,12 +32,23 @@ class AdminOtpAuthController extends Controller
     public function send(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/'],
         ]);
 
         $email = strtolower(trim($validated['email']));
         if (! $this->isAllowedEmail($email)) {
             return back()->with('status', 'otp-sent')->withInput();
+        }
+
+        if (! $this->productionMailerIsReady()) {
+            Log::critical('Admin OTP requested while email delivery is disabled', [
+                'mailer' => config('mail.default'),
+                'email_hash' => Privacy::contactHash($email),
+            ]);
+
+            return back()->withErrors([
+                'email' => 'Admin email delivery is not configured. Contact the system operator.',
+            ])->withInput();
         }
 
         $otp = (string) random_int(100000, 999999);
@@ -120,5 +131,26 @@ class AdminOtpAuthController extends Controller
     private function cacheKey(string $email): string
     {
         return 'admin_otp:'.sha1($email);
+    }
+
+    private function productionMailerIsReady(): bool
+    {
+        if ((string) config('app.env') !== 'production') {
+            return true;
+        }
+
+        $mailer = (string) config('mail.default');
+        if (in_array($mailer, ['log', 'array', ''], true)) {
+            return false;
+        }
+
+        if ($mailer === 'smtp') {
+            return filled(config('mail.mailers.smtp.host'))
+                && filled(config('mail.mailers.smtp.username'))
+                && filled(config('mail.mailers.smtp.password'))
+                && filled(config('mail.from.address'));
+        }
+
+        return true;
     }
 }

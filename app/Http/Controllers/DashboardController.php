@@ -7,38 +7,16 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Services\PaymentService;
-use App\Services\PaystackService;
 use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, PaystackService $paystack, PaymentService $paymentsService)
+    public function index(Request $request)
     {
         $user = $request->user();
         $currency = config('services.paystack.currency', 'GHS');
-
-        // Auto-verify recent pending payments so dashboard totals reflect paid transactions quickly.
-        $pendingToVerify = $user->payments()
-            ->where('status', Payment::STATUS_PENDING)
-            ->whereNotNull('reference')
-            ->where('created_at', '>=', Carbon::now()->subDays(30))
-            ->latest()
-            ->limit(50)
-            ->get();
-
-        foreach ($pendingToVerify as $pending) {
-            try {
-                $verification = $paystack->verifyTransaction($pending->reference);
-                if (data_get($verification, 'data.status') === 'success') {
-                    $paymentsService->markSuccess($pending, data_get($verification, 'data', []));
-                }
-            } catch (\Throwable $exception) {
-                // Ignore verification failures here; webhook/success callback can still resolve later.
-            }
-        }
 
         $totalReceived = $this->sumPayments(
             $user->payments()->where('status', Payment::STATUS_SUCCESS)

@@ -25,6 +25,7 @@ use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromoterController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\PromotionRedirectController;
 use App\Http\Controllers\PublicInvoiceController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\PublicListingController;
 use App\Http\Controllers\PublicOrderFeedbackController;
 use App\Http\Controllers\PublicOrderTrackingController;
 use App\Http\Controllers\PublicProductController;
+use App\Http\Controllers\SellerLiveSummaryController;
 use App\Http\Controllers\SellerProfileController;
 use App\Http\Controllers\SellerPublicPreviewController;
 use App\Http\Controllers\SellerReferralController;
@@ -109,6 +111,13 @@ Route::get('/p/{product_slug}', [PublicProductController::class, 'show'])->name(
 Route::get('/invite/{referralLink:code}', [SellerReferralController::class, 'accept'])
     ->middleware('throttle:60,1')
     ->name('referrals.accept');
+Route::get('/promoters', [PromoterController::class, 'index'])->name('promoters.index');
+Route::post('/promoters', [PromoterController::class, 'store'])->middleware('throttle:5,60')->name('promoters.store');
+Route::get('/promoter/{promoter:public_code}', [PromoterController::class, 'visit'])
+    ->middleware('throttle:120,1')->name('promoters.visit');
+Route::get('/promoter/{promoter:public_code}/product/{product:slug}', [PromoterController::class, 'product'])
+    ->withoutScopedBindings()
+    ->middleware('throttle:120,1')->name('promoters.product');
 
 Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])->name('webhooks.paystack');
 Route::post('/webhooks/twilio/status', [TwilioWebhookController::class, 'status'])->name('webhooks.twilio.status');
@@ -149,6 +158,9 @@ Route::middleware(['auth', 'active_access'])->group(function () {
 
     Route::middleware('profile_onboarding_complete')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/seller/live-summary', SellerLiveSummaryController::class)
+            ->middleware('throttle:120,1')
+            ->name('seller.live-summary');
 
         Route::middleware('promotion_access')->group(function () {
             Route::get('/products/orders', [ProductController::class, 'orders'])->name('products.orders');

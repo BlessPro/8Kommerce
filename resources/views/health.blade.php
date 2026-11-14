@@ -24,7 +24,8 @@
         .shell { width:min(920px,calc(100% - 32px)); margin:0 auto; padding:34px 0 64px; }
         .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:44px; }
         .brand { display:flex; align-items:center; gap:11px; color:var(--brand); font-weight:800; letter-spacing:-.02em; text-decoration:none; }
-        .mark { display:grid; width:36px; height:36px; place-items:center; border-radius:7px; background:var(--brand); color:#fff; font-size:14px; }
+        .mark { display:grid; width:36px; height:42px; place-items:center; }
+        .mark svg { width:31px; height:38px; }
         .toplink { color:var(--muted); font-size:13px; font-weight:700; text-decoration:none; }
         .toplink:hover { color:var(--brand); }
         .summary { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:28px; margin-bottom:26px; }
@@ -101,7 +102,7 @@
     <main class="shell">
         <nav class="topbar" aria-label="Status navigation">
             <a class="brand" href="{{ url('/') }}">
-                <span class="mark" aria-hidden="true">8K</span>
+                <span class="mark" aria-hidden="true"><x-brand-mark /></span>
                 <span>{{ config('app.name', '8Kommerce') }}</span>
             </a>
             <a class="toplink" href="{{ route('customer.orders.login') }}">Track an order →</a>

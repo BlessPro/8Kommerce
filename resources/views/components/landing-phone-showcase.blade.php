@@ -13,7 +13,7 @@
         <div class="landing-device__screen">
             <div class="landing-mobile-status"><span>9:41</span><span>● ◒</span></div>
             <div class="landing-orders-head">
-                <span class="landing-mini-logo">8K</span>
+                <span class="landing-mini-logo"><x-brand-mark class="h-4 w-auto" /></span>
                 <span class="landing-avatar">BA</span>
             </div>
             <p class="landing-mobile-kicker">Today</p>

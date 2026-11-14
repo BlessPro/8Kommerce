@@ -16,6 +16,7 @@ use App\Services\AnalyticsService;
 use App\Services\InventoryService;
 use App\Services\OgImageService;
 use App\Services\PaystackService;
+use App\Services\PromoterAttributionService;
 use App\Services\SellerNotifier;
 use App\Services\SellerRatingService;
 use App\Support\Email;
@@ -230,6 +231,7 @@ class PublicListingController extends Controller
         }
 
         $email = Email::placeholder($reference);
+        $promoterId = app(PromoterAttributionService::class)->currentId($request);
         $analytics->trackEvent(
             $request,
             $profile->user_id,
@@ -284,6 +286,7 @@ class PublicListingController extends Controller
             'amount' => $total,
             'status' => Payment::STATUS_PENDING,
             'raw_payload' => [
+                'promoter_id' => $promoterId,
                 'customer' => [
                     'email' => $email,
                     'phone' => $phone,
@@ -537,6 +540,7 @@ class PublicListingController extends Controller
 
         $reference = (string) Str::uuid();
         $email = Email::placeholder($reference);
+        $promoterId = app(PromoterAttributionService::class)->currentId($request);
 
         $order = Order::create([
             'user_id' => $profile->user_id,
@@ -578,6 +582,7 @@ class PublicListingController extends Controller
             'amount' => $total,
             'status' => Payment::STATUS_PENDING,
             'raw_payload' => [
+                'promoter_id' => $promoterId,
                 'customer' => [
                     'email' => $email,
                     'phone' => $phone,

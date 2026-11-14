@@ -84,6 +84,8 @@ class PaymentService
                 $payment->transaction_id = $this->resolveTransactionId($payment, $verifiedData);
                 $payment->save();
 
+                app(PromoterAttributionService::class)->recordConversion($payment);
+
                 $user = $payment->user()->with('sellerProfile')->first();
                 if ($user) {
                     $customerName = (string) (data_get($payment->raw_payload, 'customer.name') ?? data_get($verifiedData, 'metadata.customer.name') ?? 'Customer');
