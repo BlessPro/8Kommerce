@@ -9,7 +9,7 @@
         $landingTitle = '8Kommerce — Sell beautifully. Run everything behind it.';
         $landingDescription = 'Create a trusted storefront and manage products, stock, orders, payments, delivery, and customers from one practical workspace.';
         $landingUrl = url()->current();
-        $landingImage = url('/images/8kommerce-social-preview-v1.jpg');
+        $landingImage = url('/images/8kommerce-social-preview-v2.jpg');
     @endphp
     <link rel="canonical" href="{{ $landingUrl }}">
     <meta property="og:title" content="{{ $landingTitle }}">
@@ -34,9 +34,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
     <link href="https://fonts.bunny.net/css?family=manrope:600,700,800&family=public-sans:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -53,8 +53,8 @@
     <header class="sticky top-0 z-40 border-b border-slate-200/90 bg-white/95 backdrop-blur-lg">
         <div class="mx-auto flex h-16 max-w-[1380px] items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url('/') }}" class="flex items-center gap-3" aria-label="8Kommerce home">
-                <x-brand-mark class="h-9 w-auto" />
-                <span><span class="font-display block text-base font-semibold leading-none text-[#073B4C]">8Kommerce</span><span class="mt-1 block text-[11px] leading-none text-slate-500">Business, under control</span></span>
+                <x-brand-logo class="h-8 w-auto" />
+                <span class="hidden text-[11px] leading-none text-slate-500 sm:block">Business, under control</span>
             </a>
             <nav class="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex" aria-label="Main navigation">
                 <a href="#platform" class="hover:text-emerald-700">Platform</a>
@@ -65,8 +65,8 @@
                 <a href="{{ route('promoters.index') }}" class="hover:text-emerald-700">Promote</a>
             </nav>
             <div class="flex items-center gap-2">
-                <a href="{{ route('login') }}" class="lp-button-secondary hidden sm:inline-flex">Sign in</a>
-                <a href="{{ route('register') }}" class="lp-button-brand">Start free</a>
+                <a href="{{ route('seller.login') }}" class="lp-button-secondary hidden sm:inline-flex">Seller access</a>
+                <a href="{{ route('waitlist.show') }}" class="lp-button-brand">Join waitlist</a>
             </div>
         </div>
     </header>
@@ -78,7 +78,7 @@
                     <p class="landing-hero__eyebrow">Commerce built for real daily work</p>
                     <h1 class="landing-hero__title mt-4 max-w-xl text-4xl font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-[4rem]">Sell beautifully. Run everything behind it.</h1>
                     <p class="landing-hero__copy mt-6 max-w-xl text-lg leading-8">Open a storefront customers trust, take secure payments, and keep products, orders, delivery, and customer updates moving from one workspace.</p>
-                    <div class="mt-8 flex flex-col gap-3 sm:flex-row"><a href="{{ route('register') }}" class="landing-hero__primary">Start your 9-day free trial</a><a href="{{ $liveStoreUrl }}" class="landing-hero__secondary">See a live storefront</a></div>
+                    <div class="mt-8 flex flex-col gap-3 sm:flex-row"><a href="{{ route('waitlist.show') }}" class="landing-hero__primary">Join the early-access list</a><a href="{{ $liveStoreUrl }}" class="landing-hero__secondary">See a live storefront</a></div>
                     <div class="landing-hero__facts mt-9 grid max-w-lg grid-cols-3 py-4 text-sm">
                         <div><strong class="block">9 days</strong><span>free access</span></div>
                         <div><strong class="block">One link</strong><span>to start selling</span></div>
@@ -96,7 +96,7 @@
             <div class="mx-auto max-w-[1380px] px-4 sm:px-6 lg:px-8">
                 <div class="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
                     <div><p class="lp-eyebrow text-[#7a1f3d]">A storefront that feels like yours</p><h2 class="mt-3 max-w-lg text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Start with a strong design. Make it unmistakably your brand.</h2></div>
-                    <div class="lg:justify-self-end"><p class="max-w-xl text-base leading-7 text-slate-600">Choose a purpose-built layout, then add your logo, colours, cover image, products, delivery choices, and pickup points. Your catalogue stays intact when the design changes.</p><a href="{{ route('register') }}" class="mt-5 inline-flex text-sm font-semibold text-[#075643]">Design your storefront <span class="ml-2" aria-hidden="true">→</span></a></div>
+                    <div class="lg:justify-self-end"><p class="max-w-xl text-base leading-7 text-slate-600">Choose a purpose-built layout, then add your logo, colours, cover image, products, delivery choices, and pickup points. Your catalogue stays intact when the design changes.</p><a href="{{ route('waitlist.show') }}" class="mt-5 inline-flex text-sm font-semibold text-[#075643]">Reserve early access <span class="ml-2" aria-hidden="true">→</span></a></div>
                 </div>
 
                 <div class="landing-template-grid mt-10">
@@ -190,10 +190,10 @@
             </div>
         </section>
 
-        <section class="landing-final-cta text-white" data-reveal><div class="landing-final-cta__orb"></div><div class="mx-auto grid max-w-[1380px] gap-8 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_auto] lg:items-end lg:px-8"><div><p class="text-xs font-semibold uppercase tracking-[.16em] text-[#A9D4DE]">Your business is ready for its next chapter</p><h2 class="font-display mt-4 max-w-3xl text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Your next order could start here.</h2><p class="mt-4 max-w-xl text-base leading-7 text-white/65">Build the storefront, share one link, and manage everything that happens after a customer taps buy.</p></div><div class="flex flex-col gap-3 sm:flex-row lg:flex-col"><a href="{{ route('register') }}" class="landing-final-cta__primary">Start your 9-day free trial <span aria-hidden="true">→</span></a><a href="{{ route('pricing') }}" class="landing-final-cta__secondary">Explore pricing</a></div></div></section>
+        <section class="landing-final-cta text-white" data-reveal><div class="landing-final-cta__orb"></div><div class="mx-auto grid max-w-[1380px] gap-8 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_auto] lg:items-end lg:px-8"><div><p class="text-xs font-semibold uppercase tracking-[.16em] text-[#A9D4DE]">Your business is ready for its next chapter</p><h2 class="font-display mt-4 max-w-3xl text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Your next order could start here.</h2><p class="mt-4 max-w-xl text-base leading-7 text-white/65">Build the storefront, share one link, and manage everything that happens after a customer taps buy.</p></div><div class="flex flex-col gap-3 sm:flex-row lg:flex-col"><a href="{{ route('waitlist.show') }}" class="landing-final-cta__primary">Join the early-access list <span aria-hidden="true">→</span></a><a href="{{ route('pricing') }}" class="landing-final-cta__secondary">Explore pricing</a></div></div></section>
     </main>
 
-    <footer class="border-t border-white/10 bg-[#032B3A] text-slate-300"><div class="mx-auto grid max-w-[1380px] gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1fr_auto_auto] lg:px-8"><div><x-brand-logo :reversed="true" class="h-8 text-base" /><p class="mt-3 max-w-sm text-sm leading-6 text-slate-400">Practical commerce software for independent businesses.</p></div><div><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Product</p><div class="mt-3 space-y-2 text-sm"><a href="#platform" class="block hover:text-white">Platform</a><a href="{{ route('pricing') }}" class="block hover:text-white">Pricing</a><a href="{{ route('marketplace.sellers') }}" class="block hover:text-white">Marketplace</a><a href="{{ route('discover.index') }}" class="block hover:text-white">Discover</a><a href="{{ route('promoters.index') }}" class="block hover:text-white">Become a promoter</a></div></div><div><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Company</p><div class="mt-3 space-y-2 text-sm"><a href="{{ route('legal.privacy') }}" class="block hover:text-white">Privacy</a><a href="{{ route('legal.terms') }}" class="block hover:text-white">Terms</a><a href="{{ route('login') }}" class="block hover:text-white">Sign in</a></div></div></div><div class="mx-auto max-w-[1380px] border-t border-white/10 px-4 py-5 text-xs text-slate-500 sm:px-6 lg:px-8">© {{ now()->year }} 8Kommerce. All rights reserved.</div></footer>
+    <footer class="border-t border-white/10 bg-[#032B3A] text-slate-300"><div class="mx-auto grid max-w-[1380px] gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1fr_auto_auto] lg:px-8"><div><x-brand-logo :reversed="true" class="h-8 text-base" /><p class="mt-3 max-w-sm text-sm leading-6 text-slate-400">Practical commerce software for independent businesses.</p></div><div><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Product</p><div class="mt-3 space-y-2 text-sm"><a href="#platform" class="block hover:text-white">Platform</a><a href="{{ route('pricing') }}" class="block hover:text-white">Pricing</a><a href="{{ route('marketplace.sellers') }}" class="block hover:text-white">Marketplace</a><a href="{{ route('discover.index') }}" class="block hover:text-white">Discover</a><a href="{{ route('promoters.index') }}" class="block hover:text-white">Become a promoter</a></div></div><div><p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Company</p><div class="mt-3 space-y-2 text-sm"><a href="{{ route('legal.privacy') }}" class="block hover:text-white">Privacy</a><a href="{{ route('legal.terms') }}" class="block hover:text-white">Terms</a><a href="{{ route('seller.login') }}" class="block hover:text-white">Seller access</a></div></div></div><div class="mx-auto max-w-[1380px] border-t border-white/10 px-4 py-5 text-xs text-slate-500 sm:px-6 lg:px-8">© {{ now()->year }} 8Kommerce. All rights reserved.</div></footer>
     @include('components.page-loader')
 </body>
 </html>

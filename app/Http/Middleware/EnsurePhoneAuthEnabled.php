@@ -14,7 +14,7 @@ class EnsurePhoneAuthEnabled
             return $next($request);
         }
 
-        $fallback = $request->routeIs('register.*') ? route('register') : route('login');
+        $fallback = $request->routeIs('register.*') ? route('register') : route('seller.login');
 
         return redirect($fallback)->with('status', 'Phone auth is currently unavailable. Use email login/signup.');
     }

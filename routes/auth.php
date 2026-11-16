@@ -14,13 +14,21 @@ use App\Http\Controllers\Auth\PhoneSignupController;
 use App\Http\Controllers\Auth\PinSetupController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\WaitlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
+    Route::get('register', [WaitlistController::class, 'index'])
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [WaitlistController::class, 'store'])
+        ->middleware('throttle:5,60');
+
+    Route::get('early-access', [WaitlistController::class, 'index'])
+        ->name('waitlist.show');
+    Route::post('early-access', [WaitlistController::class, 'store'])
+        ->middleware('throttle:5,60')
+        ->name('waitlist.store');
 
     Route::post('register/phone/send', [PhoneSignupController::class, 'send'])
         ->middleware('phone_auth_enabled')
@@ -32,8 +40,11 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:auth-phone-verify')
         ->name('register.phone.complete');
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    Route::get('login', [WaitlistController::class, 'index'])
         ->name('login');
+
+    Route::get('seller-access', [AuthenticatedSessionController::class, 'create'])
+        ->name('seller.login');
 
     Route::post('login/phone/pin', [PhonePinLoginController::class, 'store'])
         ->middleware('phone_auth_enabled')

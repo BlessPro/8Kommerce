@@ -53,8 +53,8 @@ class SellerReferralTest extends TestCase
 
         $this->get(route('register'))
             ->assertOk()
-            ->assertSee('Seller invitation')
-            ->assertSee('Grace Store invited you');
+            ->assertSee('Grace Store')
+            ->assertSee('invited you to join the 8Kommerce early-access list');
     }
 
     public function test_verified_phone_signup_is_attributed_to_the_inviting_seller(): void

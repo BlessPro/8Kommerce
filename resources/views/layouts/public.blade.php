@@ -9,12 +9,12 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+        <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
 
         @php
-            $defaultOgImage = url('/images/8kommerce-social-preview-v1.jpg');
+            $defaultOgImage = url('/images/8kommerce-social-preview-v2.jpg');
             $ogTitle = trim($__env->yieldContent('og_title')) ?: $title ?? config('app.name', '8Kommerce');
             $ogDescription = trim($__env->yieldContent('og_description')) ?: 'Discover products and independent businesses selling with 8Kommerce.';
             $ogImage = trim($__env->yieldContent('og_image')) ?: $defaultOgImage;
@@ -56,9 +56,8 @@
         <header class="sticky top-0 z-40 border-b border-[#D5E1E4] bg-white/95">
             <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
             <a href="{{ url('/') }}" class="flex items-center gap-3">
-                <x-brand-mark class="h-9 w-auto" />
+                <x-brand-logo class="h-8 w-auto" />
                 <div>
-                    <p class="text-sm font-semibold leading-tight text-slate-950">8Kommerce</p>
                     <p class="text-xs text-slate-500">Secure social commerce</p>
                 </div>
             </a>
@@ -67,7 +66,7 @@
                 <a href="{{ route('discover.index') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 sm:inline-flex">Discover</a>
                 <a href="{{ route('pricing') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 sm:inline-flex">Pricing</a>
                 <a href="{{ route('legal.privacy') }}" class="hidden min-h-10 rounded-xl px-3 py-2.5 hover:bg-white hover:text-slate-950 md:inline-flex">Privacy</a>
-                <a href="{{ route('login') }}" class="inline-flex min-h-10 items-center rounded-xl border border-[#d8ddd6] bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:border-slate-400">Seller login</a>
+                <a href="{{ route('seller.login') }}" class="inline-flex min-h-10 items-center rounded-xl border border-[#d8ddd6] bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:border-slate-400">Seller login</a>
             </div>
             </div>
         </header>

@@ -2,5 +2,5 @@
 @section('code', '403')
 @section('title', 'You cannot open this page.')
 @section('message', 'This area is restricted to an account with the right access. Sign in with the correct account or return to your workspace.')
-@section('secondary_url', route('login'))
+@section('secondary_url', route('seller.login'))
 @section('secondary_label', 'Sign in')

@@ -8,9 +8,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+  <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -37,9 +37,8 @@
     <header class="sticky top-3 z-20 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-4 shadow-soft backdrop-blur md:px-6">
       <div class="flex items-center justify-between gap-4">
         <a href="{{ url('/') }}" class="flex items-center gap-3">
-          <x-brand-mark class="h-11 w-auto" />
+          <x-brand-logo class="h-8 w-auto" />
           <div>
-            <p class="font-display text-lg font-semibold leading-none text-[#073B4C]">8Kommerce</p>
             <p class="text-xs text-slate-500">Sellers Directory</p>
           </div>
         </a>

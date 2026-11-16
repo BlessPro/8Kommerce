@@ -11,11 +11,12 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_screen_can_be_rendered(): void
+    public function test_public_login_route_shows_the_waitlist_and_private_seller_access_still_works(): void
     {
         $response = $this->get('/login');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)->assertSee('Be first when the doors open');
+        $this->get(route('seller.login'))->assertOk()->assertSee('Welcome back');
     }
 
     public function test_users_can_authenticate_with_phone_and_pin(): void

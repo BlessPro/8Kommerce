@@ -12,7 +12,7 @@ class EnsurePromotionAccess
     {
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('login');
+            return redirect()->route('seller.login');
         }
 
         $user->startTrialIfMissing();

@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, follow">
     <meta name="theme-color" content="#073b4c">
     <title>Service status · {{ config('app.name', '8Kommerce') }}</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ asset('favicon.svg') }}?v=3" type="image/svg+xml">
     <style>
         :root {
             color-scheme: light;
@@ -25,7 +25,7 @@
         .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:44px; }
         .brand { display:flex; align-items:center; gap:11px; color:var(--brand); font-weight:800; letter-spacing:-.02em; text-decoration:none; }
         .mark { display:grid; width:36px; height:42px; place-items:center; }
-        .mark svg { width:31px; height:38px; }
+        .mark img { width:36px; height:36px; object-fit:contain; }
         .toplink { color:var(--muted); font-size:13px; font-weight:700; text-decoration:none; }
         .toplink:hover { color:var(--brand); }
         .summary { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:28px; margin-bottom:26px; }

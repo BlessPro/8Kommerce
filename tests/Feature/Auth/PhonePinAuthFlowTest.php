@@ -107,7 +107,7 @@ class PhonePinAuthFlowTest extends TestCase
             'otp' => '123456',
             'reset_pin' => '8642',
             'reset_pin_confirmation' => '8642',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('seller.login'));
 
         $user->refresh();
         $this->assertTrue(Hash::check('8642', (string) $user->pin_hash));
@@ -122,20 +122,20 @@ class PhonePinAuthFlowTest extends TestCase
             'phone_country' => '+233',
             'phone_number' => '0541900229',
             'pin' => '1234',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('seller.login'));
 
         $this->post(route('register.phone.send'), [
             'phone_country' => '+233',
             'phone_number' => '0541900229',
         ])->assertRedirect(route('register'));
 
-        $this->get(route('login'))
+        $this->get(route('seller.login'))
             ->assertStatus(200)
             ->assertDontSee('Email address')
             ->assertSee('business phone number');
 
         $this->get(route('register'))
             ->assertStatus(200)
-            ->assertSee('Phone signup is currently unavailable');
+            ->assertSee('Join the waitlist');
     }
 }
