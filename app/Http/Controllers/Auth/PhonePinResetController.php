@@ -150,7 +150,7 @@ class PhonePinResetController extends Controller
         $request->session()->forget(['pin_reset_pending_phone', 'pin_reset_pending_country']);
 
         return redirect()
-            ->route('login')
+            ->route('seller.login')
             ->with('status', 'PIN reset successful. Sign in with your new PIN.');
     }
 

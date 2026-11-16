@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/live',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn () => route('seller.login'));
         $middleware->preventRequestsDuringMaintenance(except: [
             '/up',
             '/live',

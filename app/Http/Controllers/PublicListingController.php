@@ -166,7 +166,7 @@ class PublicListingController extends Controller
         }
 
         // Last resort.
-        return url('/images/8kommerce-social-preview-v1.jpg');
+        return url('/images/8kommerce-social-preview-v2.jpg');
     }
 
     public function pay(

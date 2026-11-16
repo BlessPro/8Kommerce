@@ -16,9 +16,11 @@ class PromoterProfile extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'user_id', 'public_code', 'name', 'phone', 'city', 'channels', 'note',
-        'status', 'visits_count', 'conversions_count', 'conversion_amount', 'last_visited_at',
+        'user_id', 'public_code', 'name', 'phone', 'access_pin_hash', 'city', 'channels', 'note',
+        'status', 'visits_count', 'conversions_count', 'conversion_amount', 'last_visited_at', 'last_login_at',
     ];
+
+    protected $hidden = ['access_pin_hash'];
 
     protected function casts(): array
     {
@@ -26,6 +28,7 @@ class PromoterProfile extends Model
             'channels' => 'array',
             'conversion_amount' => 'decimal:2',
             'last_visited_at' => 'datetime',
+            'last_login_at' => 'datetime',
         ];
     }
 
@@ -37,5 +40,10 @@ class PromoterProfile extends Model
     public function conversions()
     {
         return $this->hasMany(PromoterConversion::class);
+    }
+
+    public function visits()
+    {
+        return $this->hasMany(PromoterVisit::class);
     }
 }

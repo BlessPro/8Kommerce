@@ -9,9 +9,9 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+        <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
 
         <title>{{ config('app.name', '8Kommerce') }}</title>
         <script>
@@ -203,9 +203,8 @@
         <div class="min-h-screen lg:flex">
             <aside class="js-desktop-sidebar hidden transition-[width] lg:fixed lg:left-0 lg:top-0 lg:z-30 lg:flex lg:h-screen lg:w-[232px] lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:border-r lg:border-[#D5E1E4] lg:bg-[#F9FBFB]">
                 <div class="js-sidebar-brand flex items-center gap-3 px-5 pb-4 pt-5">
-                    <x-brand-mark class="h-10 w-auto" />
+                    <x-brand-logo class="h-7 w-auto max-w-[150px]" />
                     <div class="js-sidebar-copy min-w-0">
-                        <p class="text-sm font-semibold tracking-tight text-slate-950">8Kommerce</p>
                         <p class="truncate text-xs text-slate-500">{{ $profile?->business_name ?? 'Seller workspace' }}</p>
                     </div>
                 </div>

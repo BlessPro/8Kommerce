@@ -15,7 +15,7 @@ class PinSetupController extends Controller
     {
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('login');
+            return redirect()->route('seller.login');
         }
 
         if ($user->pin_hash) {

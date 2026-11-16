@@ -13,7 +13,7 @@ class EnsureActiveAccess
     {
         $user = $request->user();
         if (! $user) {
-            return redirect()->route('login');
+            return redirect()->route('seller.login');
         }
 
         if ($user->isSuspended()) {
@@ -21,7 +21,7 @@ class EnsureActiveAccess
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors([
+            return redirect()->route('seller.login')->withErrors([
                 'email' => 'Your account is suspended. Contact support.',
             ]);
         }

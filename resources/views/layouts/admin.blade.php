@@ -9,9 +9,9 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+        <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
 
         <title>{{ config('app.name', '8Kommerce') }} Admin</title>
 
@@ -24,7 +24,7 @@
         <div class="min-h-screen lg:flex">
             <aside class="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:w-64 lg:flex-col lg:overflow-hidden lg:border-r lg:border-slate-200 lg:bg-white">
                 <div class="flex items-center gap-2 px-6 py-6">
-                    <x-brand-mark class="h-9 w-auto" />
+                    <x-brand-logo class="h-7 w-auto max-w-[145px]" />
                     <div>
                         <p class="text-xs uppercase tracking-widest text-slate-400">Admin</p>
                         <p class="text-base font-semibold text-slate-900">System view</p>
@@ -37,6 +37,7 @@
                     <a href="{{ route('admin.jobs.failed') }}" class="{{ request()->routeIs('admin.jobs.failed*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Failed jobs</a>
                     <a href="{{ route('admin.order-feedback.index') }}" class="{{ request()->routeIs('admin.order-feedback.*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Order appeals</a>
                     <a href="{{ route('admin.promotions.index') }}" class="{{ request()->routeIs('admin.promotions.*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Editorial</a>
+                    <a href="{{ route('admin.audience.index') }}" class="{{ request()->routeIs('admin.audience.*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Audience</a>
                     <a href="{{ route('admin.dashboard') }}#sellers" class="{{ request()->routeIs('admin.sellers.*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Sellers</a>
                     <a href="{{ route('admin.invoices.index') }}" class="{{ request()->routeIs('admin.invoices.*') ? 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-900 hover:text-white' }}">Invoices</a>
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">Seller dashboard</a>
@@ -70,6 +71,7 @@
                                     <a href="{{ route('admin.jobs.failed') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Failed jobs</a>
                                     <a href="{{ route('admin.order-feedback.index') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Order appeals</a>
                                     <a href="{{ route('admin.promotions.index') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Editorial</a>
+                                    <a href="{{ route('admin.audience.index') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Audience</a>
                                     <a href="{{ route('admin.dashboard') }}#sellers" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Sellers</a>
                                     <a href="{{ route('admin.invoices.index') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-900 hover:text-white">Invoices</a>
                                     <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700">Seller dashboard</a>

@@ -21,7 +21,7 @@ class OpenGraphMetadataTest extends TestCase
             ->assertSee('property="og:image:secure_url"', false)
             ->assertSee('property="og:image:type" content="image/jpeg"', false)
             ->assertSee('property="og:image:alt"', false)
-            ->assertSee('/images/8kommerce-social-preview-v1.jpg', false)
+            ->assertSee('/images/8kommerce-social-preview-v2.jpg', false)
             ->assertDontSee('PayLink');
     }
 
@@ -60,7 +60,7 @@ class OpenGraphMetadataTest extends TestCase
             $response->assertSee('/storage/og/products/'.$product->id.'-v5.jpg', false);
             Storage::disk('public')->assertExists('og/products/'.$product->id.'-v5.jpg');
         } else {
-            $response->assertSee('/images/8kommerce-social-preview-v1.jpg', false);
+            $response->assertSee('/images/8kommerce-social-preview-v2.jpg', false);
         }
     }
 }

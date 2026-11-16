@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminAudienceController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminOrderFeedbackController;
@@ -113,6 +114,10 @@ Route::get('/invite/{referralLink:code}', [SellerReferralController::class, 'acc
     ->name('referrals.accept');
 Route::get('/promoters', [PromoterController::class, 'index'])->name('promoters.index');
 Route::post('/promoters', [PromoterController::class, 'store'])->middleware('throttle:5,60')->name('promoters.store');
+Route::post('/promoters/login', [PromoterController::class, 'login'])->middleware('throttle:auth-phone-verify')->name('promoters.login');
+Route::post('/promoters/logout', [PromoterController::class, 'logout'])->name('promoters.logout');
+Route::post('/promoters/pin/send', [PromoterController::class, 'sendPinOtp'])->middleware('throttle:auth-phone-send')->name('promoters.pin.send');
+Route::post('/promoters/pin/complete', [PromoterController::class, 'completePinReset'])->middleware('throttle:auth-phone-verify')->name('promoters.pin.complete');
 Route::get('/promoter/{promoter:public_code}', [PromoterController::class, 'visit'])
     ->middleware('throttle:120,1')->name('promoters.visit');
 Route::get('/promoter/{promoter:public_code}/product/{product:slug}', [PromoterController::class, 'product'])
@@ -223,6 +228,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/audience', [AdminAudienceController::class, 'index'])->name('audience.index');
     Route::get('/payments/reconciliation', [AdminDashboardController::class, 'reconciliation'])->name('payments.reconciliation');
     Route::get('/payments/reconciliation/export', [AdminDashboardController::class, 'reconciliationExport'])->name('payments.reconciliation.export');
     Route::post('/payments/reconciliation/bulk-retry', [AdminDashboardController::class, 'bulkRetryReconciliation'])

@@ -9,9 +9,9 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <link rel="manifest" href="/manifest.webmanifest">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+        <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" sizes="180x180">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
