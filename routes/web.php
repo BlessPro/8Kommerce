@@ -13,6 +13,7 @@ use App\Http\Controllers\CustomerOrderHubController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscoverController;
 use App\Http\Controllers\GoalsTargetController;
+use App\Http\Controllers\FulfillmentQuoteController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InsightsController;
 use App\Http\Controllers\InvoiceController;
@@ -88,6 +89,8 @@ Route::delete('/s/{public_slug}/products/{product}/cart', [PublicListingControll
 Route::post('/s/{public_slug}/cart/checkout', [PublicListingController::class, 'checkoutCart'])
     ->middleware('throttle:public-checkout')
     ->name('public.cart.checkout');
+Route::get('/delivery-quotes/{token}', [FulfillmentQuoteController::class, 'show'])->middleware('throttle:60,1')->name('fulfillment-quotes.show');
+Route::post('/delivery-quotes/{token}/pay', [FulfillmentQuoteController::class, 'pay'])->middleware('throttle:public-pay')->name('fulfillment-quotes.pay');
 Route::get('/orders/track', [PublicOrderTrackingController::class, 'show'])->name('public.orders.track');
 Route::get('/track', [CustomerOrderHubController::class, 'login'])->name('customer.orders.login');
 Route::post('/track/verify', [CustomerOrderHubController::class, 'verify'])->middleware('throttle:10,1')->name('customer.orders.verify');
@@ -169,6 +172,8 @@ Route::middleware(['auth', 'active_access'])->group(function () {
 
         Route::middleware('promotion_access')->group(function () {
             Route::get('/products/orders', [ProductController::class, 'orders'])->name('products.orders');
+            Route::patch('/delivery-quotes/{quote}', [FulfillmentQuoteController::class, 'update'])->name('fulfillment-quotes.update');
+            Route::post('/delivery-quotes/{quote}/reject', [FulfillmentQuoteController::class, 'reject'])->name('fulfillment-quotes.reject');
             Route::resource('products', ProductController::class)->except(['show']);
             Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
             Route::post('/product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');

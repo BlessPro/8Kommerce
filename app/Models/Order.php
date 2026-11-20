@@ -49,6 +49,10 @@ class Order extends Model
 
     public const FULFILLMENT_SERVICE = 'service';
 
+    public const FULFILLMENT_ROUTE = 'route';
+
+    public const FULFILLMENT_RIDER_DIRECT = 'rider_direct';
+
     public const REFUND_REQUESTED = 'REQUESTED';
 
     public const REFUND_PROCESSING = 'PROCESSING';
@@ -79,6 +83,9 @@ class Order extends Model
         'fulfillment_fee',
         'fulfillment_details',
         'delivery_note',
+        'fulfillment_meta',
+        'collection_code_hash',
+        'collection_verified_at',
         'delivery_failure_reason',
         'subtotal',
         'coupon_code',
@@ -102,6 +109,8 @@ class Order extends Model
     {
         return [
             'delivery_required' => 'boolean',
+            'fulfillment_meta' => 'array',
+            'collection_verified_at' => 'datetime',
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'fulfillment_fee' => 'decimal:2',

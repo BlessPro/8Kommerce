@@ -1,5 +1,13 @@
 # 8Kommerce
 
+> New to the project? Start with the
+> [8Kommerce Project Handbook](./docs/PROJECT_HANDBOOK.md) for the product idea,
+> user journeys, architecture, security, testing, CI/CD, deployment, operations,
+> and a guided learning path through the codebase.
+>
+> Portfolio and founder story: [8Kommerce Case Study](./docs/8KOMMERCE_CASE_STUDY.md)
+> and [Publishing Kit](./docs/8KOMMERCE_CASE_STUDY_PUBLISHING_KIT.md).
+
 8Kommerce is a WhatsApp-first payment facilitation platform for sellers. It lets sellers create public mini listing pages with Pay Now buttons, generate one-time invoice links that accept full or partial payments, and track payments and notifications in a clean dashboard. The platform uses a single Paystack account and creates subaccounts for each seller so payouts are routed automatically with a platform fee deducted.
 
 ## What the app does

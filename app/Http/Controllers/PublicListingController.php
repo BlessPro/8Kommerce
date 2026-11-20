@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\InventoryUnavailableException;
 use App\Models\AnalyticsEvent;
+use App\Models\FulfillmentQuote;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -239,6 +240,16 @@ class PublicListingController extends Controller
             'product',
             (string) $product->id
         );
+
+        if ($fulfillment['requires_quote']) {
+            return $this->createFulfillmentQuote($profile, $validated, $fulfillment, $phone, [[
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'quantity' => 1,
+                'unit_price' => (string) $product->price,
+                'line_total' => (string) $product->price,
+            ]], (string) $product->price);
+        }
         $analytics->trackEvent(
             $request,
             $profile->user_id,
@@ -252,7 +263,7 @@ class PublicListingController extends Controller
             'reference' => $reference,
             'status' => Order::STATUS_PENDING_PAYMENT,
             'payment_status' => Payment::STATUS_PENDING,
-            'customer_name' => null,
+            'customer_name' => $validated['customer_name'] ?? null,
             'customer_phone' => $phone,
             'customer_location' => $location !== '' ? $location : null,
             'delivery_required' => $deliveryRequired,
@@ -261,6 +272,7 @@ class PublicListingController extends Controller
             'fulfillment_label' => $fulfillment['label'],
             'fulfillment_fee' => $fulfillmentFee,
             'fulfillment_details' => $fulfillment['details'],
+            'fulfillment_meta' => $this->fulfillmentMeta($validated, $fulfillment),
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => (string) $product->price,
             'coupon_code' => null,
@@ -538,6 +550,23 @@ class PublicListingController extends Controller
             (string) $profile->id
         );
 
+        if ($fulfillment['requires_quote']) {
+            return $this->createFulfillmentQuote(
+                $profile,
+                $validated,
+                $fulfillment,
+                $phone,
+                $cart['items']->map(fn (array $row) => [
+                    'product_id' => $row['product']->id,
+                    'name' => $row['product']->name,
+                    'quantity' => $row['quantity'],
+                    'unit_price' => $row['unit_price'],
+                    'line_total' => $row['line_total'],
+                ])->values()->all(),
+                $subtotal
+            );
+        }
+
         $reference = (string) Str::uuid();
         $email = Email::placeholder($reference);
         $promoterId = app(PromoterAttributionService::class)->currentId($request);
@@ -547,7 +576,7 @@ class PublicListingController extends Controller
             'reference' => $reference,
             'status' => Order::STATUS_PENDING_PAYMENT,
             'payment_status' => Payment::STATUS_PENDING,
-            'customer_name' => null,
+            'customer_name' => $validated['customer_name'] ?? null,
             'customer_phone' => $phone,
             'customer_location' => $location !== '' ? $location : null,
             'delivery_required' => $deliveryRequired,
@@ -556,6 +585,7 @@ class PublicListingController extends Controller
             'fulfillment_label' => $fulfillment['label'],
             'fulfillment_fee' => $fulfillmentFee,
             'fulfillment_details' => $fulfillment['details'],
+            'fulfillment_meta' => $this->fulfillmentMeta($validated, $fulfillment),
             'delivery_note' => $note !== '' ? $note : null,
             'subtotal' => $subtotal,
             'coupon_code' => $couponCode,
@@ -677,6 +707,13 @@ class PublicListingController extends Controller
         $request->validate([
             'name' => ['nullable', 'string', 'max:120'],
             'location' => ['nullable', 'string', 'max:160'],
+            'customer_name' => ['nullable', 'string', 'max:120'],
+            'pickup_by' => ['nullable', 'string', 'in:self,representative'],
+            'representative_name' => ['nullable', 'string', 'max:120'],
+            'representative_phone' => ['nullable', 'string', 'max:25'],
+            'landmark' => ['nullable', 'string', 'max:160'],
+            'gps_location' => ['nullable', 'url', 'max:255'],
+            'popular_stop' => ['nullable', 'string', 'max:160'],
             'phone_number' => ['nullable', 'string', 'max:50'],
             'note' => ['nullable', 'string', 'max:500'],
         ]);
@@ -866,15 +903,32 @@ class PublicListingController extends Controller
     {
         $customerLocation = trim((string) ($validated['location'] ?? ''));
         $options = collect($profile->resolvedFulfillmentOptions())->mapWithKeys(function (array $option) use ($customerLocation) {
-            $deliveryRequired = $option['type'] === 'delivery';
+            $deliveryRequired = in_array($option['type'], ['delivery', 'rider_direct', 'delivery_quote'], true);
+            $type = match ($option['type']) {
+                'pickup' => Order::FULFILLMENT_PICKUP,
+                'route' => Order::FULFILLMENT_ROUTE,
+                'rider_direct' => Order::FULFILLMENT_RIDER_DIRECT,
+                default => Order::FULFILLMENT_DELIVERY,
+            };
+            $prefix = match ($option['type']) {
+                'pickup' => 'Pickup station: ',
+                'route' => 'Route: ',
+                'rider_direct' => 'Rider delivery: ',
+                'delivery_quote' => 'Delivery quote: ',
+                default => 'Delivery area: ',
+            };
 
             return [$option['key'] => [
-                'type' => $deliveryRequired ? Order::FULFILLMENT_DELIVERY : Order::FULFILLMENT_PICKUP,
-                'label' => ($deliveryRequired ? 'Delivery area: ' : 'Pickup station: ').$option['label'],
-                'fee' => $option['fee'],
+                'type' => $type,
+                'option_type' => $option['type'],
+                'label' => $prefix.$option['label'],
+                'fee' => in_array($option['type'], ['rider_direct', 'delivery_quote'], true) ? '0.00' : $option['fee'],
                 'details' => $option['details'] ?? null,
-                'location' => $deliveryRequired ? ($customerLocation ?: null) : $option['label'],
+                'location' => $deliveryRequired ? ($customerLocation ?: null) : ($option['destination'] ?? $option['label']),
                 'delivery_required' => $deliveryRequired,
+                'requires_quote' => $option['type'] === 'delivery_quote',
+                'origin' => $option['origin'] ?? null,
+                'destination' => $option['destination'] ?? null,
             ]];
         })->all();
 
@@ -896,7 +950,64 @@ class PublicListingController extends Controller
             ]);
         }
 
+        if (($options[$method]['option_type'] ?? null) === 'pickup'
+            && ($validated['pickup_by'] ?? 'self') === 'representative'
+            && (blank($validated['representative_name'] ?? null) || ! Phone::isValidGh((string) ($validated['representative_phone'] ?? '')))) {
+            throw ValidationException::withMessages([
+                'representative_name' => 'Enter the name and valid Ghana phone number of the person collecting your order.',
+            ]);
+        }
+
         return ['method' => $method, ...$options[$method]];
+    }
+
+    private function fulfillmentMeta(array $validated, array $fulfillment): array
+    {
+        return array_filter([
+            'option_type' => $fulfillment['option_type'] ?? null,
+            'pickup_by' => $validated['pickup_by'] ?? null,
+            'representative_name' => $validated['representative_name'] ?? null,
+            'representative_phone' => isset($validated['representative_phone']) ? Phone::normalize((string) $validated['representative_phone'], '+233') : null,
+            'landmark' => $validated['landmark'] ?? null,
+            'gps_location' => $validated['gps_location'] ?? null,
+            'popular_stop' => $validated['popular_stop'] ?? null,
+            'origin' => $fulfillment['origin'] ?? null,
+            'destination' => $fulfillment['destination'] ?? null,
+            'rider_payment' => ($fulfillment['option_type'] ?? null) === 'rider_direct' ? 'customer_pays_rider' : null,
+        ], fn ($value) => $value !== null && $value !== '');
+    }
+
+    private function createFulfillmentQuote(SellerProfile $profile, array $validated, array $fulfillment, string $phone, array $items, string $subtotal)
+    {
+        $quote = FulfillmentQuote::create([
+            'user_id' => $profile->user_id,
+            'public_token' => Str::random(64),
+            'status' => FulfillmentQuote::STATUS_REQUESTED,
+            'customer_name' => $validated['customer_name'] ?? null,
+            'customer_phone' => $phone,
+            'location' => trim((string) ($validated['location'] ?? '')),
+            'landmark' => $validated['landmark'] ?? null,
+            'gps_location' => $validated['gps_location'] ?? null,
+            'popular_stop' => $validated['popular_stop'] ?? null,
+            'fulfillment_method' => $fulfillment['method'],
+            'fulfillment_label' => $fulfillment['label'],
+            'fulfillment_details' => $fulfillment['details'],
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'currency' => config('services.paystack.currency', 'GHS'),
+            'customer_note' => $validated['note'] ?? null,
+        ]);
+
+        app(SellerNotifier::class)->notify(
+            $profile->user,
+            SellerNotification::TYPE_LEAD_CAPTURED,
+            'Delivery quote requested',
+            'A customer is waiting for a rider delivery price to '.$quote->location.'.',
+            ['fulfillment_quote_id' => $quote->id, 'customer_phone' => $phone]
+        );
+
+        return redirect()->route('fulfillment-quotes.show', $quote->public_token)
+            ->with('status', 'Your request has been sent. The seller will add the rider price before you pay.');
     }
 
     private function acquireIdempotencyKey(Request $request, string $scope, string $key): bool

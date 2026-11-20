@@ -13,7 +13,7 @@
         <div class="storefront-checkout-fulfillment-grid">
             @foreach($fulfillmentOptions as $option)
                 <label>
-                    <input type="radio" name="fulfillment_method" value="{{ $option['key'] }}" data-fulfillment-fee="{{ $option['fee'] }}" data-fulfillment-type="{{ $option['type'] }}" data-fulfillment-label="{{ $option['label'] }}" data-requires-address="{{ $option['type'] === 'delivery' ? '1' : '0' }}" @checked($selectedFulfillment === $option['key']) required>
+                    <input type="radio" name="fulfillment_method" value="{{ $option['key'] }}" data-fulfillment-fee="{{ $option['fee'] }}" data-fulfillment-type="{{ $option['type'] }}" data-fulfillment-label="{{ $option['label'] }}" data-requires-address="{{ in_array($option['type'], ['delivery', 'rider_direct', 'delivery_quote'], true) ? '1' : '0' }}" data-requires-quote="{{ $option['type'] === 'delivery_quote' ? '1' : '0' }}" @checked($selectedFulfillment === $option['key']) required>
                     <span class="storefront-checkout-fulfillment-icon" aria-hidden="true">
                         @if($option['type'] === 'delivery')
                             <svg viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
@@ -21,8 +21,8 @@
                             <svg viewBox="0 0 24 24"><path d="M4 9h16v11H4zM2 5h20v4H2zM9 13h6M12 9v11"/></svg>
                         @endif
                     </span>
-                    <span class="storefront-checkout-fulfillment-copy"><strong>{{ $option['type'] === 'pickup' ? 'Pickup station' : 'Delivery area' }}</strong><small>{{ $option['label'] }}</small>@if($option['details'])<em>{{ $option['details'] }}</em>@endif</span>
-                    <b>{{ (float) $option['fee'] > 0 ? \App\Support\Money::format($option['fee'], $currency) : 'Free' }}</b>
+                    <span class="storefront-checkout-fulfillment-copy"><strong>{{ match($option['type']) { 'pickup' => 'Pickup station', 'rider_direct' => 'Pay rider directly', 'delivery_quote' => 'Request delivery quote', 'route' => 'Station route', default => 'Delivery area' } }}</strong><small>{{ $option['type'] === 'route' && $option['origin'] && $option['destination'] ? $option['origin'].' → '.$option['destination'] : $option['label'] }}</small>@if($option['details'])<em>{{ $option['details'] }}</em>@endif</span>
+                    <b>{{ $option['type'] === 'delivery_quote' ? 'Quoted later' : ($option['type'] === 'rider_direct' ? 'Pay rider' : ((float) $option['fee'] > 0 ? \App\Support\Money::format($option['fee'], $currency) : 'Free')) }}</b>
                 </label>
             @endforeach
         </div>
@@ -33,6 +33,16 @@
         </div>
         <p class="storefront-checkout-selection" data-fulfillment-selection>{{ ($selectedOption['type'] ?? null) === 'pickup' ? 'Pickup from' : 'Delivering within' }} <strong>{{ $selectedOption['label'] ?? '' }}</strong></p>
         @error('fulfillment_method') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+        <div class="mt-4 grid gap-3 sm:grid-cols-2" data-fulfillment-extra>
+            <div><label class="text-xs font-semibold">Your name</label><input name="customer_name" value="{{ old('customer_name') }}" maxlength="120" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="Name for this order"></div>
+            <div data-pickup-person hidden><label class="text-xs font-semibold">Who will collect?</label><select name="pickup_by" class="mt-1 w-full rounded-lg border-slate-300 text-sm"><option value="self">I will collect it</option><option value="representative" @selected(old('pickup_by') === 'representative')>Someone else</option></select></div>
+            <div data-representative hidden><label class="text-xs font-semibold">Collector name</label><input name="representative_name" value="{{ old('representative_name') }}" maxlength="120" class="mt-1 w-full rounded-lg border-slate-300 text-sm"></div>
+            <div data-representative hidden><label class="text-xs font-semibold">Collector phone</label><input name="representative_phone" value="{{ old('representative_phone') }}" inputmode="tel" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="054 000 0000"></div>
+            <div data-delivery-detail hidden><label class="text-xs font-semibold">Landmark</label><input name="landmark" value="{{ old('landmark') }}" maxlength="160" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="Nearest landmark"></div>
+            <div data-delivery-detail hidden><label class="text-xs font-semibold">Popular stop <span class="font-normal text-slate-500">(optional)</span></label><input name="popular_stop" value="{{ old('popular_stop') }}" maxlength="160" class="mt-1 w-full rounded-lg border-slate-300 text-sm"></div>
+            <div class="sm:col-span-2" data-delivery-detail hidden><label class="text-xs font-semibold">Google Maps or GPS link <span class="font-normal text-slate-500">(optional)</span></label><input name="gps_location" value="{{ old('gps_location') }}" type="url" maxlength="255" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="https://maps.google.com/..."></div>
+        </div>
+        @error('representative_name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
     </fieldset>
 @else
     <div class="storefront-checkout-fulfillment-empty sm:col-span-full" role="note">
@@ -54,6 +64,10 @@
                 const feeOutput = group.querySelector('[data-fulfillment-fee]');
                 const totalOutput = group.querySelector('[data-fulfillment-total]');
                 const selectionOutput = group.querySelector('[data-fulfillment-selection]');
+                const pickupPerson = group.querySelector('[data-pickup-person]');
+                const representative = group.querySelectorAll('[data-representative]');
+                const deliveryDetails = group.querySelectorAll('[data-delivery-detail]');
+                const pickupSelect = group.querySelector('select[name="pickup_by"]');
 
                 function formatAmount(amount) {
                     return (group.dataset.currency || 'GHS') + ' ' + Number(amount || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -74,9 +88,12 @@
                         const subtotal = Number(group.dataset.baseTotal || 0);
                         const total = subtotal + fee;
                         const type = selected.dataset.fulfillmentType || 'delivery';
+                        if (pickupPerson) pickupPerson.hidden = type !== 'pickup';
+                        representative.forEach((element) => { element.hidden = type !== 'pickup' || pickupSelect?.value !== 'representative'; });
+                        deliveryDetails.forEach((element) => { element.hidden = !requiresAddress; });
                         if (subtotalOutput) subtotalOutput.textContent = formatAmount(subtotal);
                         if (feeLabel) feeLabel.textContent = type === 'pickup' ? 'Pickup fee' : 'Delivery fee';
-                        if (feeOutput) feeOutput.textContent = fee > 0 ? formatAmount(fee) : 'Free';
+                        if (feeOutput) feeOutput.textContent = selected.dataset.requiresQuote === '1' ? 'Quoted after review' : (type === 'rider_direct' ? 'Paid to rider' : (fee > 0 ? formatAmount(fee) : 'Free'));
                         if (totalOutput) totalOutput.textContent = formatAmount(total);
                         if (selectionOutput) {
                             selectionOutput.textContent = type === 'pickup' ? 'Pickup from ' : 'Delivering within ';
@@ -87,8 +104,8 @@
                     }
                     if (button && selected) {
                         const total = Number(group.dataset.baseTotal || 0) + Number(selected.dataset.fulfillmentFee || 0);
-                        const prefix = button.dataset.cartCheckoutPrefix || button.dataset.payLabel || 'Pay now';
-                        button.textContent = prefix.replace(/\s*[·•]\s*$/, '') + ' · ' + formatAmount(total);
+                        const prefix = selected.dataset.requiresQuote === '1' ? 'Request delivery quote' : (button.dataset.cartCheckoutPrefix || button.dataset.payLabel || 'Pay now');
+                        button.textContent = selected.dataset.requiresQuote === '1' ? prefix : prefix.replace(/\s*[·•]\s*$/, '') + ' · ' + formatAmount(total);
                     }
                 }
 
@@ -96,6 +113,7 @@
                 group.querySelectorAll('input[name="fulfillment_method"]').forEach(function (control) {
                     control.addEventListener('change', syncFulfillment);
                 });
+                pickupSelect?.addEventListener('change', syncFulfillment);
                 syncFulfillment();
             });
         });

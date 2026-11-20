@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\FulfillmentQuote;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -224,5 +225,45 @@ class PublicCheckoutSmokeTest extends TestCase
             ->assertSee('Total due now')
             ->assertSee('Delivery address')
             ->assertSee('data-fulfillment-total', false);
+    }
+
+    public function test_delivery_quote_request_waits_for_seller_price_before_creating_an_order(): void
+    {
+        $seller = User::factory()->create(['plan_type' => User::PLAN_FREE_TRIAL]);
+        $profile = SellerProfile::create([
+            'user_id' => $seller->id,
+            'business_name' => 'Quoted Rider Shop',
+            'public_slug' => 'quoted-rider-shop',
+            'paystack_subaccount_code' => 'ACCT_quote',
+            'storefront_settings' => ['fulfillment_options' => [[
+                'type' => 'delivery_quote', 'label' => 'Seller-arranged rider', 'fee' => '0.00',
+            ]]],
+        ]);
+        $product = Product::create([
+            'user_id' => $seller->id, 'name' => 'Quote Product', 'price' => '75.00',
+            'is_active' => true, 'status' => Product::STATUS_IN_STOCK,
+            'stock_quantity' => 4, 'low_stock_threshold' => 1,
+        ]);
+        Session::put('public_cart:'.$profile->public_slug, [
+            $product->id => ['product_id' => $product->id, 'quantity' => 1],
+        ]);
+
+        $response = $this->post(route('public.cart.checkout', $profile->public_slug), [
+            'customer_name' => 'Ama Customer',
+            'phone_number' => '0541900229',
+            'phone_country' => '+233',
+            'fulfillment_method' => 'option_0',
+            'location' => 'East Legon Hills',
+            'landmark' => 'Police station',
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        $quote = FulfillmentQuote::query()->firstOrFail();
+        $response->assertRedirect(route('fulfillment-quotes.show', $quote->public_token));
+        $this->assertSame(FulfillmentQuote::STATUS_REQUESTED, $quote->status);
+        $this->assertSame('75.00', (string) $quote->subtotal);
+        $this->assertSame('East Legon Hills', $quote->location);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('payments', 0);
     }
 }
