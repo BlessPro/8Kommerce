@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateProductRequest;
 use App\Models\AnalyticsEvent;
+use App\Models\FulfillmentQuote;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -51,6 +52,7 @@ class ProductController extends Controller
             ->sum(fn (string $status) => (int) ($orderCounts[$status] ?? 0));
 
         return view('dashboard.products.orders', [
+            'deliveryQuotes' => FulfillmentQuote::query()->where('user_id', $user->id)->whereIn('status', [FulfillmentQuote::STATUS_REQUESTED, FulfillmentQuote::STATUS_QUOTED])->latest()->get(),
             'ordersByCustomer' => $this->buildOrdersByCustomer(
                 $user->id,
                 $filter === 'all' ? null : $filterStatuses[$filter]

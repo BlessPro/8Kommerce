@@ -139,7 +139,7 @@ class SellerProfile extends Model
         $stored = is_array($this->storefront_settings) ? $this->storefront_settings : [];
         if (array_key_exists('fulfillment_options', $stored)) {
             return collect($stored['fulfillment_options'] ?? [])
-                ->filter(fn ($option) => is_array($option) && in_array($option['type'] ?? null, ['pickup', 'delivery'], true))
+                ->filter(fn ($option) => is_array($option) && in_array($option['type'] ?? null, ['pickup', 'delivery', 'rider_direct', 'delivery_quote', 'route'], true))
                 ->values()
                 ->map(fn (array $option, int $index) => [
                     'key' => 'option_'.$index,
@@ -147,6 +147,8 @@ class SellerProfile extends Model
                     'label' => trim((string) ($option['label'] ?? '')),
                     'fee' => number_format(max(0, (float) ($option['fee'] ?? 0)), 2, '.', ''),
                     'details' => trim((string) ($option['details'] ?? '')) ?: null,
+                    'origin' => trim((string) ($option['origin'] ?? '')) ?: null,
+                    'destination' => trim((string) ($option['destination'] ?? '')) ?: null,
                 ])
                 ->filter(fn (array $option) => $option['label'] !== '')
                 ->values()

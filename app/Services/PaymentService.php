@@ -6,6 +6,7 @@ use App\Exceptions\InventoryUnavailableException;
 use App\Jobs\SendOutboundMessage;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
+use App\Models\FulfillmentQuote;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\Order;
@@ -83,6 +84,14 @@ class PaymentService
                 $payment->transaction_code = $this->resolveTransactionCode($payment, $verifiedData);
                 $payment->transaction_id = $this->resolveTransactionId($payment, $verifiedData);
                 $payment->save();
+
+                $quoteId = data_get($payment->raw_payload, 'fulfillment_quote_id');
+                if ($quoteId) {
+                    FulfillmentQuote::query()->whereKey($quoteId)->update([
+                        'status' => FulfillmentQuote::STATUS_PAID,
+                        'paid_at' => $payment->paid_at ?? now(),
+                    ]);
+                }
 
                 app(PromoterAttributionService::class)->recordConversion($payment);
 

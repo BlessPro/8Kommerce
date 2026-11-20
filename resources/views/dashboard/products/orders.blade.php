@@ -28,6 +28,32 @@
     @endif
     @if($errors->has('order_ids'))<x-ui.alert tone="danger" class="mt-5">{{ $errors->first('order_ids') }}</x-ui.alert>@endif
 
+    @if($deliveryQuotes->isNotEmpty())
+        <section class="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-5" aria-labelledby="delivery-quotes-heading">
+            <div class="flex items-start justify-between gap-4"><div><p class="lp-eyebrow text-amber-800">Rider delivery</p><h2 id="delivery-quotes-heading" class="mt-1 text-lg font-semibold text-slate-950">Delivery prices to confirm</h2><p class="mt-1 text-sm text-slate-600">Check the rider price, add it here, then the customer receives a secure payment link.</p></div><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">{{ $deliveryQuotes->where('status', 'REQUESTED')->count() }} waiting</span></div>
+            <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                @foreach($deliveryQuotes as $quote)
+                    <article class="rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="flex justify-between gap-3"><div><strong class="text-sm text-slate-950">{{ $quote->customer_name ?: 'Customer' }}</strong><p class="text-xs text-slate-500">{{ $quote->customer_phone }} · {{ $quote->location }}</p></div><span class="text-xs font-semibold {{ $quote->status === 'REQUESTED' ? 'text-amber-700' : 'text-emerald-700' }}">{{ str($quote->status)->headline() }}</span></div>
+                        <p class="mt-3 text-sm text-slate-700">{{ collect($quote->items)->map(fn($item) => $item['name'].' ×'.$item['quantity'])->implode(', ') }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Landmark: {{ $quote->landmark ?: 'Not supplied' }} @if($quote->popular_stop) · Stop: {{ $quote->popular_stop }} @endif</p>
+                        @if($quote->status === 'REQUESTED')
+                            <form method="POST" action="{{ route('fulfillment-quotes.update', $quote) }}" class="mt-4 grid gap-3 sm:grid-cols-2">@csrf @method('PATCH')
+                                <label class="text-xs font-semibold text-slate-700">Rider fee (GH₵)<input name="delivery_fee" type="number" min="0" step="0.01" required class="mt-1 w-full rounded-lg border-slate-300 text-sm"></label>
+                                <label class="text-xs font-semibold text-slate-700">Link valid for<select name="valid_hours" class="mt-1 w-full rounded-lg border-slate-300 text-sm"><option value="12">12 hours</option><option value="24" selected>24 hours</option><option value="48">48 hours</option></select></label>
+                                <label class="sm:col-span-2 text-xs font-semibold text-slate-700">Note to customer<input name="seller_note" maxlength="500" class="mt-1 w-full rounded-lg border-slate-300 text-sm" placeholder="Rider ETA or useful instructions"></label>
+                                <div class="sm:col-span-2"><x-ui.button type="submit" size="sm" variant="success">Send price</x-ui.button></div>
+                            </form>
+                            <form method="POST" action="{{ route('fulfillment-quotes.reject', $quote) }}" class="mt-2">@csrf<x-ui.button type="submit" size="sm" variant="danger">Cannot deliver</x-ui.button></form>
+                        @else
+                            <p class="mt-3 text-sm font-semibold text-emerald-800">{{ \App\Support\Money::format($quote->delivery_fee, $quote->currency) }} sent · expires {{ $quote->expires_at?->diffForHumans() }}</p>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <section class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Order overview">
         @foreach($orderFilters as $key => $item)
             <a

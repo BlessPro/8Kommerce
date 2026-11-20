@@ -75,6 +75,8 @@ class SellerProfileController extends Controller
                 'label' => trim($option['label']),
                 'fee' => number_format((float) $option['fee'], 2, '.', ''),
                 'details' => filled($option['details'] ?? null) ? trim((string) $option['details']) : null,
+                'origin' => filled($option['origin'] ?? null) ? trim((string) $option['origin']) : null,
+                'destination' => filled($option['destination'] ?? null) ? trim((string) $option['destination']) : null,
             ])
             ->values()
             ->all();

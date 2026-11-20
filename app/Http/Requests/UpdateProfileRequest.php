@@ -35,10 +35,12 @@ class UpdateProfileRequest extends FormRequest
             'password' => ['nullable', Password::defaults(), 'confirmed'],
             'password_confirmation' => ['nullable', 'string'],
             'fulfillment_options' => ['nullable', 'array', 'max:20'],
-            'fulfillment_options.*.type' => ['required', 'string', Rule::in(['pickup', 'delivery'])],
+            'fulfillment_options.*.type' => ['required', 'string', Rule::in(['pickup', 'delivery', 'rider_direct', 'delivery_quote', 'route'])],
             'fulfillment_options.*.label' => ['required', 'string', 'max:160'],
             'fulfillment_options.*.fee' => ['required', 'numeric', 'min:0', 'max:100000'],
             'fulfillment_options.*.details' => ['nullable', 'string', 'max:180'],
+            'fulfillment_options.*.origin' => ['nullable', 'string', 'max:160'],
+            'fulfillment_options.*.destination' => ['nullable', 'string', 'max:160'],
         ];
     }
 
